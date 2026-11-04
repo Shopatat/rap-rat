@@ -248,27 +248,23 @@
 
   // ---------- bites ----------
   function shapeTemplate() {
-    // the rat's bite, as in the first version: one or two lobes, each a cluster of tooth marks
-    // of uneven size; on top of that, the outer edge of every mark is softly rippled with
-    // little waves of mixed sizes, so no two bites look alike
-    const out = [], lobes = Math.random() < .45 ? 2 : 1;
-    for (let l = 0; l < lobes; l++) {
-      const along = lobes === 2 ? (l - .5) * .95 : 0, depth = (Math.random() - .5) * .22;
-      const lr = lobes === 2 ? .78 + Math.random() * .15 : 1;
-      out.push({ u: along, v: depth, r: .72 * lr });
-      const k = 10 + Math.floor(Math.random() * 4);
+    // the rat's bite, as on the show: one or two big round marks (two are fused, with a small notch
+    // where they meet), centred on the edge, the whole outline cut into small fine teeth;
+    // a pair can lie along the edge or lean across it
+    const out = [], pair = Math.random() < .65;
+    const tilt = Math.random() < .6 ? rnd(-.3, .3) : rnd(-.9, .9);
+    const ct = Math.cos(tilt), st = Math.sin(tilt);
+    const L0 = pair ? rnd(.78, .9) : rnd(1, 1.15), L1 = L0 * rnd(.85, 1.15);
+    const sp = (L0 + L1) * rnd(.55, .64);                   // centres close enough to fuse into one bite
+    const lobes = pair ? [[-sp / 2, L0], [sp / 2, L1]] : [[0, L0]];
+    for (const [p, L] of lobes) {
+      const along = p * ct, depth = p * st;
+      out.push({ u: along, v: depth, r: L * .93 });
+      const k = 22 + Math.floor(Math.random() * 7), phase = rnd(0, TAU);
       for (let i = 0; i < k; i++) {
-        const a = i / k * TAU + Math.random() * .35, d = (.55 + Math.random() * .12) * lr;
-        const bu = along + Math.cos(a) * d, bv = depth + Math.sin(a) * d, br = (.26 + Math.random() * .1) * lr;
-        out.push({ u: bu, v: bv, r: br });
-        // little ripples along the outer arc of this tooth mark
-        const n = 3 + Math.floor(Math.random() * 3);
-        for (let j = 0; j < n; j++) {
-          const t = a + (j / (n - 1) - .5) * rnd(1.6, 2.2) + rnd(-.12, .12);
-          const rr = br * rnd(.18, .32);
-          const dd = br - rr * rnd(.35, .7);
-          out.push({ u: bu + Math.cos(t) * dd, v: bv + Math.sin(t) * dd, r: rr });
-        }
+        const rb = L * rnd(.085, .115);
+        const a = phase + (i + rnd(-.15, .15)) / k * TAU, d = L - rb * rnd(.45, .65);
+        out.push({ u: along + Math.cos(a) * d, v: depth + Math.sin(a) * d, r: rb });
       }
     }
     return out;
@@ -354,8 +350,8 @@
     const e = pickEdge(); if (!e) return;
     // bite size is the one measured on the show (about 1.7 % of the slice per bite, centred on the edge),
     // scaled to the cheese's area; pacing may only nudge it, so every bite looks like the TV one
-    const R0 = .115 * Math.sqrt(A / .75), late = k > total * .9;
-    const tpl = shapeTemplate(), PUSH = .25, RMIN = R0 * .8, RMAX = R0 * (late ? 1.8 : 1.25);
+    const R0 = .088 * Math.sqrt(A / .75), late = k > total * .9;
+    const tpl = shapeTemplate(), PUSH = .05, RMIN = R0 * .8, RMAX = R0 * (late ? 1.8 : 1.25);
     let R = RMIN;
     if (needed > 0) {
       let lo = RMIN, hi = RMAX;
