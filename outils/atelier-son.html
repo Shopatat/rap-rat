@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Atelier du son — Rap Rat</title>
+<!-- Atelier du son : tu glisses une vidéo ou un son, tu découpes le croc, tu l'écoutes, tu exportes un .wav.
+     Tout se passe dans ton navigateur : aucun fichier ne part sur Internet. -->
+<style>
+:root{
+  --bg:#060403; --panel:#18110a; --panel-hi:#2b1e12; --ink:#f6ead6; --muted:#9c8670;
+  --cheese:#e08a2c; --cream:#f4c96a; --on-cheese:#2a1404; --line:rgba(244,201,106,.16);
+  --display:"Arial Rounded MT Bold","Arial Rounded MT","Nunito","Trebuchet MS",system-ui,sans-serif;
+  --ui:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--ui);padding:18px 16px 60px}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-family:var(--display);color:var(--cheese);font-size:26px;margin:0 0 2px}
+p.lede{color:var(--muted);margin:0 0 18px;font-size:13.5px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+h2{font:600 13px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row+.row{margin-top:10px}
+.btn{font:500 14px/1 var(--ui);color:var(--ink);background:var(--panel-hi);border:1px solid var(--line);
+  border-radius:999px;padding:0 15px;min-height:40px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#3a2818}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.primary{background:var(--cheese);color:var(--on-cheese);border-color:transparent;font-weight:700}
+.btn.primary:hover{background:var(--cream)}
+.btn[aria-pressed="true"]{background:var(--cheese);color:var(--on-cheese);border-color:transparent}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:26px 16px;text-align:center;color:var(--muted);cursor:pointer}
+.drop.over{border-color:var(--cheese);color:var(--ink);background:var(--panel-hi)}
+.drop strong{color:var(--ink);display:block;font-size:16px;margin-bottom:4px}
+video{width:100%;max-height:260px;background:#000;border-radius:10px;display:block}
+canvas{width:100%;height:150px;display:block;background:#0d0906;border-radius:10px;border:1px solid var(--line);
+  touch-action:none;cursor:crosshair}
+canvas.zoomed{height:96px}
+label.fld{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);min-width:118px}
+label.fld input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;border:1px solid var(--line);
+  border-radius:8px;padding:7px 8px;width:100%;font-variant-numeric:tabular-nums}
+label.sld{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted);flex:1 1 180px}
+label.sld input{width:100%;accent-color:var(--cheese)}
+label.chk{display:flex;align-items:center;gap:7px;font-size:13.5px;color:var(--ink)}
+label.chk input{accent-color:var(--cheese);width:18px;height:18px}
+.val{color:var(--cream);font-variant-numeric:tabular-nums}
+.info{font-size:12.5px;color:var(--muted);margin-top:10px}
+.info b{color:var(--cream);font-weight:600;font-variant-numeric:tabular-nums}
+a{color:var(--cream)}
+ul.liens{margin:6px 0 0;padding-left:20px;font-size:13.5px;color:var(--muted)}
+ul.liens li{margin-bottom:4px}
+.err{color:#ffb4a0;font-size:13.5px;margin-top:10px}
+kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--line);border-radius:5px;padding:2px 5px;color:var(--cream)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Atelier du son</h1>
+  <p class="lede">Glisse une vidéo de l’émission ou n’importe quel son, découpe le croc, écoute-le comme dans l’appli, exporte un <code>.wav</code>. Rien ne quitte ton téléphone ni ton ordi.</p>
+
+  <section>
+    <h2>1 · Le fichier</h2>
+    <div class="drop" id="drop" tabindex="0" role="button">
+      <strong>Dépose un fichier ici</strong>
+      vidéo (.mp4, .mov, .m4v) ou son (.wav, .mp3, .m4a, .ogg) — ou clique pour choisir
+    </div>
+    <input type="file" id="file" accept="video/*,audio/*" hidden>
+    <div class="err" id="err" hidden></div>
+    <div class="info" id="meta" hidden></div>
+    <div class="row" id="videoRow" hidden style="margin-top:12px;flex-direction:column;align-items:stretch">
+      <video id="video" controls preload="metadata"></video>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="markStart">Début ici (<kbd>D</kbd>)</button>
+        <button class="btn" id="markEnd">Fin ici (<kbd>F</kbd>)</button>
+        <span class="info" style="margin:0">Avance la vidéo jusqu’au croc, puis pose les repères.</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="editor" hidden>
+    <h2>2 · La découpe</h2>
+    <canvas id="wave" width="900" height="150" aria-label="forme d’onde"></canvas>
+    <div class="row">
+      <button class="btn" id="zoomSel">Zoom sur la sélection</button>
+      <button class="btn" id="zoomOut">Dézoomer</button>
+      <button class="btn" id="zoomAll">Tout voir</button>
+      <span class="info" style="margin:0">Glisse pour sélectionner, attrape un bord pour l’ajuster, molette pour zoomer.</span>
+    </div>
+    <canvas id="zoom" class="zoomed" width="900" height="96" aria-label="forme d’onde de la sélection"></canvas>
+    <div class="row">
+      <label class="fld">début (s)<input type="number" id="t0" step="0.001" min="0"></label>
+      <label class="fld">fin (s)<input type="number" id="t1" step="0.001" min="0"></label>
+      <label class="fld">durée (ms)<input type="number" id="dur" step="1" min="1"></label>
+      <button class="btn" id="tight">Serrer sur le son</button>
+    </div>
+  </section>
+
+  <section id="shape" hidden>
+    <h2>3 · Le croc</h2>
+    <div class="row">
+      <label class="sld">vitesse <span class="val" id="rateV">1.00 ×</span>
+        <input type="range" id="rate" min="0.5" max="2" step="0.01" value="1"></label>
+      <label class="sld">volume <span class="val" id="gainV">0 dB</span>
+        <input type="range" id="gain" min="-24" max="12" step="0.5" value="0"></label>
+    </div>
+    <div class="row">
+      <label class="sld">coupe les graves <span class="val" id="hpV">80 Hz</span>
+        <input type="range" id="hp" min="20" max="1200" step="10" value="80"></label>
+      <label class="sld">coupe les aigus <span class="val" id="lpV">16000 Hz</span>
+        <input type="range" id="lp" min="1500" max="20000" step="100" value="16000"></label>
+    </div>
+    <div class="row">
+      <label class="sld">fondu d’entrée <span class="val" id="fiV">2 ms</span>
+        <input type="range" id="fi" min="0" max="40" step="1" value="2"></label>
+      <label class="sld">fondu de sortie <span class="val" id="foV">20 ms</span>
+        <input type="range" id="fo" min="0" max="200" step="1" value="20"></label>
+    </div>
+    <div class="row">
+      <label class="chk"><input type="checkbox" id="norm" checked> normaliser (pic à −0,3 dB)</label>
+      <button class="btn" id="reset">Réglages d’origine</button>
+    </div>
+  </section>
+
+  <section id="listen" hidden>
+    <h2>4 · L’écoute</h2>
+    <div class="row">
+      <button class="btn primary" id="play">Jouer (<kbd>espace</kbd>)</button>
+      <button class="btn" id="loop" aria-pressed="false">En boucle</button>
+      <button class="btn" id="inApp" aria-pressed="false">Comme dans l’appli</button>
+      <button class="btn" id="stop">Stop</button>
+    </div>
+    <div class="info" id="shot"></div>
+  </section>
+
+  <section id="out" hidden>
+    <h2>5 · L’export</h2>
+    <div class="row">
+      <button class="btn primary" id="export">Exporter le .wav</button>
+      <span class="info" style="margin:0" id="size"></span>
+    </div>
+    <div class="info">
+      Pose le fichier dans <code>sons/croc.wav</code> à la racine du projet, ajoute-le à <code>FILES</code> dans
+      <code>sw.js</code> et incrémente <code>VERSION</code>. Le son de l’émission est protégé : si tu ne veux pas le
+      publier avec l’appli (le dépôt est public), garde-le dans <code>.gitignore</code> et laisse le son synthétisé en secours.
+    </div>
+  </section>
+
+  <section>
+    <h2>Candidats libres de droit (CC0)</h2>
+    <ul class="liens">
+      <li><a href="https://opengameart.org/content/crunch-sounds-burnt-toast" target="_blank" rel="noreferrer">Crunch sounds (burnt toast)</a> — pain grillé brûlé, sec et cassant, 4 fichiers</li>
+      <li><a href="https://opengameart.org/content/crunch-sounds-cucumber" target="_blank" rel="noreferrer">Crunch sounds (cucumber)</a> — concombre, plus juteux, 6 fichiers</li>
+      <li><a href="https://opengameart.org/content/7-eating-crunches" target="_blank" rel="noreferrer">7 Eating Crunches</a> — croquements de bouche, 7 fichiers</li>
+      <li><a href="https://opengameart.org/content/apple-bite" target="_blank" rel="noreferrer">Apple Bite</a> — morsure de pomme</li>
+    </ul>
+    <div class="info">Télécharge-les à la main, puis dépose-les ici pour les comparer. Tous en CC0 : aucune attribution obligatoire.</div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let ac = null;                 // contexte d'écoute
+  let buf = null;                // son entier décodé
+  let sel = { a: 0, b: 0 };      // sélection, en secondes
+  let view = { a: 0, b: 0 };     // fenêtre affichée, en secondes
+  let baked = null;              // sélection traitée, prête à jouer
+  let bakeKey = '';              // empreinte des réglages de `baked`
+  let playing = [];              // sources en cours
+  let rafId = 0, tictac = 0;
+
+  const DEF = { rate: 1, gain: 0, hp: 80, lp: 16000, fi: 2, fo: 20, norm: true };
+  const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+  const fmt = s => s.toFixed(3) + ' s';
+
+  // ---------- le fichier ----------
+  const drop = $('drop'), file = $('file');
+  drop.addEventListener('click', () => file.click());
+  drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); file.click(); } });
+  ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, () => drop.classList.remove('over')));
+  drop.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) load(e.dataTransfer.files[0]); });
+  file.addEventListener('change', () => { if (file.files[0]) load(file.files[0]); });
+
+  function fail(msg) { $('err').textContent = msg; $('err').hidden = false; }
+
+  async function load(f) {
+    $('err').hidden = true;
+    stopAll();
+    if (!ac) ac = new AC();
+    if (ac.state === 'suspended') ac.resume().catch(() => {});
+    const isVideo = /^video\//.test(f.type) || /\.(mp4|mov|m4v|webm|mkv|avi)$/i.test(f.name);
+    $('videoRow').hidden = !isVideo;
+    if (isVideo) $('video').src = URL.createObjectURL(f);
+
+    let data;
+    try { data = await f.arrayBuffer(); } catch (e) { return fail('Impossible de lire le fichier.'); }
+    try {
+      buf = await ac.decodeAudioData(data);
+    } catch (e) {
+      buf = null;
+      return fail('Ce format audio ne se décode pas ici' + (isVideo
+        ? ' (les .mkv et .avi ne passent pas). Convertis la vidéo en .mp4, ou lis-la et enregistre le son autrement.'
+        : '. Essaie un .wav, .mp3 ou .m4a.'));
+    }
+    // une sélection de départ : la première demi-seconde, ou tout si c'est plus court
+    sel = { a: 0, b: Math.min(buf.duration, .5) };
+    view = { a: 0, b: buf.duration };
+    $('meta').hidden = false;
+    $('meta').innerHTML = `<b>${f.name}</b> — ${buf.duration.toFixed(2)} s, `
+      + `${buf.sampleRate} Hz, ${buf.numberOfChannels === 1 ? 'mono' : buf.numberOfChannels + ' canaux'}`;
+    ['editor', 'shape', 'listen', 'out'].forEach(id => $(id).hidden = false);
+    bakeKey = '';
+    syncFields(); draw();
+  }
+
+  // repères posés depuis la vidéo
+  $('markStart').addEventListener('click', () => setSel($('video').currentTime, Math.max(sel.b, $('video').currentTime + .05)));
+  $('markEnd').addEventListener('click', () => setSel(Math.min(sel.a, $('video').currentTime - .05), $('video').currentTime));
+
+  // ---------- la sélection ----------
+  function setSel(a, b) {
+    if (!buf) return;
+    a = clamp(a, 0, buf.duration); b = clamp(b, 0, buf.duration);
+    if (b < a) { const t = a; a = b; b = t; }
+    if (b - a < .002) b = Math.min(buf.duration, a + .002);
+    sel = { a, b }; bakeKey = ''; syncFields(); draw();
+  }
+
+  function syncFields() {
+    $('t0').value = sel.a.toFixed(3);
+    $('t1').value = sel.b.toFixed(3);
+    $('dur').value = Math.round((sel.b - sel.a) * 1000);
+    if (buf) { $('t0').max = $('t1').max = buf.duration.toFixed(3); }
+    $('shot').textContent = `Sélection : ${fmt(sel.a)} → ${fmt(sel.b)}, soit ${Math.round((sel.b - sel.a) * 1000)} ms.`;
+  }
+  $('t0').addEventListener('change', () => setSel(+$('t0').value, sel.b));
+  $('t1').addEventListener('change', () => setSel(sel.a, +$('t1').value));
+  $('dur').addEventListener('change', () => setSel(sel.a, sel.a + (+$('dur').value) / 1000));
+
+  // serre la sélection sur ce qui dépasse du silence
+  $('tight').addEventListener('click', () => {
+    if (!buf) return;
+    const d = mono(buf), sr = buf.sampleRate;
+    const i0 = Math.floor(sel.a * sr), i1 = Math.min(d.length, Math.ceil(sel.b * sr));
+    let peak = 0;
+    for (let i = i0; i < i1; i++) { const v = Math.abs(d[i]); if (v > peak) peak = v; }
+    if (!peak) return;
+    const seuil = peak * .04;
+    let a = i0, b = i1 - 1;
+    while (a < b && Math.abs(d[a]) < seuil) a++;
+    while (b > a && Math.abs(d[b]) < seuil) b--;
+    setSel(Math.max(0, a / sr - .004), Math.min(buf.duration, b / sr + .02));
+  });
+
+  // ---------- la forme d'onde ----------
+  const wave = $('wave'), zoom = $('zoom');
+  function mono(b) {
+    if (b._mono) return b._mono;
+    const n = b.length, out = new Float32Array(n);
+    for (let c = 0; c < b.numberOfChannels; c++) {
+      const d = b.getChannelData(c);
+      for (let i = 0; i < n; i++) out[i] += d[i] / b.numberOfChannels;
+    }
+    b._mono = out; return out;
+  }
+
+  function drawInto(cv, a, b, withSel) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = cv.clientWidth || 900, h = cv.clientHeight || 120;
+    if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    const c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, w, h);
+    c.fillStyle = '#0d0906'; c.fillRect(0, 0, w, h);
+    if (!buf || b <= a) return;
+    const d = mono(buf), sr = buf.sampleRate, mid = h / 2;
+    // bande de sélection
+    if (withSel) {
+      const x0 = (sel.a - a) / (b - a) * w, x1 = (sel.b - a) / (b - a) * w;
+      c.fillStyle = 'rgba(224,138,44,.18)'; c.fillRect(x0, 0, Math.max(1, x1 - x0), h);
+      c.strokeStyle = 'var(--cream)'; c.strokeStyle = '#f4c96a'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(x0, 0); c.lineTo(x0, h); c.moveTo(x1, 0); c.lineTo(x1, h); c.stroke();
+    }
+    c.strokeStyle = 'rgba(246,234,214,.25)'; c.beginPath(); c.moveTo(0, mid); c.lineTo(w, mid); c.stroke();
+    c.strokeStyle = '#e08a2c'; c.lineWidth = 1;
+    c.beginPath();
+    for (let x = 0; x < w; x++) {
+      const s0 = Math.floor((a + (b - a) * x / w) * sr);
+      const s1 = Math.max(s0 + 1, Math.floor((a + (b - a) * (x + 1) / w) * sr));
+      let lo = 1, hi = -1;
+      for (let i = s0; i < s1 && i < d.length; i++) { const v = d[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+      if (lo > hi) { lo = hi = 0; }
+      c.moveTo(x + .5, mid - hi * mid * .95);
+      c.lineTo(x + .5, mid - lo * mid * .95);
+    }
+    c.stroke();
+  }
+
+  function draw() {
+    drawInto(wave, view.a, view.b, true);
+    const pad = Math.max(.005, (sel.b - sel.a) * .15);
+    drawInto(zoom, Math.max(0, sel.a - pad), Math.min(buf ? buf.duration : 1, sel.b + pad), true);
+  }
+  window.addEventListener('resize', () => { if (buf) draw(); });
+
+  // glisser pour sélectionner, sur les deux vues
+  function hookDrag(cv, win) {
+    let mode = null;
+    const xToT = x => {
+      const r = cv.getBoundingClientRect(), v = win();
+      return clamp(v.a + (v.b - v.a) * (x - r.left) / r.width, v.a, v.b);
+    };
+    cv.addEventListener('pointerdown', e => {
+      if (!buf) return;
+      cv.setPointerCapture(e.pointerId);
+      const r = cv.getBoundingClientRect(), v = win(), pxT = (v.b - v.a) / r.width;
+      const t = xToT(e.clientX);
+      if (Math.abs(t - sel.a) < pxT * 7) mode = 'a';
+      else if (Math.abs(t - sel.b) < pxT * 7) mode = 'b';
+      else { mode = 'b'; sel = { a: t, b: t + .002 }; }
+      setSel(mode === 'a' ? t : sel.a, mode === 'a' ? sel.b : t);
+    });
+    cv.addEventListener('pointermove', e => {
+      if (!mode) return;
+      const t = xToT(e.clientX);
+      if (mode === 'a') setSel(t, sel.b); else setSel(sel.a, t);
+    });
+    ['pointerup', 'pointercancel'].forEach(k => cv.addEventListener(k, () => { mode = null; }));
+    cv.addEventListener('wheel', e => {
+      if (!buf) return;
+      e.preventDefault();
+      const v = win(), t = xToT(e.clientX), k = e.deltaY > 0 ? 1.25 : .8;
+      const span = Math.min(buf.duration, Math.max(.01, (v.b - v.a) * k));
+      view = { a: clamp(t - (t - v.a) * k, 0, buf.duration - span), b: 0 };
+      view.b = Math.min(buf.duration, view.a + span);
+      draw();
+    }, { passive: false });
+  }
+  hookDrag(wave, () => view);
+  hookDrag(zoom, () => {
+    const pad = Math.max(.005, (sel.b - sel.a) * .15);
+    return { a: Math.max(0, sel.a - pad), b: Math.min(buf.duration, sel.b + pad) };
+  });
+
+  $('zoomSel').addEventListener('click', () => {
+    const pad = (sel.b - sel.a) * .4;
+    view = { a: Math.max(0, sel.a - pad), b: Math.min(buf.duration, sel.b + pad) }; draw();
+  });
+  $('zoomAll').addEventListener('click', () => { view = { a: 0, b: buf.duration }; draw(); });
+  $('zoomOut').addEventListener('click', () => {
+    const c = (view.a + view.b) / 2, span = Math.min(buf.duration, (view.b - view.a) * 2);
+    view = { a: clamp(c - span / 2, 0, buf.duration - span), b: 0 };
+    view.b = Math.min(buf.duration, view.a + span); draw();
+  });
+
+  // ---------- les réglages ----------
+  const sliders = [
+    ['rate', 'rateV', v => (+v).toFixed(2) + ' ×'],
+    ['gain', 'gainV', v => (v > 0 ? '+' : '') + (+v).toFixed(1) + ' dB'],
+    ['hp', 'hpV', v => Math.round(v) + ' Hz'],
+    ['lp', 'lpV', v => Math.round(v) + ' Hz'],
+    ['fi', 'fiV', v => Math.round(v) + ' ms'],
+    ['fo', 'foV', v => Math.round(v) + ' ms']
+  ];
+  function showSliders() { sliders.forEach(([id, out, f]) => { $(out).textContent = f($(id).value); }); }
+  sliders.forEach(([id]) => $(id).addEventListener('input', () => { showSliders(); bakeKey = ''; }));
+  $('norm').addEventListener('change', () => { bakeKey = ''; });
+  $('reset').addEventListener('click', () => {
+    for (const k in DEF) { if (k === 'norm') $('norm').checked = DEF.norm; else $(k).value = DEF[k]; }
+    showSliders(); bakeKey = '';
+  });
+  showSliders();
+
+  function params() {
+    return {
+      rate: +$('rate').value, gain: +$('gain').value, hp: +$('hp').value, lp: +$('lp').value,
+      fi: +$('fi').value / 1000, fo: +$('fo').value / 1000, norm: $('norm').checked,
+      a: sel.a, b: sel.b
+    };
+  }
+
+  // fabrique la sélection traitée (le son exporté est exactement celui que tu entends)
+  async function bake() {
+    const p = params(), key = JSON.stringify(p);
+    if (baked && key === bakeKey) return baked;
+    const sr = 44100, src0 = buf.sampleRate;
+    const i0 = Math.floor(p.a * src0), i1 = Math.min(buf.length, Math.ceil(p.b * src0));
+    const n = Math.max(1, i1 - i0);
+    // la sélection, en mono, dans un tampon à part
+    const cut = new AudioBuffer({ length: n, sampleRate: src0, numberOfChannels: 1 });
+    cut.copyToChannel(mono(buf).subarray(i0, i1), 0);
+    const len = Math.max(1, Math.ceil(n / p.rate * sr / src0));
+    const oc = new OfflineAudioContext(1, len, sr);
+    const s = oc.createBufferSource(); s.buffer = cut; s.playbackRate.value = p.rate;
+    const hp = oc.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = p.hp;
+    const lp = oc.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = p.lp;
+    const g = oc.createGain();
+    const lin = Math.pow(10, p.gain / 20), dur = len / sr;
+    g.gain.setValueAtTime(p.fi > 0 ? .0001 : lin, 0);
+    if (p.fi > 0) g.gain.linearRampToValueAtTime(lin, Math.min(dur, p.fi));
+    if (p.fo > 0) {
+      const t = Math.max(0, dur - p.fo);
+      g.gain.setValueAtTime(lin, t); g.gain.linearRampToValueAtTime(.0001, dur);
+    }
+    s.connect(hp); hp.connect(lp); lp.connect(g); g.connect(oc.destination);
+    s.start(0);
+    const out = await oc.startRendering();
+    if (p.norm) {
+      const d = out.getChannelData(0);
+      let peak = 0; for (let i = 0; i < d.length; i++) { const v = Math.abs(d[i]); if (v > peak) peak = v; }
+      if (peak > 0) { const k = Math.pow(10, -.3 / 20) / peak; for (let i = 0; i < d.length; i++) d[i] *= k; }
+    }
+    baked = out; bakeKey = key;
+    $('size').textContent = `${(out.length / 44100 * 1000).toFixed(0)} ms · wav 16 bits mono ≈ ${Math.round(out.length * 2 / 1024)} Ko`;
+    return out;
+  }
+
+  // ---------- l'écoute ----------
+  function stopAll() {
+    playing.forEach(s => { try { s.stop(); } catch (e) {} });
+    playing = [];
+    clearTimeout(tictac); tictac = 0;
+    $('loop').setAttribute('aria-pressed', 'false');
+    $('inApp').setAttribute('aria-pressed', 'false');
+  }
+  async function shoot(when, vol = 1, rate = 1) {
+    const b = await bake();
+    const s = ac.createBufferSource(), g = ac.createGain();
+    s.buffer = b; s.playbackRate.value = rate; g.gain.value = vol;
+    s.connect(g); g.connect(ac.destination);
+    s.start(when);
+    playing.push(s);
+    s.onended = () => { playing = playing.filter(x => x !== s); };
+    return b.duration / rate;
+  }
+  $('play').addEventListener('click', async () => {
+    if (!buf) return; stopAll();
+    if (ac.state === 'suspended') await ac.resume().catch(() => {});
+    shoot(ac.currentTime + .01);
+  });
+  $('loop').addEventListener('click', async () => {
+    if (!buf) return;
+    const on = $('loop').getAttribute('aria-pressed') === 'true';
+    stopAll();
+    if (on) return;
+    $('loop').setAttribute('aria-pressed', 'true');
+    const step = async () => {
+      const d = await shoot(ac.currentTime + .01);
+      tictac = setTimeout(step, Math.max(180, d * 1000 + 300));
+    };
+    step();
+  });
+  // comme dans l'appli : un croc toutes les ~1,2 s, avec les petites variations du vrai minuteur
+  $('inApp').addEventListener('click', async () => {
+    if (!buf) return;
+    const on = $('inApp').getAttribute('aria-pressed') === 'true';
+    stopAll();
+    if (on) return;
+    $('inApp').setAttribute('aria-pressed', 'true');
+    const step = async () => {
+      await shoot(ac.currentTime + .01, .7 + Math.random() * .3, .9 + Math.random() * .2);
+      tictac = setTimeout(step, 900 + Math.random() * 600);
+    };
+    step();
+  });
+  $('stop').addEventListener('click', stopAll);
+
+  // ---------- l'export ----------
+  function wav16(b) {
+    const d = b.getChannelData(0), n = d.length, sr = b.sampleRate;
+    const ab = new ArrayBuffer(44 + n * 2), v = new DataView(ab);
+    const tag = (off, s) => { for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i)); };
+    tag(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); tag(8, 'WAVE');
+    tag(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    tag(36, 'data'); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) {
+      const s = clamp(d[i], -1, 1);
+      v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    }
+    return new Blob([ab], { type: 'audio/wav' });
+  }
+  $('export').addEventListener('click', async () => {
+    if (!buf) return;
+    const b = await bake(), url = URL.createObjectURL(wav16(b));
+    const a = document.createElement('a');
+    a.href = url; a.download = 'croc.wav'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  });
+
+  // ---------- raccourcis ----------
+  document.addEventListener('keydown', e => {
+    if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+    const k = e.key.toLowerCase();
+    if (k === ' ') { e.preventDefault(); $('play').click(); }
+    else if (k === 'l') $('loop').click();
+    else if (k === 'd' && !$('videoRow').hidden) $('markStart').click();
+    else if (k === 'f' && !$('videoRow').hidden) $('markEnd').click();
+    else if (k === 'escape') stopAll();
+  });
+})();
+</script>
+</body>
+</html>
