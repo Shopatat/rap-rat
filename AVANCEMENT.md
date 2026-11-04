@@ -20,6 +20,10 @@ Deux chantiers en cours :
   normalisation, on écoute en boucle ou « comme dans l'appli », et on exporte un `.wav`
   16 bits mono. Tout reste dans le navigateur, aucun fichier ne part sur Internet.
   Testé dans le volet navigateur avec un son de test : décodage, découpe, rendu, export.
+- **Le vrai croc** : `sons/croc.wav` (200 ms, mono 44,1 kHz, découpé par Fabien dans l'atelier)
+  remplace le son synthétisé. Chargé au démarrage de la partie, rejoué avec de petites
+  variations de volume et de hauteur ; repli automatique sur le synthétisé si le fichier manque.
+  Ajouté à `FILES` dans `sw.js`, `VERSION` en `rap-rat-v11`.
 - **Plein écran** : `.stage` passe en `inset:0` (le canevas va sous l'encoche et sous la
   barre du bas, les commandes restent dans les zones sûres) et `MARGIN` passe de `.02` à `0`
   dans `js/app.js`. Vérifié en 956×440 (paysage) et 440×956 (portrait) : pendant la partie,
@@ -40,6 +44,7 @@ Deux chantiers en cours :
 
 ## Prochaine action
 
-Retrouver une vidéo de l'émission (le dossier `references/` n'existe plus sur le Bureau),
-la passer dans l'atelier pour en sortir un croc, puis brancher le `.wav` dans `js/app.js`
-à la place de `crunch()` — avec repli sur le son synthétisé si le fichier manque.
+Écouter le croc en situation sur l'iPhone (une partie entière espace les crocs d'environ
+12 secondes) et dire s'il faut le raccourcir, le rendre plus sec ou varier davantage. Le fichier
+d'origine garde 50 ms de frottement avant le craquement : on peut les couper si le son paraît
+en retard sur la morsure.

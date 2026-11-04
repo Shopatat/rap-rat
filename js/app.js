@@ -375,7 +375,9 @@
   }
 
   // ---------- sound ----------
-  let ac = null, noise = null;
+  // Le croc est un vrai enregistrement (sons/croc.wav, découpé dans l'Atelier du son).
+  // Si le fichier manque, on retombe sur le croc synthétisé.
+  let ac = null, noise = null, croc = null, crocTried = false;
   function ensureAudio() {
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     if (!ac) {
@@ -383,10 +385,24 @@
       noise = ac.createBuffer(1, Math.floor(ac.sampleRate * .6), ac.sampleRate);
       const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     }
+    if (!crocTried) {
+      crocTried = true;
+      fetch('./sons/croc.wav').then(r => r.ok ? r.arrayBuffer() : Promise.reject())
+        .then(b => ac.decodeAudioData(b)).then(b => { croc = b; }).catch(() => { croc = null; });
+    }
     if (ac.state === 'suspended') ac.resume().catch(() => {});
   }
   function crunch(big) {
     if (!soundOn || !ac) return;
+    if (croc) {
+      // deux crocs ne sonnent jamais pareil : un peu plus fort, un peu plus grave au hasard
+      const s = ac.createBufferSource(), g = ac.createGain();
+      s.buffer = croc;
+      s.playbackRate.value = (big ? .93 : 1) * (.95 + Math.random() * .11);
+      g.gain.value = (big ? 1 : .82) * (.85 + Math.random() * .3);
+      s.connect(g); g.connect(ac.destination); s.start(ac.currentTime + .005);
+      return;
+    }
     const t0 = ac.currentTime + .01, master = ac.createGain();
     master.gain.value = big ? 1 : .85; master.connect(ac.destination);
     const n = big ? 8 : 4 + Math.floor(Math.random() * 2);
