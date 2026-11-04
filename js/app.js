@@ -266,6 +266,9 @@
       // (each wave is a circle whose cap, of chord `s`, rises `d` above the main circle)
       const d = WAVE.depth * L, s = WAVE.width * L;
       out.push({ u: along, v: depth, r: L - d });
+      // the tooth goes straight in: keep its full width all the way out to the edge,
+      // so no thin strip of cheese is left beside it
+      for (let y = depth + L * .2; y < depth + advance + shallow + L * 1.1; y += L * .2) out.push({ u: along, v: y, r: L - d });
       const k = Math.max(6, Math.round(TAU * L / s)), ph = rnd(0, TAU);
       for (let i = 0; i < k; i++) {
         const di = d * (1 + (Math.random() - .5) * 1.4 * WAVE.irr), si = s * (1 + (Math.random() - .5) * 1.2 * WAVE.irr);
@@ -356,7 +359,7 @@
     const e = pickEdge(); if (!e) return;
     // bite size is the one measured on the show (about 1.7 % of the slice per bite, centred on the edge),
     // scaled to the cheese's area; pacing may only nudge it, so every bite looks like the TV one
-    const R0 = .081 * Math.sqrt(A / .75), late = k > total * .9;
+    const R0 = .077 * Math.sqrt(A / .75), late = k > total * .9;
     const tpl = shapeTemplate(), PUSH = .05, RMIN = R0 * .8, RMAX = R0 * (late ? 1.8 : 1.25);
     let R = RMIN;
     if (needed > 0) {
