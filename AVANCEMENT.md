@@ -24,6 +24,9 @@ Deux chantiers en cours :
   remplace le son synthétisé. Chargé au démarrage de la partie, rejoué avec de petites
   variations de volume et de hauteur ; repli automatique sur le synthétisé si le fichier manque.
   Ajouté à `FILES` dans `sw.js`, `VERSION` en `rap-rat-v11`.
+- **Croc nettoyé** : les 57 premières ms de frottement sont coupées (fondu d'entrée 2 ms, sortie 12 ms),
+  le son dure 143 ms et commence directement au craquement. `VERSION` en `rap-rat-v12`. L'original de
+  200 ms est dans l'historique git (commit fb024cd) si on veut y revenir.
 - **Plein écran** : `.stage` passe en `inset:0` (le canevas va sous l'encoche et sous la
   barre du bas, les commandes restent dans les zones sûres) et `MARGIN` passe de `.02` à `0`
   dans `js/app.js`. Vérifié en 956×440 (paysage) et 440×956 (portrait) : pendant la partie,
@@ -44,7 +47,5 @@ Deux chantiers en cours :
 
 ## Prochaine action
 
-Écouter le croc en situation sur l'iPhone (une partie entière espace les crocs d'environ
-12 secondes) et dire s'il faut le raccourcir, le rendre plus sec ou varier davantage. Le fichier
-d'origine garde 50 ms de frottement avant le craquement : on peut les couper si le son paraît
-en retard sur la morsure.
+Écouter le croc nettoyé en situation sur l'iPhone (une partie entière espace les crocs d'environ
+12 secondes) et dire s'il manque de corps depuis la coupe du début, ou s'il faut varier davantage.
