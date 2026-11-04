@@ -248,36 +248,27 @@
 
   // ---------- bites ----------
   function shapeTemplate() {
-    // a rat bites with its two front teeth: two long, straight incisor marks side by side,
-    // pushed straight into the cheese, rounded at the tip, one usually a little longer;
-    // now and then the pair leans a bit. The rim of each mark is softly wavy.
-    const out = [], pair = Math.random() < .92;
-    const tilt = Math.random() < .8 ? rnd(-.25, .25) : rnd(-.6, .6);
-    const w = .5;                                          // half-width of one tooth (tooth width = R)
-    const lenA = rnd(.95, 1.45), lenB = lenA + rnd(-.45, .45) * (Math.random() < .75 ? 1 : .3);
-    const teeth = pair ? [{ u: -w * rnd(.9, 1), len: lenA }, { u: w * rnd(.9, 1), len: Math.max(.7, lenB) }]
-                       : [{ u: 0, len: rnd(1, 1.4) }];
-    const ct = Math.cos(tilt), st = Math.sin(tilt);
-    const put = (u, v, r) => out.push({ u: u * ct - v * st, v: u * st + v * ct, r });
-    for (const t of teeth) {
-      const tt = rnd(-.08, .08), c2 = Math.cos(tt), s2 = Math.sin(tt);
-      const loc = (x, y, r) => put(t.u + x * c2 - y * s2, x * s2 + y * c2, r);
-      const top = .7, vc = -(t.len - w);                   // the mark runs from outside the edge to its rounded tip
-      for (let y = top; y >= vc; y -= w * .45) loc(0, y, w * .86);
-      loc(0, vc, w * .86);
-      // soft waves along both sides and around the tip
-      const rb0 = w * rnd(.3, .38), step = rb0 * 1.25;
-      const edge = [];
-      for (let y = top; y > vc; y -= step) { edge.push([-w, y, 1, 0]); edge.push([w, y, -1, 0]); }
-      const n = Math.max(4, Math.round(Math.PI * w / step));
-      for (let k = 0; k <= n; k++) {
-        const a = Math.PI + k / n * Math.PI;                 // lower half circle: the tip
-        const ex = Math.cos(a) * w, ey = vc + Math.sin(a) * w;
-        edge.push([ex, ey, -Math.cos(a), -Math.sin(a)]);
-      }
-      for (const [x, y, mx, my] of edge) {
-        const rb = rb0 * rnd(.88, 1.12), d = rb * rnd(.9, 1.05);
-        loc(x + mx * d, y + my * d, rb);
+    // the rat's bite, as in the first version: one or two lobes, each a cluster of tooth marks
+    // of uneven size; on top of that, the outer edge of every mark is softly rippled with
+    // little waves of mixed sizes, so no two bites look alike
+    const out = [], lobes = Math.random() < .45 ? 2 : 1;
+    for (let l = 0; l < lobes; l++) {
+      const along = lobes === 2 ? (l - .5) * .95 : 0, depth = (Math.random() - .5) * .22;
+      const lr = lobes === 2 ? .78 + Math.random() * .15 : 1;
+      out.push({ u: along, v: depth, r: .72 * lr });
+      const k = 10 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < k; i++) {
+        const a = i / k * TAU + Math.random() * .35, d = (.55 + Math.random() * .12) * lr;
+        const bu = along + Math.cos(a) * d, bv = depth + Math.sin(a) * d, br = (.26 + Math.random() * .1) * lr;
+        out.push({ u: bu, v: bv, r: br });
+        // little ripples along the outer arc of this tooth mark
+        const n = 3 + Math.floor(Math.random() * 3);
+        for (let j = 0; j < n; j++) {
+          const t = a + (j / (n - 1) - .5) * rnd(1.6, 2.2) + rnd(-.12, .12);
+          const rr = br * rnd(.18, .32);
+          const dd = br - rr * rnd(.35, .7);
+          out.push({ u: bu + Math.cos(t) * dd, v: bv + Math.sin(t) * dd, r: rr });
+        }
       }
     }
     return out;
@@ -363,8 +354,8 @@
     const e = pickEdge(); if (!e) return;
     // bite size is the one measured on the show (about 1.7 % of the slice per bite, centred on the edge),
     // scaled to the cheese's area; pacing may only nudge it, so every bite looks like the TV one
-    const R0 = .092 * Math.sqrt(A / .75), late = k > total * .9;
-    const tpl = shapeTemplate(), PUSH = .05, RMIN = R0 * .8, RMAX = R0 * (late ? 1.8 : 1.25);
+    const R0 = .115 * Math.sqrt(A / .75), late = k > total * .9;
+    const tpl = shapeTemplate(), PUSH = .25, RMIN = R0 * .8, RMAX = R0 * (late ? 1.8 : 1.25);
     let R = RMIN;
     if (needed > 0) {
       let lo = RMIN, hi = RMAX;
