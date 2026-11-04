@@ -232,6 +232,7 @@
     vctx.imageSmoothingEnabled = true; vctx.imageSmoothingQuality = 'high';
     vctx.globalAlpha = dimmed ? .45 : 1;
     vctx.drawImage(comp, (w - dw) / 2, top + (ah - dh) / 2, dw, dh);
+    if (introStart !== null) drawIntro(frozen !== null ? frozen : (performance.now() - introStart) / 1000, (w - dw) / 2, top + (ah - dh) / 2, dw, dh);
     vctx.globalAlpha = 1;
   }
   let reshapeT = null;
@@ -454,15 +455,90 @@
     draw();
   }
 
+
+  // ---------- opening: the trap in the middle swings shut, ripples spread, then the rat starts ----------
+  // timings read off the show: the lid closes in about a third of a second, ripples follow at once
+  const LID_START = .2, SHUT = .55, END = 1.45;
+  let introStart = null, lidTex = null, frozen = null;   // frozen: test hook to look at one moment of the opening
+  function makeLid() {
+    const n = 256, cv = document.createElement('canvas'); cv.width = cv.height = n;
+    const c = cv.getContext('2d'), R = n / 2 - 4;
+    c.translate(n / 2, n / 2);
+    c.beginPath();
+    for (let i = 0; i <= 96; i++) {                         // rim with small notches
+      const a = i / 96 * TAU, rr = R * (1 - .035 * Math.max(0, Math.sin(a * 14)) ** 6);
+      i ? c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : c.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    c.closePath(); c.save(); c.clip();
+    const g = c.createRadialGradient(-R * .25, -R * .3, R * .1, 0, 0, R * 1.05);
+    g.addColorStop(0, '#f8e08a'); g.addColorStop(.6, '#ecc35a'); g.addColorStop(1, '#c9932f');
+    c.fillStyle = g; c.fillRect(-n, -n, 2 * n, 2 * n);
+    for (let k = 0; k < 7; k++) {
+      const hr = rnd(8, 22), a = rnd(0, TAU), d = rnd(0, R - hr - 8), hx = Math.cos(a) * d, hy = Math.sin(a) * d;
+      c.fillStyle = 'rgba(150,96,24,.85)'; c.beginPath(); c.arc(hx, hy, hr, 0, TAU); c.fill();
+      c.fillStyle = 'rgba(90,50,10,.9)'; c.beginPath(); c.arc(hx - hr * .15, hy - hr * .15, hr * .7, 0, TAU); c.fill();
+    }
+    c.restore();
+    c.lineWidth = 5; c.strokeStyle = 'rgba(150,100,30,.8)'; c.stroke();
+    return cv;
+  }
+  function drawIntro(t, x0, y0, dw, dh) {
+    const c = vctx, cx = x0 + dw / 2, cy = y0 + dh / 2, r = Math.min(dw, dh) * .13;
+    c.save(); c.beginPath(); c.rect(x0, y0, dw, dh); c.clip();
+    if (t < SHUT + .3) {
+      const k = t < LID_START ? 1 : t < SHUT ? 1 - Math.pow((t - LID_START) / (SHUT - LID_START), 2) : 0;
+      const phi = k * 2.3, sx = Math.cos(phi), fade = t > SHUT ? 1 - (t - SHUT) / .3 : 1;
+      if (t < SHUT + .02) {                                  // the open hole
+        const g = c.createRadialGradient(cx, cy, r * .5, cx, cy, r);
+        g.addColorStop(0, '#030100'); g.addColorStop(.85, '#0c0500'); g.addColorStop(1, '#3a1d06');
+        c.fillStyle = g; c.beginPath(); c.arc(cx, cy, r, 0, TAU); c.fill();
+      }
+      c.save();
+      c.globalAlpha = Math.max(0, fade);
+      c.translate(cx - r + r * sx, cy); c.scale(Math.max(.03, Math.abs(sx)), 1);
+      c.fillStyle = 'rgba(120,70,14,.9)';                    // thickness of the lid
+      c.beginPath(); c.arc(sx < 0 ? -r * .1 : r * .1, r * .02, r, 0, TAU); c.fill();
+      c.drawImage(lidTex, -r, -r, 2 * r, 2 * r);
+      if (sx < 0) { c.fillStyle = 'rgba(40,20,0,.22)'; c.beginPath(); c.arc(0, 0, r * .97, 0, TAU); c.fill(); }   // back of the lid, in shade
+      c.restore();
+    }
+    if (t > SHUT - .02) {                                    // ripples spreading from the trap
+      const tt = t - SHUT, big = Math.hypot(dw, dh) * .62;
+      for (let i = 0; i < 4; i++) {
+        const rad = (tt - i * .085) * big * 1.25;
+        if (rad <= 0) continue;
+        const life = Math.max(0, 1 - rad / big) * Math.min(1, (END - t) / .25);
+        if (life <= 0) continue;
+        c.beginPath();
+        for (let j = 0; j <= 90; j++) {
+          const a = j / 90 * TAU, w = rad * (1 + .025 * Math.sin(a * 7 + i * 2 + tt * 9));
+          j ? c.lineTo(cx + Math.cos(a) * w, cy + Math.sin(a) * w) : c.moveTo(cx + Math.cos(a) * w, cy + Math.sin(a) * w);
+        }
+        c.lineWidth = r * .34 * (.6 + .4 * life);
+        c.strokeStyle = `rgba(206,214,218,${.6 * life})`; c.stroke();
+        c.lineWidth *= .35; c.strokeStyle = `rgba(250,250,245,${.5 * life})`; c.stroke();
+      }
+    }
+    c.restore();
+  }
+  function thud() {
+    if (!soundOn || !ac) return;
+    const t0 = ac.currentTime + .005, o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(110, t0); o.frequency.exponentialRampToValueAtTime(45, t0 + .15);
+    g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(.7, t0 + .006); g.gain.exponentialRampToValueAtTime(.0001, t0 + .18);
+    o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0 + .2);
+  }
+
   function start() {
     ensureAudio();
     duration = durMin * 60; times = schedule(duration); next = 0; elapsed = 0; last = Date.now();
-    state = 'running'; setBanner(''); keepAwake(); render(); hideControls();
+    if (!lidTex) lidTex = makeLid();
+    introStart = performance.now(); state = 'intro'; setBanner(''); keepAwake(); render(); hideControls();
   }
   function pause() { if (state !== 'running') return; state = 'paused'; letSleep(); setBanner('Pause'); render(); showControls(); }
   function resume() { if (state !== 'paused') return; ensureAudio(); state = 'running'; last = Date.now(); setBanner(''); keepAwake(); render(); hideControls(); }
   function end() { state = 'ended'; letSleep(); hideControls(); setBanner('Plus de fromage !<small>Le rat a tout mangé.</small>'); render(); }
-  function toIdle() { state = 'idle'; elapsed = 0; letSleep(); setBanner(''); if (Math.abs(stageAspect() - A) > .01 || cells < cells0) resetCheese(); render(); }
+  function toIdle() { introStart = null; state = 'idle'; elapsed = 0; letSleep(); setBanner(''); if (Math.abs(stageAspect() - A) > .01 || cells < cells0) resetCheese(); render(); }
 
   let prevNow = performance.now();
   function tick(now) {
@@ -472,6 +548,12 @@
       resTop += (wantTop - resTop) * f; resBot += (wantBot - resBot) * f;
       if (Math.abs(resTop - wantTop) <= .5) resTop = wantTop;
       if (Math.abs(resBot - wantBot) <= .5) resBot = wantBot;
+      draw();
+    }
+    if (introStart !== null && frozen === null) {
+      const t = (performance.now() - introStart) / 1000;
+      if (state === 'intro' && t >= SHUT) { state = 'running'; elapsed = 0; last = Date.now(); thud(); render(); hideControls(); }
+      if (t >= END) introStart = null;
       draw();
     }
     if (state === 'running') {
@@ -520,7 +602,8 @@
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measureReserve(); });
 
   // test hook: jump ahead in the current game
-  window.RapRat = { skip(sec) { if (state === 'running' || state === 'paused') elapsed += sec; } };
+  window.RapRat = { skip(sec) { if (state === 'running' || state === 'paused') elapsed += sec; },
+    freezeIntro(t) { if (!lidTex) lidTex = makeLid(); frozen = t; introStart = 0; draw(); } };
 
   resetCheese(); render();
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
