@@ -1,0 +1,5 @@
+# Captures et vidéos de l'émission : gardées en local seulement
+references/
+
+# Réglages locaux de Claude Code (serveur de test)
+.claude/
