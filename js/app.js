@@ -248,6 +248,7 @@
   }
 
   // ---------- bites ----------
+  const WAVE = { depth: .07, width: .32, irr: .15 };
   function shapeTemplate() {
     // the rat's bite, as on the show: two big round marks fused side by side, a small notch where
     // they meet, the rim only gently rippled. Most bites go straight in; now and then (subtly)
@@ -259,10 +260,14 @@
     const ct = Math.cos(tilt), st = Math.sin(tilt);
     for (const [p, L] of [[-sp / 2, L0], [sp / 2, L1]]) {
       const along = p * ct, depth = p * st + shallow;
-      out.push({ u: along, v: depth, r: L * .965 });
-      const k = 28 + Math.floor(Math.random() * 6), ph = rnd(0, TAU);
+      // rim waves, as set by Fabien in the Atelier des vagues: depth 7 %, width 32 %, irregularity 15 %
+      // (each wave is a circle whose cap, of chord `s`, rises `d` above the main circle)
+      const d = WAVE.depth * L, s = WAVE.width * L;
+      out.push({ u: along, v: depth, r: L - d });
+      const k = Math.max(6, Math.round(TAU * L / s)), ph = rnd(0, TAU);
       for (let i = 0; i < k; i++) {
-        const rb = L * rnd(.085, .1), a = ph + (i + rnd(-.12, .12)) / k * TAU;
+        const di = d * (1 + (Math.random() - .5) * 1.4 * WAVE.irr), si = s * (1 + (Math.random() - .5) * 1.2 * WAVE.irr);
+        const rb = (si * si / 4 + di * di) / (2 * di), a = ph + (i + (Math.random() - .5) * .6 * WAVE.irr) / k * TAU;
         out.push({ u: along + Math.cos(a) * (L - rb), v: depth + Math.sin(a) * (L - rb), r: rb });
       }
     }
