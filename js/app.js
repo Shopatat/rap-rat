@@ -22,7 +22,8 @@
   let showClock = store.get('clock', false);
 
   // ---------- cheese shape follows the screen ----------
-  const MARGIN = .02;
+  // 0 : la tranche touche les bords de l'écran, pas de liseré noir autour
+  const MARGIN = 0;
   const dprOf = () => Math.min(window.devicePixelRatio || 1, 3);
   function stageAspect() {
     const r = stage.getBoundingClientRect();
