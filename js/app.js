@@ -256,10 +256,12 @@
     const out = [], askew = Math.random() < .35;
     const tilt = askew ? (Math.random() < .5 ? -1 : 1) * rnd(.18, .45) : rnd(-.12, .12);
     const shallow = askew && Math.random() < .6 ? rnd(.08, .25) : 0;   // shifts the bite out of the cheese
+    // on the show the teeth often push further in, like two fingers reaching into the slice
+    const advance = !shallow && Math.random() < .65 ? rnd(.2, .55) : 0;
     const L0 = rnd(.82, .9), L1 = L0 * rnd(.9, 1.1), sp = (L0 + L1) * rnd(.56, .62);
     const ct = Math.cos(tilt), st = Math.sin(tilt);
     for (const [p, L] of [[-sp / 2, L0], [sp / 2, L1]]) {
-      const along = p * ct, depth = p * st + shallow;
+      const along = p * ct, depth = p * st + shallow - advance;
       // rim waves, as set by Fabien in the Atelier des vagues: depth 7 %, width 32 %, irregularity 15 %
       // (each wave is a circle whose cap, of chord `s`, rises `d` above the main circle)
       const d = WAVE.depth * L, s = WAVE.width * L;
@@ -354,7 +356,7 @@
     const e = pickEdge(); if (!e) return;
     // bite size is the one measured on the show (about 1.7 % of the slice per bite, centred on the edge),
     // scaled to the cheese's area; pacing may only nudge it, so every bite looks like the TV one
-    const R0 = .088 * Math.sqrt(A / .75), late = k > total * .9;
+    const R0 = .081 * Math.sqrt(A / .75), late = k > total * .9;
     const tpl = shapeTemplate(), PUSH = .05, RMIN = R0 * .8, RMAX = R0 * (late ? 1.8 : 1.25);
     let R = RMIN;
     if (needed > 0) {
