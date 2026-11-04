@@ -249,23 +249,21 @@
 
   // ---------- bites ----------
   function shapeTemplate() {
-    // the rat's bite, as on the show: one or two big round marks (two are fused, with a small notch
-    // where they meet), centred on the edge, the whole outline cut into small fine teeth;
-    // a pair can lie along the edge or lean across it
-    const out = [], pair = Math.random() < .65;
-    const tilt = Math.random() < .6 ? rnd(-.3, .3) : rnd(-.9, .9);
+    // the rat's bite, as on the show: two big round marks fused side by side, a small notch where
+    // they meet, the rim only gently rippled. Most bites go straight in; now and then (subtly)
+    // the rat bites a little askew, or not quite as deep.
+    const out = [], askew = Math.random() < .35;
+    const tilt = askew ? (Math.random() < .5 ? -1 : 1) * rnd(.18, .45) : rnd(-.12, .12);
+    const shallow = askew && Math.random() < .6 ? rnd(.08, .25) : 0;   // shifts the bite out of the cheese
+    const L0 = rnd(.82, .9), L1 = L0 * rnd(.9, 1.1), sp = (L0 + L1) * rnd(.56, .62);
     const ct = Math.cos(tilt), st = Math.sin(tilt);
-    const L0 = pair ? rnd(.78, .9) : rnd(1, 1.15), L1 = L0 * rnd(.85, 1.15);
-    const sp = (L0 + L1) * rnd(.55, .64);                   // centres close enough to fuse into one bite
-    const lobes = pair ? [[-sp / 2, L0], [sp / 2, L1]] : [[0, L0]];
-    for (const [p, L] of lobes) {
-      const along = p * ct, depth = p * st;
-      out.push({ u: along, v: depth, r: L * .93 });
-      const k = 22 + Math.floor(Math.random() * 7), phase = rnd(0, TAU);
+    for (const [p, L] of [[-sp / 2, L0], [sp / 2, L1]]) {
+      const along = p * ct, depth = p * st + shallow;
+      out.push({ u: along, v: depth, r: L * .965 });
+      const k = 28 + Math.floor(Math.random() * 6), ph = rnd(0, TAU);
       for (let i = 0; i < k; i++) {
-        const rb = L * rnd(.085, .115);
-        const a = phase + (i + rnd(-.15, .15)) / k * TAU, d = L - rb * rnd(.45, .65);
-        out.push({ u: along + Math.cos(a) * d, v: depth + Math.sin(a) * d, r: rb });
+        const rb = L * rnd(.085, .1), a = ph + (i + rnd(-.12, .12)) / k * TAU;
+        out.push({ u: along + Math.cos(a) * (L - rb), v: depth + Math.sin(a) * (L - rb), r: rb });
       }
     }
     return out;
