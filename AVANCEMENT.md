@@ -40,6 +40,10 @@ Deux chantiers en cours :
 - **Plus de secousse** : la toile ne tressautait plus qu'à cause de moi, pas de l'émission ;
   l'animation `jolt` est supprimée. Le croc ne se signale plus que par le trou et le son.
   `VERSION` en `rap-rat-v16`.
+- **Huit foyers, pas quatre** : Fabien a envoyé huit captures de début de partie (`references/debut/`,
+  hors dépôt) où l'on compte huit ou neuf zones rongées distinctes tout autour du bord. Mon
+  hypothèse des quatre foyers était fausse : `FOYERS` passe de 4 à 8 et `RESTE` de 68 % à 55 %.
+  `VERSION` en `rap-rat-v21`.
 - **Regroupement vers le centre** : nouveau réglage `REGROUPE` (1,4 par défaut, curseur dans
   l'Atelier des foyers). Il durcit le choix des morsures vers l'extérieur, mêle un peu de distance
   « en rond » à la distance « en boîte », et déclenche la phase de fin plus tôt. Demandé par Fabien :

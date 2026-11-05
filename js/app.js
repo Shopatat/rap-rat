@@ -302,7 +302,7 @@
   // (réglables à chaud depuis l'Atelier des foyers, outils/atelier-foyers.html)
   // REGROUPE : à quel point le rat vise ce qui dépasse, pour que la tranche se resserre sur le
   // centre. 1 = le réglage d'origine ; plus haut, le morceau reste rond et centré plus tôt.
-  let FOYERS = 4, RESTE = .68, PRES = .16, REGROUPE = 1.4;
+  let FOYERS = 8, RESTE = .55, PRES = .16, REGROUPE = 1.4;
   let foyers = [];
 
   // Pick a spot on the cheese's edge. Spots far from the middle are much more likely,
