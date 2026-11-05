@@ -40,6 +40,11 @@ Deux chantiers en cours :
 - **Plus de secousse** : la toile ne tressautait plus qu'à cause de moi, pas de l'émission ;
   l'animation `jolt` est supprimée. Le croc ne se signale plus que par le trou et le son.
   `VERSION` en `rap-rat-v16`.
+- **Foyers de morsures** : relevé sur `references/progression/` (10 captures de l'émission,
+  hors dépôt), le rat ouvre quatre foyers et les élargit. Quatre premiers crocs = quatre foyers,
+  ensuite deux sur trois tombent contre un foyer existant, qui ne suit la morsure qu'à 30 %
+  pour grossir sur place. `FOYERS`, `RESTE`, `PRES` dans `js/app.js`. `VERSION` en `rap-rat-v17`.
+  Nouveau raccourci de test : `RapRat.bites(n)` applique n morsures d'un coup.
 - **Plein écran** : `.stage` passe en `inset:0` (le canevas va sous l'encoche et sous la
   barre du bas, les commandes restent dans les zones sûres) et `MARGIN` passe de `.02` à `0`
   dans `js/app.js`. Vérifié en 956×440 (paysage) et 440×956 (portrait) : pendant la partie,

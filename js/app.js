@@ -177,6 +177,7 @@
     SH = Math.round(SW * A); U = Math.min(SW, SH) / 1024; GH = Math.max(1, Math.round(GW * A));
     for (const c of [tex, mask, inv, comp]) { c.width = SW; c.height = SH; }
     grid = new Uint8Array(GW * GH); grid.fill(1); cells0 = cells = GW * GH;
+    foyers = [];                     // nouvelle tranche, nouveaux foyers
     paintTexture();
     const m = mask.getContext('2d');
     m.globalCompositeOperation = 'source-over';
@@ -297,10 +298,14 @@
   }
   function countRemoval(circles) { let n = 0; forCellsIn(circles, () => n++); return n; }
 
+  // les foyers : les quelques endroits du bord que le rat élargit au lieu de mordre partout
+  const FOYERS = 4, RESTE = .68, PRES = .16;
+  let foyers = [];
+
   // Pick a spot on the cheese's edge. Spots far from the middle are much more likely,
   // so the rat works from the outside in and the last morsel ends up near the centre.
   function pickEdge() {
-    const edge = [], wts = []; let total = 0;
+    const edge = [], base = []; let total = 0;
     const mx = .5, my = A / 2;
     for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
       const idx = j * GW + i;
@@ -309,13 +314,31 @@
         const dx = Math.abs((i + .5) / GW - mx) / .5, dy = Math.abs((j + .5) / GW - my) / (A / 2);
         const d = Math.max(dx, dy) - .2 * Math.min(dx, dy);   // middles of the sides first, corners a bit later
         const w = Math.pow(d, 4) + .015;
-        edge.push(idx); wts.push(w); total += w;
+        edge.push(idx); base.push(w); total += w;
       }
     }
     if (!edge.length) return null;
+    // Sur la vidéo, le rat n'attaque pas le bord au hasard : il ouvre quelques foyers et les
+    // élargit, si bien qu'au début on voit trois ou quatre taches noires grandir chacune de
+    // leur côté. La plupart des crocs tombent donc contre un foyer déjà ouvert.
+    let wts = base, fi = -1;
+    if (foyers.length >= FOYERS && Math.random() < RESTE) {   // les foyers s'ouvrent d'abord, tous
+      fi = (Math.random() * foyers.length) | 0;
+      const f = foyers[fi], near = new Array(edge.length); let t2 = 0;
+      for (let k = 0; k < edge.length; k++) {
+        const dx = (edge[k] % GW + .5) / GW - f.x, dy = (((edge[k] / GW) | 0) + .5) / GW - f.y;
+        const v = base[k] * Math.exp(-(dx * dx + dy * dy) / (PRES * PRES));
+        near[k] = v; t2 += v;
+      }
+      if (t2 > 1e-7) { wts = near; total = t2; }
+      else { foyers.splice(fi, 1); fi = -1; }   // ce foyer n'a plus de bord à ronger
+    }
     let pick = Math.random() * total, k = 0;
     while (k < edge.length - 1 && (pick -= wts[k]) > 0) k++;
     const idx = edge[k], i = idx % GW, j = (idx / GW) | 0;
+    // le foyer ne suit la morsure qu'en partie : il s'élargit sur place au lieu de courir le long du bord
+    if (fi >= 0) { foyers[fi].x += ((i + .5) / GW - foyers[fi].x) * .3; foyers[fi].y += ((j + .5) / GW - foyers[fi].y) * .3; }
+    else { foyers.push({ x: (i + .5) / GW, y: (j + .5) / GW }); if (foyers.length > FOYERS) foyers.shift(); }
     let nx = 0, ny = 0;
     for (let dj = -5; dj <= 5; dj++) for (let di = -5; di <= 5; di++) {
       const a = i + di, b = j + dj;
@@ -625,6 +648,7 @@
 
   // test hook: jump ahead in the current game
   window.RapRat = { skip(sec) { if (state === 'running' || state === 'paused') elapsed += sec; },
+    bites(n) { for (let i = 0; i < n; i++) bite(i, BITES); compose(); draw(); },
     freezeIntro(t) { if (!lidTex) lidTex = makeLid(); frozen = t; introStart = 0; draw(); } };
 
   resetCheese(); render();
