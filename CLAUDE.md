@@ -12,7 +12,8 @@
   - Taille des crocs fixe, calée sur la vidéo (`R0` dans `js/app.js`, environ 75 crocs pour finir la tranche), pour la partie de référence de 15 minutes. Le nombre de crocs est fixe (`BITES` dans `js/app.js`) : une durée plus longue espace seulement les crocs. Le calage pour finir pile à l'heure ne peut que légèrement grossir ou rapetisser un croc.
   - Pendant la partie : plein écran, commandes cachées, un toucher les fait réapparaître 4 secondes.
   - Durée de 10 à 60 minutes, 15 par défaut.
-- Le son du croc est synthétisé pour l'instant ; Fabien cherche un vrai son libre de droit (croc de biscuit) pour le remplacer.
+- Le croc est un vrai enregistrement découpé par Fabien dans l'Atelier du son (`sons/croc.wav`, 143 ms) ; le son synthétisé ne sert plus que de secours si le fichier manque. La musique du jeu viendra ensuite : elle tourne en boucle, donc un extrait d'une minute avec un raccord propre suffira.
+- L'appli ne se joue qu'en paysage : en portrait, un panneau « Tourne ton téléphone » couvre tout (iOS ignore `orientation` dans le manifeste). L'écran est figé, ni double-touché ni pincement pour zoomer. Pas de chrono affiché, pas de secousse à la morsure : il ne reste que le fromage et le son.
 - Le minuteur utilise `Date.now()` : il doit continuer à compter si l'écran se met en veille.
 - À chaque changement de fichier, incrémenter `VERSION` dans `sw.js` et garder la liste `FILES` à jour.
 - Icônes générées par `node outils/icones.js` (pas de module à installer).
