@@ -109,7 +109,14 @@ Deux chantiers en cours :
 
 ## Ensuite : la musique
 
-Fabien veut ajouter la musique du jeu. Points à trancher avant de coder :
+Fabien veut ajouter la musique du jeu. **Décidé** : on part sur la version américaine, plus punchy
+et facile à récupérer proprement ; la française viendra plus tard si on arrive à la nettoyer.
+Ce sont deux compositions différentes, pas deux repiquages d’une même bande (donc pas de question
+de vitesse SECAM/NTSC). La française n’existe que dans un enregistrement du jeu 1 où le rat parle
+par-dessus et où les crocs claquent : la piste, si on s’y met, est le nettoyage par répétitions —
+la musique boucle, donc une mesure couverte à un passage est souvent dégagée au suivant.
+
+Points à trancher avant de coder :
 
 - **Boucle ou morceau entier.** La partie dure de 10 à 60 minutes : une boucle courte (30 s à
   1 min, bouclée proprement) pèse quelques centaines de Ko, un morceau entier de 15 min en mp3
