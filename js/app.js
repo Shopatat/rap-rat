@@ -332,7 +332,10 @@
             if (u >= 0 && v >= 0 && u < GW && v < GH && grid[v * GW + u]) autour++;
           }
           const pointe = 1 - autour / tot;
-          w = Math.pow(dC + dE * .5 * REGROUPE, 2 * REGROUPE) * (1 + 3 * pointe * pointe) + .004;
+          // tout à la fin, on oublie le milieu de ce qu'il reste et on vise le centre de l'écran :
+          // c'est là qu'est le trou du rat, donc c'est là que la dernière bouchée doit se trouver
+          const serre = Math.min(1, Math.max(0, 1 - n / (cells0 * .15)));
+          w = Math.pow(dC * (1 - serre) + dE * (.5 * REGROUPE + serre), 2 * REGROUPE) * (1 + 3 * pointe * pointe) + .004;
         } else {
           const dx = Math.abs((i + .5) / GW - mx) / .5, dy = Math.abs((j + .5) / GW - my) / (A / 2);
           const boite = Math.max(dx, dy) - .2 * Math.min(dx, dy);   // middles of the sides first, corners a bit later

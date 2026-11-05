@@ -40,6 +40,9 @@ Deux chantiers en cours :
 - **Plus de secousse** : la toile ne tressautait plus qu'à cause de moi, pas de l'émission ;
   l'animation `jolt` est supprimée. Le croc ne se signale plus que par le trou et le son.
   `VERSION` en `rap-rat-v16`.
+- **La fin vise le trou du rat** : dans l'émission, le rat sort par la trappe ronde du centre, donc
+  les dernières bouchées se mangent forcément autour. Sous 15 % de fromage restant, le choix des
+  morsures abandonne le milieu de ce qu'il reste et vise le centre de l'écran. `VERSION` en `rap-rat-v22`.
 - **Huit foyers, pas quatre** : Fabien a envoyé huit captures de début de partie (`references/debut/`,
   hors dépôt) où l'on compte huit ou neuf zones rongées distinctes tout autour du bord. Mon
   hypothèse des quatre foyers était fausse : `FOYERS` passe de 4 à 8 et `RESTE` de 68 % à 55 %.
