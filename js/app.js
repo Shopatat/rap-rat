@@ -308,13 +308,34 @@
   function pickEdge() {
     const edge = [], base = []; let total = 0;
     const mx = .5, my = A / 2;
+    // où en est la tranche : le milieu de ce qu'il reste, et s'il en reste peu
+    let sx = 0, sy = 0, n = 0;
+    for (let idx = 0; idx < grid.length; idx++) if (grid[idx]) { sx += idx % GW; sy += (idx / GW) | 0; n++; }
+    const fin = n < cells0 * .3;                 // le dernier tiers : on resserre et on arrondit
+    const cx = n ? (sx / n + .5) / GW : mx, cy = n ? (sy / n + .5) / GW : my;
     for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
       const idx = j * GW + i;
       if (!grid[idx]) continue;
       if (i === 0 || j === 0 || i === GW - 1 || j === GH - 1 || !grid[idx - 1] || !grid[idx + 1] || !grid[idx - GW] || !grid[idx + GW]) {
-        const dx = Math.abs((i + .5) / GW - mx) / .5, dy = Math.abs((j + .5) / GW - my) / (A / 2);
-        const d = Math.max(dx, dy) - .2 * Math.min(dx, dy);   // middles of the sides first, corners a bit later
-        const w = Math.pow(d, 4) + .015;
+        let w;
+        if (fin) {
+          // Sur la fin, le reste doit fondre en un morceau rond au milieu, pas en ruban déchiqueté.
+          // On mord donc ce qui dépasse : loin du milieu de ce qu'il reste, loin du centre de
+          // l'écran, et surtout les pointes isolées, qui n'ont presque plus de fromage autour.
+          const ex = (i + .5) / GW, ey = (j + .5) / GW;
+          const dC = Math.hypot(ex - cx, ey - cy), dE = Math.hypot(ex - mx, ey - my);
+          let autour = 0, tot = 0;
+          for (let b = -4; b <= 4; b += 2) for (let a = -4; a <= 4; a += 2) {
+            const u = i + a, v = j + b; tot++;
+            if (u >= 0 && v >= 0 && u < GW && v < GH && grid[v * GW + u]) autour++;
+          }
+          const pointe = 1 - autour / tot;
+          w = Math.pow(dC + dE * .5, 2) * (1 + 3 * pointe * pointe) + .004;
+        } else {
+          const dx = Math.abs((i + .5) / GW - mx) / .5, dy = Math.abs((j + .5) / GW - my) / (A / 2);
+          const d = Math.max(dx, dy) - .2 * Math.min(dx, dy);   // middles of the sides first, corners a bit later
+          w = Math.pow(d, 4) + .015;
+        }
         edge.push(idx); base.push(w); total += w;
       }
     }
@@ -323,7 +344,7 @@
     // élargit, si bien qu'au début on voit trois ou quatre taches noires grandir chacune de
     // leur côté. La plupart des crocs tombent donc contre un foyer déjà ouvert.
     let wts = base, fi = -1;
-    if (foyers.length >= FOYERS && Math.random() < RESTE) {   // les foyers s'ouvrent d'abord, tous
+    if (!fin && foyers.length >= FOYERS && Math.random() < RESTE) {   // les foyers s'ouvrent d'abord, tous
       fi = (Math.random() * foyers.length) | 0;
       const f = foyers[fi], near = new Array(edge.length); let t2 = 0;
       for (let k = 0; k < edge.length; k++) {

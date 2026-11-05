@@ -40,6 +40,11 @@ Deux chantiers en cours :
 - **Plus de secousse** : la toile ne tressautait plus qu'à cause de moi, pas de l'émission ;
   l'animation `jolt` est supprimée. Le croc ne se signale plus que par le trou et le son.
   `VERSION` en `rap-rat-v16`.
+- **Fin de partie arrondie** : en dessous d'un tiers de fromage restant, les foyers sont mis de
+  côté et les morsures visent ce qui dépasse — loin du milieu de ce qu'il reste, loin du centre de
+  l'écran, et surtout les pointes isolées (peu de fromage autour). Avant, la fin laissait un ruban
+  déchiqueté en diagonale, décalé ; maintenant le morceau fond en rond vers le centre.
+  `VERSION` en `rap-rat-v19`.
 - **Atelier des foyers** (`outils/atelier-foyers.html`) : Fabien y règle lui-même si le rat mord
   partout ou s'acharne — nombre de foyers, part des crocs qui tombent sur un foyer, largeur d'un
   foyer — avec les dix captures de l'émission en dessous pour comparer. La tranche est dessinée par
