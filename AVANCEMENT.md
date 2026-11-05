@@ -42,6 +42,10 @@ Deux chantiers en cours :
   `VERSION` en `rap-rat-v16`.
 - **Pas de vert** : deux captures de `references/etapes/` montrent la tranche en vert vif. C'est la
   VHS qui déraille, pas le jeu — ne pas chercher à le reproduire.
+- **La fin reste hérissée** : douze captures de fin (`references/fin/`, hors dépôt) montrent une
+  étoile dentelée jusqu'à la dernière bouchée. Mon code mangeait les pointes en priorité pour
+  arrondir le morceau : c'était l'inverse. Le rat mord désormais dans la masse et les piquants
+  restent debout. `VERSION` en `rap-rat-v24`.
 - **Milieu de partie : le pourtour, partout** : sur les seize étapes, le rat ronge tout le bord à
   la fois, coins compris, et la silhouette reste large et carrée longtemps. La « distance en rond »
   ajoutée au milieu de partie est donc retirée, et la préférence pour le milieu des côtés est
