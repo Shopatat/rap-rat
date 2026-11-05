@@ -49,3 +49,23 @@ Deux chantiers en cours :
 
 Écouter le croc nettoyé en situation sur l'iPhone (une partie entière espace les crocs d'environ
 12 secondes) et dire s'il manque de corps depuis la coupe du début, ou s'il faut varier davantage.
+
+## Ensuite : la musique
+
+Fabien veut ajouter la musique du jeu. Points à trancher avant de coder :
+
+- **Boucle ou morceau entier.** La partie dure de 10 à 60 minutes : une boucle courte (30 s à
+  1 min, bouclée proprement) pèse quelques centaines de Ko, un morceau entier de 15 min en mp3
+  pèse une quinzaine de Mo — trop lourd pour le cache hors ligne de `sw.js`.
+- **La veille de l'écran.** Le minuteur tient avec `Date.now()`, mais sur iPhone le son se coupe
+  quand l'appli passe en arrière-plan. À tester : un élément `<audio>` tient mieux que Web Audio,
+  et il faudra sans doute relancer la musique au retour (`visibilitychange`), là où le croc
+  reste en Web Audio.
+- **Les réglages.** Prévoir « Musique : oui/non » à côté de « Son : oui/non », avec un volume
+  séparé, et baisser légèrement la musique au moment du croc pour qu'il reste net.
+- **La fin.** Fondu de sortie sur les dernières secondes, ou coupure franche quand la tranche
+  est finie.
+- **Les droits.** Même question que pour le croc : le dépôt est public.
+
+L'atelier du son sert aussi pour ça : il décode n'importe quel fichier, mais il est taillé pour
+des extraits courts. Pour une boucle, il faudra vérifier le raccord début/fin à l'oreille.
