@@ -82,6 +82,10 @@ input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;b
         <input type="range" id="p" min="4" max="45" step="1" value="16"></label>
     </div>
     <div class="row">
+      <label class="sld">regroupement vers le centre <span class="val" id="gV">1,40</span>
+        <input type="range" id="g" min="70" max="260" step="5" value="140"></label>
+    </div>
+    <div class="row">
       <button class="btn2" id="reset">Réglages actuels de l’appli</button>
       <button class="btn2" id="partout">Mordre partout (comme avant)</button>
       <span class="info" style="margin:0" id="resume"></span>
@@ -118,7 +122,7 @@ input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;b
 
   function rejouer() {
     const n = +$('n').value;
-    R.reglages({ foyers: +$('f').value, reste: +$('r').value / 100, pres: +$('p').value / 100 });
+    R.reglages({ foyers: +$('f').value, reste: +$('r').value / 100, pres: +$('p').value / 100, regroupe: +$('g').value / 100 });
     semer(+$('graine').value || 1);
     R.neuf();
     if (n > 0) R.bites(Math.min(n, total - 1));   // le dernier croc avale tout : on s'arrête avant
@@ -127,14 +131,15 @@ input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;b
     $('fV').textContent = $('f').value;
     $('rV').textContent = $('r').value + ' %';
     $('pV').textContent = (+$('p').value / 100).toFixed(2).replace('.', ',');
+    $('gV').textContent = (+$('g').value / 100).toFixed(2).replace('.', ',');
     const r = +$('r').value;
     $('resume').textContent = r === 0 ? 'Le rat mord n’importe où.'
       : r >= 90 ? 'Le rat ne quitte plus ses foyers.'
       : 'Environ ' + Math.round(r / 10) + ' crocs sur 10 tombent contre un foyer déjà ouvert.';
   }
 
-  for (const id of ['n', 'f', 'r', 'p', 'graine']) $(id).addEventListener('input', rejouer);
-  $('reset').addEventListener('click', () => { $('f').value = 4; $('r').value = 68; $('p').value = 16; rejouer(); });
+  for (const id of ['n', 'f', 'r', 'p', 'g', 'graine']) $(id).addEventListener('input', rejouer);
+  $('reset').addEventListener('click', () => { $('f').value = 4; $('r').value = 68; $('p').value = 16; $('g').value = 140; rejouer(); });
   $('partout').addEventListener('click', () => { $('r').value = 0; rejouer(); });
   $('tirage').addEventListener('click', () => { $('graine').value = Math.floor(vrai() * 9999) + 1; rejouer(); });
 

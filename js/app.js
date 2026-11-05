@@ -300,7 +300,9 @@
 
   // les foyers : les quelques endroits du bord que le rat élargit au lieu de mordre partout
   // (réglables à chaud depuis l'Atelier des foyers, outils/atelier-foyers.html)
-  let FOYERS = 4, RESTE = .68, PRES = .16;
+  // REGROUPE : à quel point le rat vise ce qui dépasse, pour que la tranche se resserre sur le
+  // centre. 1 = le réglage d'origine ; plus haut, le morceau reste rond et centré plus tôt.
+  let FOYERS = 4, RESTE = .68, PRES = .16, REGROUPE = 1.4;
   let foyers = [];
 
   // Pick a spot on the cheese's edge. Spots far from the middle are much more likely,
@@ -311,7 +313,7 @@
     // où en est la tranche : le milieu de ce qu'il reste, et s'il en reste peu
     let sx = 0, sy = 0, n = 0;
     for (let idx = 0; idx < grid.length; idx++) if (grid[idx]) { sx += idx % GW; sy += (idx / GW) | 0; n++; }
-    const fin = n < cells0 * .3;                 // le dernier tiers : on resserre et on arrondit
+    const fin = n < cells0 * Math.min(.55, .3 * REGROUPE);   // la fin : on resserre et on arrondit
     const cx = n ? (sx / n + .5) / GW : mx, cy = n ? (sy / n + .5) / GW : my;
     for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
       const idx = j * GW + i;
@@ -330,11 +332,14 @@
             if (u >= 0 && v >= 0 && u < GW && v < GH && grid[v * GW + u]) autour++;
           }
           const pointe = 1 - autour / tot;
-          w = Math.pow(dC + dE * .5, 2) * (1 + 3 * pointe * pointe) + .004;
+          w = Math.pow(dC + dE * .5 * REGROUPE, 2 * REGROUPE) * (1 + 3 * pointe * pointe) + .004;
         } else {
           const dx = Math.abs((i + .5) / GW - mx) / .5, dy = Math.abs((j + .5) / GW - my) / (A / 2);
-          const d = Math.max(dx, dy) - .2 * Math.min(dx, dy);   // middles of the sides first, corners a bit later
-          w = Math.pow(d, 4) + .015;
+          const boite = Math.max(dx, dy) - .2 * Math.min(dx, dy);   // middles of the sides first, corners a bit later
+          // un peu de distance « en rond » aussi, pour que la tranche se resserre sur le centre
+          const rond = Math.min(1, Math.hypot(dx, dy) / 1.414), part = .3 * (REGROUPE - 1);
+          const d = boite * (1 - part) + rond * part;
+          w = Math.pow(d, 4 * REGROUPE) + .015 / REGROUPE;
         }
         edge.push(idx); base.push(w); total += w;
       }
@@ -672,7 +677,7 @@
   window.RapRat = { skip(sec) { if (state === 'running' || state === 'paused') elapsed += sec; },
     bites(n, from = 0) { for (let i = 0; i < n; i++) bite(from + i, BITES); compose(); draw(); },
     neuf() { resetCheese(); draw(); },                        // une tranche entière, intacte
-    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; },
+    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; },
     crocs: () => BITES,
     freezeIntro(t) { if (!lidTex) lidTex = makeLid(); frozen = t; introStart = 0; draw(); } };
 

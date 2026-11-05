@@ -40,6 +40,10 @@ Deux chantiers en cours :
 - **Plus de secousse** : la toile ne tressautait plus qu'à cause de moi, pas de l'émission ;
   l'animation `jolt` est supprimée. Le croc ne se signale plus que par le trou et le son.
   `VERSION` en `rap-rat-v16`.
+- **Regroupement vers le centre** : nouveau réglage `REGROUPE` (1,4 par défaut, curseur dans
+  l'Atelier des foyers). Il durcit le choix des morsures vers l'extérieur, mêle un peu de distance
+  « en rond » à la distance « en boîte », et déclenche la phase de fin plus tôt. Demandé par Fabien :
+  « faut que ça se regroupe plus sur le centre, surtout vers la fin ». `VERSION` en `rap-rat-v20`.
 - **Fin de partie arrondie** : en dessous d'un tiers de fromage restant, les foyers sont mis de
   côté et les morsures visent ce qui dépasse — loin du milieu de ce qu'il reste, loin du centre de
   l'écran, et surtout les pointes isolées (peu de fromage autour). Avant, la fin laissait un ruban
