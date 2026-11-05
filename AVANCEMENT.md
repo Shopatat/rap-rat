@@ -40,6 +40,12 @@ Deux chantiers en cours :
 - **Plus de secousse** : la toile ne tressautait plus qu'à cause de moi, pas de l'émission ;
   l'animation `jolt` est supprimée. Le croc ne se signale plus que par le trou et le son.
   `VERSION` en `rap-rat-v16`.
+- **Pas de vert** : deux captures de `references/etapes/` montrent la tranche en vert vif. C'est la
+  VHS qui déraille, pas le jeu — ne pas chercher à le reproduire.
+- **À vérifier** : sur ces seize étapes, la tranche garde une silhouette large et presque
+  rectangulaire très longtemps, le rat rongeant tout le pourtour à la fois. Le peu de « distance
+  en rond » ajouté au milieu de partie par `REGROUPE` arrondit peut-être trop tôt. À trancher
+  quand Fabien aura envoyé la suite des étapes.
 - **La fin vise le trou du rat** : dans l'émission, le rat sort par la trappe ronde du centre, donc
   les dernières bouchées se mangent forcément autour. Sous 15 % de fromage restant, le choix des
   morsures abandonne le milieu de ce qu'il reste et vise le centre de l'écran. `VERSION` en `rap-rat-v22`.
