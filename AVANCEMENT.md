@@ -42,7 +42,12 @@ Deux chantiers en cours :
   `VERSION` en `rap-rat-v16`.
 - **Pas de vert** : deux captures de `references/etapes/` montrent la tranche en vert vif. C'est la
   VHS qui déraille, pas le jeu — ne pas chercher à le reproduire.
-- **À vérifier** : sur ces seize étapes, la tranche garde une silhouette large et presque
+- **Milieu de partie : le pourtour, partout** : sur les seize étapes, le rat ronge tout le bord à
+  la fois, coins compris, et la silhouette reste large et carrée longtemps. La « distance en rond »
+  ajoutée au milieu de partie est donc retirée, et la préférence pour le milieu des côtés est
+  adoucie (exposant 3 au lieu de 4×REGROUPE, coins à peine retardés). `REGROUPE` ne pilote plus
+  que la fin de partie. `VERSION` en `rap-rat-v23`.
+- **Ancienne note, tranchée** : sur ces seize étapes, la tranche garde une silhouette large et presque
   rectangulaire très longtemps, le rat rongeant tout le pourtour à la fois. Le peu de « distance
   en rond » ajouté au milieu de partie par `REGROUPE` arrondit peut-être trop tôt. À trancher
   quand Fabien aura envoyé la suite des étapes.

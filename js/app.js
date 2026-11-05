@@ -338,11 +338,12 @@
           w = Math.pow(dC * (1 - serre) + dE * (.5 * REGROUPE + serre), 2 * REGROUPE) * (1 + 3 * pointe * pointe) + .004;
         } else {
           const dx = Math.abs((i + .5) / GW - mx) / .5, dy = Math.abs((j + .5) / GW - my) / (A / 2);
-          const boite = Math.max(dx, dy) - .2 * Math.min(dx, dy);   // middles of the sides first, corners a bit later
-          // un peu de distance « en rond » aussi, pour que la tranche se resserre sur le centre
-          const rond = Math.min(1, Math.hypot(dx, dy) / 1.414), part = .3 * (REGROUPE - 1);
-          const d = boite * (1 - part) + rond * part;
-          w = Math.pow(d, 4 * REGROUPE) + .015 / REGROUPE;
+          // Relevé sur les seize étapes de `references/etapes/` : le rat ronge tout le pourtour
+          // à la fois, coins compris, et le front avance vers l'intérieur à peu près à la même
+          // vitesse partout. La tranche garde donc longtemps une silhouette large et carrée ;
+          // le resserrement sur le centre, lui, est l'affaire de la fin de partie.
+          const d = Math.max(dx, dy) - .1 * Math.min(dx, dy);
+          w = Math.pow(d, 3) + .02;
         }
         edge.push(idx); base.push(w); total += w;
       }
