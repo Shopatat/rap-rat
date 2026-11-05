@@ -14,8 +14,9 @@
   --ui:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   color-scheme:dark;
 }
-html{box-sizing:border-box;height:100%;background:var(--bg);overscroll-behavior:none}
-*,*::before,*::after{box-sizing:inherit}
+html{box-sizing:border-box;height:100%;background:var(--bg);overscroll-behavior:none;-webkit-text-size-adjust:100%}
+/* l'écran est figé : « manipulation » supprime le double-touché qui zoome, sans retarder les touchers */
+*,*::before,*::after{box-sizing:inherit;touch-action:manipulation}
 [hidden]{display:none!important}
 body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:var(--ui);overflow:hidden;overscroll-behavior:none;
   -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}

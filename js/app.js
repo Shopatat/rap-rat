@@ -621,6 +621,10 @@
       else document.documentElement.requestFullscreen().catch(() => {});
     });
   }
+  // l'écran reste figé : pas de pincement pour zoomer (geste propre à iOS)
+  for (const g of ['gesturestart', 'gesturechange', 'gestureend']) {
+    document.addEventListener(g, e => e.preventDefault(), { passive: false });
+  }
   document.addEventListener('keydown', e => {
     if (e.code !== 'Space' || e.target.tagName === 'BUTTON') return;
     e.preventDefault();

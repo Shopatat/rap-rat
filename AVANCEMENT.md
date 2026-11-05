@@ -32,6 +32,9 @@ Deux chantiers en cours :
   "landscape"` (suivi par Android, ignoré par iOS, d'où le panneau). La partie en cours continue
   de compter pendant le portrait et se retrouve intacte en tournant : la tranche ne se reforme
   plus qu'en paysage (`fit()` dans `js/app.js`). `VERSION` en `rap-rat-v13`.
+- **Écran figé** : plus de double-touché pour zoomer (`touch-action:manipulation` sur tout,
+  `.stage` reste en `none`), plus de pincement (les gestes iOS `gesturestart` et suivants sont
+  annulés dans `js/app.js`), et le viewport refuse l'échelle. `VERSION` en `rap-rat-v14`.
 - **Plein écran** : `.stage` passe en `inset:0` (le canevas va sous l'encoche et sous la
   barre du bas, les commandes restent dans les zones sûres) et `MARGIN` passe de `.02` à `0`
   dans `js/app.js`. Vérifié en 956×440 (paysage) et 440×956 (portrait) : pendant la partie,
