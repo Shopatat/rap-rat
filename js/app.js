@@ -19,7 +19,6 @@
   };
   let durMin = store.get('dur', 15); if (!DURATIONS.includes(durMin)) durMin = 15;
   let soundOn = store.get('sound', true);
-  let showClock = store.get('clock', false);
 
   // ---------- cheese shape follows the screen ----------
   // 0 : la tranche touche les bords de l'écran, pas de liseré noir autour
@@ -447,7 +446,6 @@
     return out;
   }
 
-  function fmt(sec) { sec = Math.max(0, Math.ceil(sec)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); }
   function setBanner(html) { const b = $('banner'); if (html) { b.innerHTML = '<div>' + html + '</div>'; b.hidden = false; } else b.hidden = true; }
   function jolt() { view.classList.remove('jolt'); void view.offsetWidth; view.classList.add('jolt'); }
 
@@ -467,15 +465,11 @@
     $('endBar').hidden = state !== 'ended';
     $('header').hidden = state !== 'idle';
     $('pauseBtn').textContent = state === 'paused' ? 'Reprendre' : 'Pause';
-    $('clock').hidden = !(showClock && (state === 'running' || state === 'paused'));
-    $('clock').textContent = fmt(duration - elapsed);
     $('durOut').textContent = durMin + ' min';
     $('durMinus').disabled = durMin === DURATIONS[0];
     $('durPlus').disabled = durMin === DURATIONS[DURATIONS.length - 1];
     $('soundBtn').textContent = 'Son : ' + (soundOn ? 'oui' : 'non');
     $('soundBtn').setAttribute('aria-pressed', String(soundOn));
-    $('clockBtn').textContent = 'Chrono : ' + (showClock ? 'visible' : 'caché');
-    $('clockBtn').setAttribute('aria-pressed', String(showClock));
     if (state !== 'running') stage.classList.remove('nocursor');
     dimmed = state === 'paused';
     measureReserve();
@@ -590,7 +584,6 @@
         bite(next, times.length); bit = true; if (next === times.length - 1) final = true; next++;
       }
       if (bit) { compose(); draw(); jolt(); crunch(final); }
-      $('clock').textContent = fmt(duration - elapsed);
       if (next >= times.length) end();
     }
     requestAnimationFrame(tick);
@@ -613,7 +606,6 @@
   $('durMinus').addEventListener('click', () => { const i = DURATIONS.indexOf(durMin); if (i > 0) { durMin = DURATIONS[i - 1]; store.set('dur', durMin); render(); } });
   $('durPlus').addEventListener('click', () => { const i = DURATIONS.indexOf(durMin); if (i < DURATIONS.length - 1) { durMin = DURATIONS[i + 1]; store.set('dur', durMin); render(); } });
   $('soundBtn').addEventListener('click', () => { soundOn = !soundOn; store.set('sound', soundOn); if (soundOn) { ensureAudio(); crunch(false); } render(); });
-  $('clockBtn').addEventListener('click', () => { showClock = !showClock; store.set('clock', showClock); render(); });
   if (document.fullscreenEnabled) {
     $('fsBtn').hidden = false;
     $('fsBtn').addEventListener('click', () => {
