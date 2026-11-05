@@ -37,6 +37,9 @@ Deux chantiers en cours :
   annulés dans `js/app.js`), et le viewport refuse l'échelle. `VERSION` en `rap-rat-v14`.
 - **Chrono retiré** : le bouton « Chrono », l'élément `#clock`, sa règle CSS et la fonction `fmt()`
   sont supprimés. Il ne reste que la durée et le son dans la barre. `VERSION` en `rap-rat-v15`.
+- **Plus de secousse** : la toile ne tressautait plus qu'à cause de moi, pas de l'émission ;
+  l'animation `jolt` est supprimée. Le croc ne se signale plus que par le trou et le son.
+  `VERSION` en `rap-rat-v16`.
 - **Plein écran** : `.stage` passe en `inset:0` (le canevas va sous l'encoche et sous la
   barre du bas, les commandes restent dans les zones sûres) et `MARGIN` passe de `.02` à `0`
   dans `js/app.js`. Vérifié en 956×440 (paysage) et 440×956 (portrait) : pendant la partie,

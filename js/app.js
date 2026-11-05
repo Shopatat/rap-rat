@@ -447,7 +447,6 @@
   }
 
   function setBanner(html) { const b = $('banner'); if (html) { b.innerHTML = '<div>' + html + '</div>'; b.hidden = false; } else b.hidden = true; }
-  function jolt() { view.classList.remove('jolt'); void view.offsetWidth; view.classList.add('jolt'); }
 
   // controls that appear on touch, then hide again
   let hideT = null;
@@ -583,7 +582,7 @@
       while (next < times.length && elapsed >= times[next]) {
         bite(next, times.length); bit = true; if (next === times.length - 1) final = true; next++;
       }
-      if (bit) { compose(); draw(); jolt(); crunch(final); }
+      if (bit) { compose(); draw(); crunch(final); }
       if (next >= times.length) end();
     }
     requestAnimationFrame(tick);
