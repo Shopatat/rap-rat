@@ -59,6 +59,19 @@ header{position:fixed;z-index:2;top:calc(env(safe-area-inset-top,0px) + 10px);le
 .stepper output{min-width:6.5ch;text-align:center;font-weight:500;font-variant-numeric:tabular-nums}
 .hint{text-align:center;font-size:12.5px;color:var(--muted);max-width:36ch;text-wrap:balance}
 :focus-visible{outline:2px solid var(--cream);outline-offset:2px}
+/* Portrait : on cache tout et on demande de tourner le téléphone. La partie, elle, continue
+   de compter (le minuteur suit l'horloge), elle réapparaît telle quelle en paysage. */
+.turn{display:none}
+@media (orientation:portrait){
+  .turn{position:fixed;z-index:10;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:14px;background:var(--bg);color:var(--cheese);text-align:center;
+    padding:24px max(24px,env(safe-area-inset-left,0px)) 24px max(24px,env(safe-area-inset-right,0px))}
+  .turn svg{width:92px;height:92px;animation:tilt 2.6s ease-in-out infinite}
+  .turn strong{font-family:var(--display);font-size:clamp(24px,7vw,34px);color:var(--cream)}
+  .turn span{font-size:14.5px;color:var(--muted);max-width:28ch;text-wrap:balance}
+}
+@keyframes tilt{0%,55%{transform:rotate(0)}75%,100%{transform:rotate(-90deg)}}
+@media (prefers-reduced-motion:reduce){.turn svg{animation:none}}
 @media (max-width:370px){
   .btn{font-size:14px;padding:0 12px;min-height:40px}
   .stepper button{width:34px;height:34px}

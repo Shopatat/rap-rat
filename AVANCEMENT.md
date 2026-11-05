@@ -27,6 +27,11 @@ Deux chantiers en cours :
 - **Croc nettoyé** : les 57 premières ms de frottement sont coupées (fondu d'entrée 2 ms, sortie 12 ms),
   le son dure 143 ms et commence directement au craquement. `VERSION` en `rap-rat-v12`. L'original de
   200 ms est dans l'historique git (commit fb024cd) si on veut y revenir.
+- **Paysage obligatoire** : en portrait, un panneau « Tourne ton téléphone » (`.turn` dans
+  `index.html` + `css/style.css`) couvre tout l'écran. Le manifeste demande `"orientation":
+  "landscape"` (suivi par Android, ignoré par iOS, d'où le panneau). La partie en cours continue
+  de compter pendant le portrait et se retrouve intacte en tournant : la tranche ne se reforme
+  plus qu'en paysage (`fit()` dans `js/app.js`). `VERSION` en `rap-rat-v13`.
 - **Plein écran** : `.stage` passe en `inset:0` (le canevas va sous l'encoche et sous la
   barre du bas, les commandes restent dans les zones sûres) et `MARGIN` passe de `.02` à `0`
   dans `js/app.js`. Vérifié en 956×440 (paysage) et 440×956 (portrait) : pendant la partie,

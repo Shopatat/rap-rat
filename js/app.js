@@ -242,7 +242,9 @@
     view.width = Math.max(1, Math.round(r.width * dpr)); view.height = Math.max(1, Math.round(r.height * dpr));
     measureReserve(); resTop = wantTop; resBot = wantBot;
     draw();
-    if (state === 'idle') {          // before a game starts, reshape the cheese to the new screen
+    // en portrait le panneau « tourne ton téléphone » couvre tout : inutile de refaire
+    // une tranche debout, on garde celle du paysage et on la retrouve en tournant
+    if (state === 'idle' && r.width >= r.height) {   // avant la partie, la tranche épouse l'écran
       clearTimeout(reshapeT);
       reshapeT = setTimeout(() => { if (state === 'idle' && Math.abs(stageAspect() - A) > .04) { resetCheese(); draw(); } }, 200);
     }
