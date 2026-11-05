@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Atelier des foyers — Rap Rat</title>
+<!-- Atelier des foyers : règle la façon dont le rat choisit où mordre, et compare avec
+     les captures de l'émission. La tranche est dessinée par le vrai code de l'appli (js/app.js),
+     pour qu'il n'y ait jamais deux rendus différents. -->
+<link rel="stylesheet" href="../css/style.css">
+<style>
+:root{--line:rgba(244,201,106,.16)}
+html,body{height:auto;overflow:auto;background:var(--bg);user-select:auto;-webkit-user-select:auto}
+body{margin:0;padding:18px 16px 60px;font:15px/1.5 var(--ui);color:var(--ink)}
+.wrap{max-width:1000px;margin:0 auto}
+h1{font-family:var(--display);color:var(--cheese);font-size:26px;margin:0 0 2px}
+p.lede{color:var(--muted);margin:0 0 18px;font-size:13.5px;max-width:70ch}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+h2{font:600 13px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+/* la scène : l'appli tourne dedans, en vrai, mais tenue dans une boîte au lieu du plein écran */
+.scene{position:relative;width:100%;aspect-ratio:956/440;border-radius:10px;overflow:hidden;background:#000}
+.scene .stage{position:absolute!important;inset:0!important}
+.scene .bar,.scene .banner,.scene header,.scene .turn{display:none!important}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.row+.row{margin-top:10px}
+label.sld{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted);flex:1 1 210px}
+label.sld input{width:100%;accent-color:var(--cheese)}
+.val{color:var(--cream);font-variant-numeric:tabular-nums}
+.btn2{font:500 14px/1 var(--ui);color:var(--ink);background:var(--panel-hi);border:1px solid var(--line);
+  border-radius:999px;padding:0 15px;min-height:40px;cursor:pointer}
+.btn2:hover{background:#3a2818}
+.btn2.primary{background:var(--cheese);color:var(--on-cheese);border-color:transparent;font-weight:700}
+.btn2[aria-pressed="true"]{background:var(--cheese);color:var(--on-cheese);border-color:transparent}
+.info{font-size:12.5px;color:var(--muted);margin-top:10px}
+.info b{color:var(--cream);font-variant-numeric:tabular-nums}
+.refs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.refs figure{margin:0}
+.refs img{width:100%;display:block;border-radius:6px;border:1px solid var(--line)}
+.refs figcaption{font-size:11px;color:var(--muted);text-align:center;margin-top:2px}
+.refs.manquant{display:none}
+input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;border:1px solid var(--line);
+  border-radius:8px;padding:7px 8px;width:9ch;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Atelier des foyers</h1>
+  <p class="lede">Est-ce que le rat mord un peu partout, ou est-ce qu’il creuse quelques trous et les élargit ? Règle-le ici et compare avec les captures de l’émission, en bas. La même graine rejoue exactement la même partie, donc deux réglages se comparent honnêtement.</p>
+
+  <section>
+    <h2>La tranche</h2>
+    <div class="scene" id="scene">
+      <div class="stage" id="stage"><canvas id="view"></canvas></div>
+      <div class="banner" id="banner" hidden></div>
+      <header id="header"><span class="mark">Rap Rat</span></header>
+      <div class="bar" id="idleBar">
+        <div class="stepper"><button id="durMinus" type="button">−</button><output id="durOut"></output><button id="durPlus" type="button">+</button></div>
+        <button class="btn" id="soundBtn" type="button"></button>
+        <button class="btn" id="startBtn" type="button"></button>
+      </div>
+      <div class="bar" id="runBar" hidden><button class="btn" id="pauseBtn" type="button"></button><button class="btn" id="restartBtn" type="button"></button><button class="btn" id="fsBtn" type="button" hidden></button></div>
+      <div class="bar" id="endBar" hidden><button class="btn" id="againBtn" type="button"></button></div>
+      <div class="turn" id="turn"></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label class="sld">avancement <span class="val" id="nV">14 crocs sur 72</span>
+        <input type="range" id="n" min="0" max="72" step="1" value="14"></label>
+      <button class="btn2" id="lecture" aria-pressed="false">Dérouler</button>
+      <label style="font-size:12px;color:var(--muted)">graine <input type="number" id="graine" value="7"></label>
+      <button class="btn2" id="tirage">Autre partie</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Comment le rat choisit</h2>
+    <div class="row">
+      <label class="sld">nombre de foyers <span class="val" id="fV">4</span>
+        <input type="range" id="f" min="1" max="12" step="1" value="4"></label>
+      <label class="sld">crocs qui tombent sur un foyer <span class="val" id="rV">68 %</span>
+        <input type="range" id="r" min="0" max="100" step="1" value="68"></label>
+      <label class="sld">largeur d’un foyer <span class="val" id="pV">0,16</span>
+        <input type="range" id="p" min="4" max="45" step="1" value="16"></label>
+    </div>
+    <div class="row">
+      <button class="btn2" id="reset">Réglages actuels de l’appli</button>
+      <button class="btn2" id="partout">Mordre partout (comme avant)</button>
+      <span class="info" style="margin:0" id="resume"></span>
+    </div>
+    <div class="info">
+      À 0 %, le rat mord n’importe où sur le bord, sans jamais s’acharner : c’est le comportement
+      d’avant les foyers. À 100 %, il ne quitte plus les foyers qu’il a ouverts. La largeur dit
+      jusqu’où un croc peut tomber à côté du foyer : petite, ça creuse un trou net ; grande, ça
+      s’étale le long du bord.
+    </div>
+  </section>
+
+  <section>
+    <h2>L’émission, pour comparer</h2>
+    <div class="refs" id="refs"></div>
+    <div class="info" id="refsInfo">Dix captures prises au fil d’une partie, soit environ sept morsures entre deux images.</div>
+  </section>
+</div>
+
+<script src="../js/app.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const R = window.RapRat;
+  const total = R.crocs();
+  $('n').max = total;
+
+  // un hasard reproductible : la même graine rejoue la même partie, réglages mis à part
+  const vrai = Math.random;
+  function semer(g) {
+    let s = (g * 2654435761) >>> 0 || 1;
+    Math.random = () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+  }
+
+  function rejouer() {
+    const n = +$('n').value;
+    R.reglages({ foyers: +$('f').value, reste: +$('r').value / 100, pres: +$('p').value / 100 });
+    semer(+$('graine').value || 1);
+    R.neuf();
+    if (n > 0) R.bites(Math.min(n, total - 1));   // le dernier croc avale tout : on s'arrête avant
+    Math.random = vrai;
+    $('nV').textContent = n + (n > 1 ? ' crocs' : ' croc') + ' sur ' + total;
+    $('fV').textContent = $('f').value;
+    $('rV').textContent = $('r').value + ' %';
+    $('pV').textContent = (+$('p').value / 100).toFixed(2).replace('.', ',');
+    const r = +$('r').value;
+    $('resume').textContent = r === 0 ? 'Le rat mord n’importe où.'
+      : r >= 90 ? 'Le rat ne quitte plus ses foyers.'
+      : 'Environ ' + Math.round(r / 10) + ' crocs sur 10 tombent contre un foyer déjà ouvert.';
+  }
+
+  for (const id of ['n', 'f', 'r', 'p', 'graine']) $(id).addEventListener('input', rejouer);
+  $('reset').addEventListener('click', () => { $('f').value = 4; $('r').value = 68; $('p').value = 16; rejouer(); });
+  $('partout').addEventListener('click', () => { $('r').value = 0; rejouer(); });
+  $('tirage').addEventListener('click', () => { $('graine').value = Math.floor(vrai() * 9999) + 1; rejouer(); });
+
+  // dérouler la partie, un croc après l'autre
+  let film = 0;
+  $('lecture').addEventListener('click', () => {
+    if (film) { clearInterval(film); film = 0; $('lecture').setAttribute('aria-pressed', 'false'); return; }
+    $('lecture').setAttribute('aria-pressed', 'true');
+    if (+$('n').value >= total) $('n').value = 0;
+    film = setInterval(() => {
+      const n = +$('n').value + 1;
+      $('n').value = n; rejouer();
+      if (n >= total) { clearInterval(film); film = 0; $('lecture').setAttribute('aria-pressed', 'false'); }
+    }, 320);
+  });
+
+  // les captures de l'émission, si elles sont là (elles restent hors dépôt)
+  const refs = $('refs');
+  let vues = 0;
+  for (let i = 1; i <= 10; i++) {
+    const fig = document.createElement('figure'), img = new Image();
+    img.src = '../references/progression/' + String(i).padStart(2, '0') + '.jpg';
+    img.alt = 'capture ' + i;
+    img.onerror = () => fig.remove();
+    img.onload = () => { vues++; };
+    const cap = document.createElement('figcaption'); cap.textContent = i;
+    fig.append(img, cap); refs.append(fig);
+  }
+  setTimeout(() => {
+    if (!vues) $('refsInfo').textContent = 'Les captures ne sont pas là : elles vivent dans references/progression/, hors dépôt.';
+  }, 1200);
+
+  // l'appli réserve de la place pour ses barres tant qu'elles ne sont pas vraiment « hidden » :
+  // on les masque comme elle le fait elle-même, puis on la laisse reprendre ses mesures
+  function cacher() { for (const id of ['idleBar', 'runBar', 'endBar', 'header', 'banner', 'turn']) $(id).hidden = true; }
+  cacher();
+  const scene = $('scene');
+  new ResizeObserver(() => { cacher(); clearTimeout(scene._t); scene._t = setTimeout(rejouer, 60); }).observe(scene);
+  setTimeout(rejouer, 80);
+})();
+</script>
+</body>
+</html>

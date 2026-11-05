@@ -40,6 +40,14 @@ Deux chantiers en cours :
 - **Plus de secousse** : la toile ne tressautait plus qu'à cause de moi, pas de l'émission ;
   l'animation `jolt` est supprimée. Le croc ne se signale plus que par le trou et le son.
   `VERSION` en `rap-rat-v16`.
+- **Atelier des foyers** (`outils/atelier-foyers.html`) : Fabien y règle lui-même si le rat mord
+  partout ou s'acharne — nombre de foyers, part des crocs qui tombent sur un foyer, largeur d'un
+  foyer — avec les dix captures de l'émission en dessous pour comparer. La tranche est dessinée par
+  le vrai `js/app.js` (markup de l'appli repris dans la page, barres masquées), et une graine rend
+  la partie reproductible : deux réglages se comparent honnêtement. Réglages exposés via
+  `RapRat.reglages()`, `RapRat.neuf()`, `RapRat.bites()`. **Les valeurs actuelles (4 foyers, 68 %)
+  sont une hypothèse de ma part, pas un choix de Fabien** : dix captures sur quinze minutes ne
+  prouvent pas grand-chose, il pense que le rat mord plutôt un peu partout. À trancher dans l'atelier.
 - **Foyers de morsures** : relevé sur `references/progression/` (10 captures de l'émission,
   hors dépôt), le rat ouvre quatre foyers et les élargit. Quatre premiers crocs = quatre foyers,
   ensuite deux sur trois tombent contre un foyer existant, qui ne suit la morsure qu'à 30 %

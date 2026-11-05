@@ -299,7 +299,8 @@
   function countRemoval(circles) { let n = 0; forCellsIn(circles, () => n++); return n; }
 
   // les foyers : les quelques endroits du bord que le rat élargit au lieu de mordre partout
-  const FOYERS = 4, RESTE = .68, PRES = .16;
+  // (réglables à chaud depuis l'Atelier des foyers, outils/atelier-foyers.html)
+  let FOYERS = 4, RESTE = .68, PRES = .16;
   let foyers = [];
 
   // Pick a spot on the cheese's edge. Spots far from the middle are much more likely,
@@ -648,7 +649,10 @@
 
   // test hook: jump ahead in the current game
   window.RapRat = { skip(sec) { if (state === 'running' || state === 'paused') elapsed += sec; },
-    bites(n) { for (let i = 0; i < n; i++) bite(i, BITES); compose(); draw(); },
+    bites(n, from = 0) { for (let i = 0; i < n; i++) bite(from + i, BITES); compose(); draw(); },
+    neuf() { resetCheese(); draw(); },                        // une tranche entière, intacte
+    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; },
+    crocs: () => BITES,
     freezeIntro(t) { if (!lidTex) lidTex = makeLid(); frozen = t; introStart = 0; draw(); } };
 
   resetCheese(); render();
