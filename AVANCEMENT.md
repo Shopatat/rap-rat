@@ -107,7 +107,18 @@ Deux chantiers en cours :
 Écouter le croc nettoyé en situation sur l'iPhone (une partie entière espace les crocs d'environ
 12 secondes) et dire s'il manque de corps depuis la coupe du début, ou s'il faut varier davantage.
 
-## Ensuite : la musique
+## La musique
+
+- **Fichier source** : `references/musique/theme.mp3` (hors dépôt), 85,4 s, 48 kHz stéréo. Déjà
+  monté par quelqu'un à partir de l'émission : **20 collures** repérées, dont une série à 4,9 / 5,9 /
+  6,9 / 8,9 / 10,9 s. Le fichier entier ne boucle pas (raccord fin→début à 0,998, où 0 est parfait).
+- **Structure** : motif de **3,98 s**, grand motif de 7,96 s. La meilleure boucle sans collure
+  dedans démarre à **71,26 s** et dure **7,96 s** (raccord 0,037 : excellent).
+- **Atelier de la boucle** (`outils/atelier-boucle.html`) : trouve le motif par autocorrélation,
+  repère les collures, propose les meilleures boucles, fait écouter *la jointure seule* en boucle
+  serrée, offre un fondu enchaîné et exporte le `.wav`.
+
+## Reste à trancher pour la musique
 
 Fabien veut ajouter la musique du jeu. **Décidé** : on part sur la version américaine, plus punchy
 et facile à récupérer proprement ; la française viendra plus tard si on arrive à la nettoyer.

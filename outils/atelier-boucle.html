@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Atelier de la boucle — Rap Rat</title>
+<!-- Atelier de la boucle : trouver dans un morceau le passage qui se reboucle sans que le
+     raccord s'entende, et l'exporter. Tout se passe dans le navigateur, rien ne part ailleurs. -->
+<style>
+:root{
+  --bg:#060403; --panel:#18110a; --panel-hi:#2b1e12; --ink:#f6ead6; --muted:#9c8670;
+  --cheese:#e08a2c; --cream:#f4c96a; --on-cheese:#2a1404; --line:rgba(244,201,106,.16);
+  --display:"Arial Rounded MT Bold","Arial Rounded MT","Nunito","Trebuchet MS",system-ui,sans-serif;
+  --ui:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--ui);padding:18px 16px 60px}
+.wrap{max-width:920px;margin:0 auto}
+h1{font-family:var(--display);color:var(--cheese);font-size:26px;margin:0 0 2px}
+p.lede{color:var(--muted);margin:0 0 18px;font-size:13.5px;max-width:72ch}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+h2{font:600 13px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row+.row{margin-top:10px}
+.btn{font:500 14px/1 var(--ui);color:var(--ink);background:var(--panel-hi);border:1px solid var(--line);
+  border-radius:999px;padding:0 15px;min-height:40px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#3a2818}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.primary{background:var(--cheese);color:var(--on-cheese);border-color:transparent;font-weight:700}
+.btn.primary:hover{background:var(--cream)}
+.btn[aria-pressed="true"]{background:var(--cheese);color:var(--on-cheese);border-color:transparent}
+.btn.small{min-height:32px;padding:0 10px;font-size:13px}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:22px 16px;text-align:center;color:var(--muted);cursor:pointer}
+.drop.over{border-color:var(--cheese);color:var(--ink);background:var(--panel-hi)}
+.drop strong{color:var(--ink);display:block;font-size:16px;margin-bottom:4px}
+canvas{width:100%;height:130px;display:block;background:#0d0906;border-radius:10px;border:1px solid var(--line);touch-action:none}
+canvas.seam{height:84px}
+label.fld{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);min-width:130px}
+label.fld input{font:500 14px var(--ui);color:var(--ink);background:#0d0906;border:1px solid var(--line);
+  border-radius:8px;padding:7px 8px;width:100%;font-variant-numeric:tabular-nums}
+label.sld{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted);flex:1 1 220px}
+label.sld input{width:100%;accent-color:var(--cheese)}
+.val{color:var(--cream);font-variant-numeric:tabular-nums}
+.info{font-size:12.5px;color:var(--muted);margin-top:10px}
+.info b{color:var(--cream);font-weight:600;font-variant-numeric:tabular-nums}
+.note{font-size:20px;font-family:var(--display)}
+.bon{color:#8ad46a}.moyen{color:var(--cream)}.mauvais{color:#ffb4a0}
+.err{color:#ffb4a0;font-size:13.5px;margin-top:10px}
+kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--line);border-radius:5px;padding:2px 5px;color:var(--cream)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Atelier de la boucle</h1>
+  <p class="lede">La musique du jeu tourne en boucle. Il suffit donc d’en garder un passage qui se recolle sur lui-même sans qu’on l’entende. L’atelier cherche les meilleurs candidats tout seul, te fait écouter <em>la jointure seule</em>, et exporte le morceau prêt pour l’appli.</p>
+
+  <section>
+    <h2>1 · Le morceau</h2>
+    <div class="drop" id="drop" tabindex="0" role="button">
+      <strong>Dépose un fichier audio ici</strong>
+      .mp3, .m4a, .wav, .ogg — ou clique pour choisir
+    </div>
+    <input type="file" id="file" accept="audio/*,video/*" hidden>
+    <div class="err" id="err" hidden></div>
+    <div class="info" id="meta" hidden></div>
+  </section>
+
+  <section id="travail" hidden>
+    <h2>2 · Où boucler</h2>
+    <canvas id="wave" width="900" height="130" aria-label="forme d’onde du morceau"></canvas>
+    <div class="row">
+      <label class="fld">début (s)<input type="number" id="t0" step="0.01" min="0"></label>
+      <label class="fld">durée (s)<input type="number" id="dur" step="0.01" min="0.5"></label>
+      <span class="info" style="margin:0">Glisse sur la forme d’onde pour déplacer le début.</span>
+    </div>
+    <div class="row">
+      <span class="info" style="margin:0">motif détecté : <b id="motif">—</b></span>
+      <span class="info" style="margin:0">collures repérées : <b id="collures">—</b></span>
+      <button class="btn small" id="moins">− un motif</button>
+      <button class="btn small" id="plus">+ un motif</button>
+      <button class="btn small" id="cale">Caler sur le motif</button>
+    </div>
+    <div class="row" id="candidats"></div>
+  </section>
+
+  <section id="ecoute" hidden>
+    <h2>3 · La jointure</h2>
+    <canvas id="seam" class="seam" width="900" height="84" aria-label="la jointure, fin et début bout à bout"></canvas>
+    <div class="row">
+      <button class="btn primary" id="play">Jouer en boucle (<kbd>espace</kbd>)</button>
+      <button class="btn" id="joint">Écouter la jointure</button>
+      <button class="btn" id="stop">Stop</button>
+      <span class="info" style="margin:0">qualité du raccord : <span class="note" id="score">—</span></span>
+    </div>
+    <div class="row">
+      <label class="sld">fondu enchaîné au raccord <span class="val" id="xfV">0 ms</span>
+        <input type="range" id="xf" min="0" max="200" step="5" value="0"></label>
+    </div>
+    <div class="info">
+      « Écouter la jointure » démarre une seconde et demie avant la fin : tu n’entends que le
+      recollement, en boucle serrée. C’est le seul moyen honnête de juger — sur la boucle entière,
+      on oublie ce qu’on cherche. Le fondu enchaîné arrondit un raccord qui claque, mais il mange
+      un peu de musique : laisse-le à zéro si le raccord passe déjà.
+    </div>
+  </section>
+
+  <section id="sortie" hidden>
+    <h2>4 · L’export</h2>
+    <div class="row">
+      <button class="btn primary" id="export">Exporter la boucle en .wav</button>
+      <span class="info" style="margin:0" id="taille"></span>
+    </div>
+    <div class="info">
+      Pose le fichier dans <code>sons/</code>, ajoute-le à <code>FILES</code> dans <code>sw.js</code>
+      et incrémente <code>VERSION</code>. Attention au poids : le cache hors ligne embarque tout.
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let ac = null, buf = null, mono = null, motif = 0, src = null, raf = 0;
+  const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+  // ---------- le fichier ----------
+  const drop = $('drop'), file = $('file');
+  drop.addEventListener('click', () => file.click());
+  drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); file.click(); } });
+  ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, () => drop.classList.remove('over')));
+  drop.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) lire(e.dataTransfer.files[0]); });
+  file.addEventListener('change', () => { if (file.files[0]) lire(file.files[0]); });
+
+  function fail(m) { $('err').textContent = m; $('err').hidden = false; }
+
+  async function lire(f) {
+    $('err').hidden = true; stop();
+    if (!ac) ac = new AC();
+    if (ac.state === 'suspended') ac.resume().catch(() => {});
+    let data;
+    try { data = f.arrayBuffer ? await f.arrayBuffer() : f; } catch (e) { return fail('Lecture impossible.'); }
+    try { buf = await ac.decodeAudioData(data); }
+    catch (e) { buf = null; return fail('Ce format ne se décode pas ici. Essaie un .mp3, .m4a ou .wav.'); }
+    const n = buf.length; mono = new Float32Array(n);
+    for (let c = 0; c < buf.numberOfChannels; c++) {
+      const x = buf.getChannelData(c);
+      for (let i = 0; i < n; i++) mono[i] += x[i] / buf.numberOfChannels;
+    }
+    $('meta').hidden = false;
+    $('meta').innerHTML = `<b>${f.name || 'morceau'}</b> — ${buf.duration.toFixed(2)} s, ${buf.sampleRate} Hz, `
+      + (buf.numberOfChannels === 1 ? 'mono' : 'stéréo');
+    ['travail', 'ecoute', 'sortie'].forEach(id => $(id).hidden = false);
+    motif = trouveMotif();
+    collures = trouveCollures();
+    $('motif').textContent = motif ? motif.toFixed(2) + ' s' : 'aucun';
+    $('collures').textContent = collures.length
+      ? collures.length + ' (' + collures.slice(0, 6).map(c => c.t.toFixed(1) + ' s').join(', ') + (collures.length > 6 ? '…' : '') + ')'
+      : 'aucune';
+    cherche();
+    dessine();
+  }
+
+  // ---------- le motif : autocorrélation de l'enveloppe ----------
+  function enveloppe() {
+    const sr = buf.sampleRate, h = Math.round(sr * .01), m = Math.floor(mono.length / h), e = new Float32Array(m);
+    for (let k = 0; k < m; k++) { let s = 0; for (let i = k * h; i < k * h + h; i++) s += mono[i] * mono[i]; e[k] = Math.sqrt(s / h); }
+    return e;
+  }
+  function trouveMotif() {
+    const e = enveloppe(), m = e.length;
+    if (m < 400) return 0;
+    const mu = e.reduce((a, b) => a + b, 0) / m, c = Array.from(e, v => v - mu);
+    let best = 0, bestC = -1;
+    for (let lag = 100; lag < Math.min(m - 100, 3000); lag++) {
+      let s = 0, na = 0, nb = 0;
+      for (let k = 0; k + lag < m; k++) { s += c[k] * c[k + lag]; na += c[k] * c[k]; nb += c[k + lag] * c[k + lag]; }
+      const v = s / Math.sqrt(na * nb + 1e-9);
+      if (v > bestC) { bestC = v; best = lag; }
+    }
+    return bestC > .25 ? best * .01 : 0;
+  }
+
+  // ---------- les collures déjà présentes dans le morceau ----------
+  // Un montage laisse des marches : deux échantillons voisins qui sautent bien plus que la
+  // musique autour. On les repère pour ne pas enfermer une collure dans la boucle.
+  let collures = [];
+  function trouveCollures() {
+    const sr = buf.sampleRate, n = mono.length, F = Math.round(sr * .05);
+    const brut = [];
+    for (let i = 1; i < n; i++) {
+      const saut = Math.abs(mono[i] - mono[i - 1]);
+      if (saut < .18) continue;
+      let s = 0, c = 0;                                  // le saut typique autour, pour comparer
+      for (let k = Math.max(1, i - F); k < Math.min(n, i + F); k += 7) { s += Math.abs(mono[k] - mono[k - 1]); c++; }
+      if (saut > 6 * (s / Math.max(1, c))) brut.push({ t: i / sr, v: saut });
+    }
+    brut.sort((a, b) => b.v - a.v);
+    const gard = [];
+    for (const b of brut) { if (gard.every(g => Math.abs(g.t - b.t) > .3)) gard.push(b); if (gard.length >= 20) break; }
+    return gard.sort((a, b) => a.t - b.t);
+  }
+
+  // ---------- la qualité d'un raccord ----------
+  function qualite(t0, t1, ms = 60) {
+    const sr = buf.sampleRate, a = Math.round(t0 * sr), b = Math.round(t1 * sr), L = Math.round(sr * ms / 1000);
+    if (a < L || b > mono.length) return 2;
+    let num = 0, den = 0;
+    for (let i = 0; i < L; i++) { const x = mono[b - L + i], y = mono[a - L + i]; num += (x - y) * (x - y); den += x * x + y * y; }
+    return num / (den + 1e-9);
+  }
+
+  // ---------- chercher les meilleurs candidats ----------
+  function cherche() {
+    const box = $('candidats'); box.innerHTML = '';
+    if (!motif) return;
+    const res = [];
+    for (const k of [2, 4]) {
+      const L = motif * k;
+      for (let t0 = .05; t0 + L < buf.duration - .05; t0 += .01) {
+        if (collures.some(c => c.t > t0 - .05 && c.t < t0 + L + .05)) continue;   // pas de collure dedans
+        res.push({ t0, L, q: qualite(t0, t0 + L) });
+      }
+    }
+    res.sort((a, b) => a.q - b.q);
+    const gardes = [];
+    for (const r of res) { if (gardes.every(g => Math.abs(g.t0 - r.t0) > 1 || Math.abs(g.L - r.L) > .01)) gardes.push(r); if (gardes.length >= 5) break; }
+    if (!gardes.length) return;
+    const lab = document.createElement('span');
+    lab.className = 'info'; lab.style.margin = '0'; lab.textContent = 'trouvés pour toi :';
+    box.append(lab);
+    gardes.forEach((g, i) => {
+      const b = document.createElement('button');
+      b.className = 'btn small';
+      b.textContent = `${g.t0.toFixed(2)} s · ${g.L.toFixed(2)} s`;
+      b.addEventListener('click', () => { pose(g.t0, g.L); });
+      box.append(b);
+      if (i === 0) pose(g.t0, g.L);
+    });
+  }
+
+  function pose(t0, L) { $('t0').value = t0.toFixed(2); $('dur').value = L.toFixed(2); maj(); }
+  const deb = () => clamp(+$('t0').value || 0, 0, buf.duration - .2);
+  const lon = () => clamp(+$('dur').value || 1, .2, buf.duration - deb());
+
+  function maj() {
+    const q = qualite(deb(), deb() + lon());
+    const s = $('score');
+    s.textContent = q < .08 ? 'excellent' : q < .2 ? 'bon' : q < .5 ? 'moyen' : 'mauvais';
+    s.className = 'note ' + (q < .2 ? 'bon' : q < .5 ? 'moyen' : 'mauvais');
+    s.title = q.toFixed(3);
+    $('taille').textContent = `${lon().toFixed(2)} s · wav 16 bits mono ≈ ${Math.round(lon() * 44100 * 2 / 1024)} Ko`;
+    dessine(); dessineJoint();
+    if (src) joue(false);          // on relance avec les nouvelles bornes
+  }
+  $('t0').addEventListener('change', maj);
+  $('dur').addEventListener('change', maj);
+  $('moins').addEventListener('click', () => { $('dur').value = Math.max(motif || .5, lon() - (motif || .5)).toFixed(2); maj(); });
+  $('plus').addEventListener('click', () => { $('dur').value = (lon() + (motif || .5)).toFixed(2); maj(); });
+  $('cale').addEventListener('click', () => {
+    if (!motif) return;
+    $('dur').value = (Math.max(1, Math.round(lon() / motif)) * motif).toFixed(2); maj();
+  });
+  $('xf').addEventListener('input', () => { $('xfV').textContent = $('xf').value + ' ms'; if (src) joue(false); });
+
+  // ---------- dessins ----------
+  function trace(cv, a, b, marques) {
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth || 900, h = cv.clientHeight || 120;
+    if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.fillStyle = '#0d0906'; c.fillRect(0, 0, w, h);
+    if (!buf || b <= a) return;
+    const sr = buf.sampleRate, mid = h / 2;
+    for (const m of marques || []) {
+      const x = (m.t - a) / (b - a) * w;
+      if (m.zone) { c.fillStyle = 'rgba(224,138,44,.16)'; c.fillRect(x, 0, Math.max(1, m.zone / (b - a) * w), h); }
+      else { c.strokeStyle = m.col || '#f4c96a'; c.lineWidth = 1; c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke(); }
+    }
+    c.strokeStyle = '#e08a2c'; c.lineWidth = 1; c.beginPath();
+    for (let x = 0; x < w; x++) {
+      const s0 = Math.floor((a + (b - a) * x / w) * sr), s1 = Math.max(s0 + 1, Math.floor((a + (b - a) * (x + 1) / w) * sr));
+      let lo = 1, hi = -1;
+      for (let i = s0; i < s1 && i < mono.length; i++) { const v = mono[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+      if (lo > hi) lo = hi = 0;
+      c.moveTo(x + .5, mid - hi * mid * .95); c.lineTo(x + .5, mid - lo * mid * .95);
+    }
+    c.stroke();
+  }
+  function dessine() {
+    const marques = [{ t: deb(), zone: lon() }];
+    for (const c of collures) marques.push({ t: c.t, col: '#ff7a5c' });
+    trace($('wave'), 0, buf.duration, marques);
+  }
+  // la jointure : la fin de la boucle, puis son début, bout à bout
+  function dessineJoint() {
+    const cv = $('seam'), dpr = window.devicePixelRatio || 1;
+    const w = cv.clientWidth || 900, h = cv.clientHeight || 84;
+    if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.fillStyle = '#0d0906'; c.fillRect(0, 0, w, h);
+    const sr = buf.sampleRate, N = Math.round(sr * .25), mid = h / 2;
+    const fin = Math.round((deb() + lon()) * sr), dbt = Math.round(deb() * sr);
+    c.strokeStyle = '#e08a2c'; c.beginPath();
+    for (let x = 0; x < w; x++) {
+      const t = x / w, i = t < .5 ? fin - N + Math.round(t * 2 * N) : dbt + Math.round((t - .5) * 2 * N);
+      const v = i >= 0 && i < mono.length ? mono[i] : 0;
+      c.moveTo(x + .5, mid); c.lineTo(x + .5, mid - v * mid * .9);
+    }
+    c.stroke();
+    c.strokeStyle = '#f4c96a'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(w / 2, 0); c.lineTo(w / 2, h); c.stroke();
+  }
+  window.addEventListener('resize', () => { if (buf) { dessine(); dessineJoint(); } });
+  $('wave').addEventListener('pointerdown', e => {
+    const r = $('wave').getBoundingClientRect();
+    $('t0').value = clamp(buf.duration * (e.clientX - r.left) / r.width, 0, buf.duration - lon()).toFixed(2);
+    maj();
+  });
+
+  // ---------- lecture ----------
+  function stop() { if (src) { try { src.stop(); } catch (e) {} src = null; } $('play').setAttribute('aria-pressed', 'false'); }
+  // la boucle jouée telle quelle, bornes au sample près (+ fondu enchaîné si demandé)
+  async function joue(depuisJoint) {
+    stop();
+    if (ac.state === 'suspended') await ac.resume().catch(() => {});
+    const xf = +$('xf').value / 1000;
+    const b = xf > 0 ? await fondu(xf) : buf;
+    const t0 = xf > 0 ? 0 : deb(), t1 = xf > 0 ? b.duration : deb() + lon();
+    src = ac.createBufferSource(); src.buffer = b;
+    src.loop = true; src.loopStart = t0; src.loopEnd = t1;
+    src.connect(ac.destination);
+    src.start(0, depuisJoint ? Math.max(t0, t1 - 1.5) : t0);
+    $('play').setAttribute('aria-pressed', 'true');
+  }
+  // fabrique une version de la boucle dont la fin se fond dans le début
+  async function fondu(xf) {
+    const sr = buf.sampleRate, L = Math.round(lon() * sr), a = Math.round(deb() * sr), F = Math.round(xf * sr);
+    const out = new AudioBuffer({ length: L, sampleRate: sr, numberOfChannels: buf.numberOfChannels });
+    for (let c = 0; c < buf.numberOfChannels; c++) {
+      const x = buf.getChannelData(c), y = out.getChannelData(c);
+      for (let i = 0; i < L; i++) y[i] = x[a + i] || 0;
+      for (let i = 0; i < F; i++) {                       // la fin se mêle à ce qui précède le début
+        const k = i / F, av = x[a - F + i] || 0;
+        y[L - F + i] = y[L - F + i] * (1 - k) + av * k;
+      }
+    }
+    return out;
+  }
+  $('play').addEventListener('click', () => { if (src) stop(); else joue(false); });
+  $('joint').addEventListener('click', () => joue(true));
+  $('stop').addEventListener('click', stop);
+
+  // ---------- export ----------
+  function wav16(b) {
+    const d = b.getChannelData(0), n = d.length, sr = b.sampleRate;
+    const ab = new ArrayBuffer(44 + n * 2), v = new DataView(ab);
+    const tag = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    tag(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); tag(8, 'WAVE');
+    tag(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    tag(36, 'data'); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) { const s = clamp(d[i], -1, 1); v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true); }
+    return new Blob([ab], { type: 'audio/wav' });
+  }
+  $('export').addEventListener('click', async () => {
+    const xf = +$('xf').value / 1000;
+    const b = xf > 0 ? await fondu(xf) : null;
+    const sr = buf.sampleRate, L = Math.round(lon() * sr), a = Math.round(deb() * sr);
+    const oc = new OfflineAudioContext(1, L, sr);
+    const cut = new AudioBuffer({ length: L, sampleRate: sr, numberOfChannels: 1 });
+    const ch = cut.getChannelData(0);
+    if (b) { const n0 = b.getChannelData(0), n1 = b.numberOfChannels > 1 ? b.getChannelData(1) : n0;
+      for (let i = 0; i < L; i++) ch[i] = (n0[i] + n1[i]) / 2; }
+    else for (let i = 0; i < L; i++) ch[i] = mono[a + i] || 0;
+    const s = oc.createBufferSource(); s.buffer = cut; s.connect(oc.destination); s.start(0);
+    const url = URL.createObjectURL(wav16(await oc.startRendering()));
+    const el = document.createElement('a'); el.href = url; el.download = 'musique.wav'; el.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  });
+
+  document.addEventListener('keydown', e => {
+    if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key.toLowerCase() === 'j') $('joint').click();
+    else if (e.key === 'Escape') stop();
+  });
+
+  // si le morceau est déjà dans le projet (hors dépôt), on le charge tout seul
+  fetch('../references/musique/theme.mp3').then(r => r.ok ? r.arrayBuffer() : Promise.reject())
+    .then(b => { Object.defineProperty(b, 'name', { value: 'theme.mp3' }); return lire(b); })
+    .catch(() => {});
+})();
+</script>
+</body>
+</html>
