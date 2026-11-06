@@ -246,3 +246,20 @@ déjà tranchée avec Fabien). `VERSION` en `rap-rat-v29`.
 Reste ouvert : sur la capture, le cœur de la tranche est nettement plus clair qu'au bord, presque
 blanc-jaune. Le dégradé actuel est plus plat. Ne pas y toucher sans Fabien — la teinte « orange
 profond et saturé, centre plus jaune » a été choisie avec lui.
+
+## L'épaisseur, la vraie
+
+Précision de Fabien : il ne parlait pas d'ombres mais de **l'épaisseur du fromage, visible sur
+certains bords** de la capture — la tranche vue de côté. La version v29 ne faisait que modeler la
+face du dessus ; il manquait la paroi elle-même.
+
+`compose()` dessine maintenant deux choses. D'abord la **paroi** : la même silhouette glissée vers
+le bas (et un peu à droite), en sept couches de plus en plus sombres, du même ambre que le fromage
+vers un brun profond. Chaque couche n'est visible que là où la suivante ne la couvre pas, ce qui
+donne une bande dégradée sous tous les bords tournés vers nous. Puis la **face du dessus**, posée
+par-dessus, avec son modelé (lumière d'en haut à gauche). Un nouveau canevas `face` sert à la
+préparer à part.
+
+`EPAISSEUR` (0,022, soit 2,2 % de la hauteur de l'écran) est réglable dans l'atelier, curseur
+« épaisseur de la tranche », de 0 à 6 %. Vérifié : l'aire dessinée grandit bien avec le réglage
+(60 354 → 62 209 → 65 126 points sondés à 0 %, 2,2 % et 5 %). `VERSION` en `rap-rat-v30`.

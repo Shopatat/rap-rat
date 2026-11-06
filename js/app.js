@@ -9,7 +9,9 @@
   const TAU = Math.PI * 2;
 
   const stage = $('stage'), view = $('view'), vctx = view.getContext('2d');
-  const tex = mk(), mask = mk(), inv = mk(), comp = mk();
+  const tex = mk(), mask = mk(), inv = mk(), comp = mk(), face = mk();
+  // EPAISSEUR : la hauteur de la paroi, en part de la hauteur de l'écran (réglable dans l'atelier)
+  let EPAISSEUR = .022;
   let SW = 1024, SH = 1024, U = 1, A = 1, GH = GW, grid = new Uint8Array(GW * GW), cells0 = 1, cells = 1;
 
   // ---------- settings (per-viewer convenience) ----------
@@ -175,7 +177,7 @@
     A = stageAspect();
     SW = pickResolution();
     SH = Math.round(SW * A); U = Math.min(SW, SH) / 1024; GH = Math.max(1, Math.round(GW * A));
-    for (const c of [tex, mask, inv, comp]) { c.width = SW; c.height = SH; }
+    for (const c of [tex, mask, inv, comp, face]) { c.width = SW; c.height = SH; }
     grid = new Uint8Array(GW * GH); grid.fill(1); cells0 = cells = GW * GH;
     foyers = []; derniers = [];      // nouvelle tranche, nouveaux foyers
     paintTexture();
@@ -186,13 +188,17 @@
   }
 
   // ---------- compositing: texture clipped by mask + dark rim along bites ----------
+  // La tranche n'est pas un décalque : elle a une épaisseur. On dessine donc d'abord sa paroi —
+  // la silhouette décalée vers le bas, dans un ambre plus profond — puis la face du dessus
+  // par-dessus. Du coup, partout où un bord est tourné vers nous, on voit la tranche de côté,
+  // comme sur les captures de l'émission.
   function compose() {
-    const c = comp.getContext('2d');
-    c.globalCompositeOperation = 'source-over';
-    c.clearRect(0, 0, SW, SH);
-    c.drawImage(tex, 0, 0);
-    c.globalCompositeOperation = 'destination-in';
-    c.drawImage(mask, 0, 0);
+    const f = face.getContext('2d');
+    f.globalCompositeOperation = 'source-over';
+    f.clearRect(0, 0, SW, SH);
+    f.drawImage(tex, 0, 0);
+    f.globalCompositeOperation = 'destination-in';
+    f.drawImage(mask, 0, 0);
 
     const ic = inv.getContext('2d');
     ic.globalCompositeOperation = 'source-over';
@@ -205,26 +211,41 @@
     // Relevé sur l'émission : la tranche a du relief, chaque morsure ouvre une paroi. On éclaire
     // donc d'en haut à gauche — les bords tournés vers la lumière s'allument d'un liseré ambré,
     // ceux qui lui tournent le dos s'enfoncent dans l'ombre.
-    const OFF = SW * 3, D = SW * .009;
-    c.globalCompositeOperation = 'source-atop';
-    // 1. l'ombre douce tout autour, qui creuse la tranche
-    c.shadowOffsetX = OFF; c.shadowOffsetY = 0;
-    c.shadowColor = 'rgba(70,24,0,.5)'; c.shadowBlur = SW * .03;
-    c.drawImage(inv, -OFF, 0);
-    // 2. la paroi sombre, du côté opposé à la lumière
-    c.shadowOffsetX = OFF - D; c.shadowOffsetY = -D;
-    c.shadowColor = 'rgba(40,12,0,.85)'; c.shadowBlur = SW * .011;
-    c.drawImage(inv, -OFF, 0);
-    // 3. la paroi éclairée : un liseré chaud, discret, côté lumière
-    c.shadowOffsetX = OFF + D; c.shadowOffsetY = D;
-    c.shadowColor = 'rgba(255,212,122,.72)'; c.shadowBlur = SW * .008;
-    c.drawImage(inv, -OFF, 0);
-    // 4. le trait net qui redonne le bord franc, sans flou
-    c.shadowOffsetX = OFF; c.shadowOffsetY = 0;
-    c.shadowColor = 'rgba(30,9,0,.75)'; c.shadowBlur = SW * .0035;
-    c.drawImage(inv, -OFF, 0);
-    c.shadowColor = 'rgba(0,0,0,0)'; c.shadowBlur = 0; c.shadowOffsetX = 0; c.shadowOffsetY = 0;
+    // Le modelé de la face du dessus : la lumière vient d'en haut à gauche.
+    const OFF = SW * 3, D = SW * .007;
+    f.globalCompositeOperation = 'source-atop';
+    f.shadowOffsetX = OFF - D; f.shadowOffsetY = -D;
+    f.shadowColor = 'rgba(70,24,0,.42)'; f.shadowBlur = SW * .026;
+    f.drawImage(inv, -OFF, 0);
+    f.shadowOffsetX = OFF + D; f.shadowOffsetY = D;
+    f.shadowColor = 'rgba(255,214,126,.5)'; f.shadowBlur = SW * .007;
+    f.drawImage(inv, -OFF, 0);
+    f.shadowColor = 'rgba(0,0,0,0)'; f.shadowBlur = 0; f.shadowOffsetX = 0; f.shadowOffsetY = 0;
+    f.globalCompositeOperation = 'source-over';
+
+    // La paroi : la même silhouette, glissée vers le bas, en plusieurs couches de plus en plus
+    // sombres. Chaque couche n'est visible que là où la précédente ne la couvre pas, ce qui
+    // donne une bande dégradée sous tous les bords tournés vers nous.
+    const c = comp.getContext('2d');
     c.globalCompositeOperation = 'source-over';
+    c.clearRect(0, 0, SW, SH);
+    const T = Math.max(2, SH * EPAISSEUR), N = 7;
+    for (let k = N; k >= 1; k--) {
+      const u = k / N;                                   // 1 = le bas de la paroi
+      c.save();
+      c.globalCompositeOperation = 'source-over';
+      c.translate(T * .28 * u, T * u);
+      c.drawImage(mask, 0, 0);
+      c.globalCompositeOperation = 'source-in';
+      // du même ambre que le fromage au départ, assombri à mesure qu'on descend la paroi
+      const m = 1 - .62 * u;
+      c.fillStyle = `rgb(${Math.round(214 * m)},${Math.round(142 * m)},${Math.round(44 * m)})`;
+      c.fillRect(-SW, -SH, SW * 3, SH * 3);
+      c.restore();
+    }
+    // la face du dessus se pose sur la paroi
+    c.globalCompositeOperation = 'source-over';
+    c.drawImage(face, 0, 0);
   }
 
   // ---------- display: full screen in play, shrunk above the controls otherwise ----------
@@ -747,9 +768,9 @@
   window.RapRat = { skip(sec) { if (state === 'running' || state === 'paused') elapsed += sec; },
     bites(n, from = 0) { for (let i = 0; i < n; i++) bite(from + i, BITES); compose(); draw(); },
     neuf() { resetCheese(); draw(); },                        // une tranche entière, intacte
-    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; if (o.etale != null) ETALE = o.etale; },
+    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; if (o.etale != null) ETALE = o.etale; if (o.epaisseur != null) { EPAISSEUR = o.epaisseur; compose(); draw(); } },
     crocs: () => BITES,
-    actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE }),
+    actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE, epaisseur: EPAISSEUR }),
     ajuste() { fit(); },                                      // recaler la toile sur sa boîte
     freezeIntro(t) { if (!lidTex) lidTex = makeLid(); frozen = t; introStart = 0; draw(); } };
 
