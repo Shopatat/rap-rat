@@ -188,10 +188,9 @@
   }
 
   // ---------- compositing: texture clipped by mask + dark rim along bites ----------
-  // La tranche n'est pas un décalque : elle a une épaisseur. On dessine donc d'abord sa paroi —
-  // la silhouette décalée vers le bas, dans un ambre plus profond — puis la face du dessus
-  // par-dessus. Du coup, partout où un bord est tourné vers nous, on voit la tranche de côté,
-  // comme sur les captures de l'émission.
+  // La tranche n'est pas un décalque : c'est une dalle épaisse aux bords arrondis (voir plus bas).
+  // Essayé avant : une paroi décalée sous la silhouette (v30). Elle faisait déborder une bande
+  // ambrée sous les morsures, qu'on ne voit nulle part sur l'émission — retirée.
   function compose() {
     const f = face.getContext('2d');
     f.globalCompositeOperation = 'source-over';
@@ -206,45 +205,30 @@
     ic.globalCompositeOperation = 'destination-out';
     ic.drawImage(mask, 0, 0);
 
-    // L'épaisseur de la tranche. On projette l'ombre du « dehors » vers l'intérieur du fromage :
-    // dessiné très à gauche, l'inverse du masque ne laisse que son ombre, décalée pile en place.
-    // Relevé sur l'émission : la tranche a du relief, chaque morsure ouvre une paroi. On éclaire
-    // donc d'en haut à gauche — les bords tournés vers la lumière s'allument d'un liseré ambré,
-    // ceux qui lui tournent le dos s'enfoncent dans l'ombre.
-    // Le modelé de la face du dessus : la lumière vient d'en haut à gauche.
-    const OFF = SW * 3, D = SW * .007;
+    // L'épaisseur de la tranche, relevée en gros plan sur les captures (`references/relief/`) :
+    // la tranche est une dalle épaisse aux bords arrondis. À chaque bord, la face du dessus
+    // s'enroule vers le bas : côté lumière (en haut à gauche) le haut de l'arrondi accroche un
+    // liseré jaune clair, puis tout le bord plonge dans un brun-rouge chaud avant le noir ; côté
+    // ombre (en bas à droite) ce brun-rouge s'étale plus large. Rien ne dépasse de la silhouette,
+    // qui reste nette : tout se passe à l'intérieur, comme sur l'émission.
+    // Technique : dessiné très à gauche, l'inverse du masque ne laisse que son ombre, décalée pile
+    // en place — une ombre projetée vers l'intérieur du fromage, qu'on oriente à volonté.
+    const OFF = SW * 3, T = Math.max(2, SH * EPAISSEUR);
+    const ombre = (dx, dy, couleur, flou) => {
+      f.shadowOffsetX = OFF + dx; f.shadowOffsetY = dy; f.shadowColor = couleur; f.shadowBlur = flou;
+      f.drawImage(inv, -OFF, 0);
+    };
     f.globalCompositeOperation = 'source-atop';
-    f.shadowOffsetX = OFF - D; f.shadowOffsetY = -D;
-    f.shadowColor = 'rgba(70,24,0,.42)'; f.shadowBlur = SW * .026;
-    f.drawImage(inv, -OFF, 0);
-    f.shadowOffsetX = OFF + D; f.shadowOffsetY = D;
-    f.shadowColor = 'rgba(255,214,126,.5)'; f.shadowBlur = SW * .007;
-    f.drawImage(inv, -OFF, 0);
+    ombre(0, 0, 'rgba(90,38,0,.22)', T * 2.6);                         // le bombé de la dalle
+    ombre(-T * .5, -T * .5, 'rgba(104,28,4,.8)', T * 1.4);             // l'arrondi côté ombre
+    ombre(T * .45, T * .45, 'rgba(255,228,146,.62)', T * .32);         // le liseré côté lumière
+    ombre(0, 0, 'rgba(78,20,2,.88)', T * .26);                         // le bord qui plonge
     f.shadowColor = 'rgba(0,0,0,0)'; f.shadowBlur = 0; f.shadowOffsetX = 0; f.shadowOffsetY = 0;
     f.globalCompositeOperation = 'source-over';
 
-    // La paroi : la même silhouette, glissée vers le bas, en plusieurs couches de plus en plus
-    // sombres. Chaque couche n'est visible que là où la précédente ne la couvre pas, ce qui
-    // donne une bande dégradée sous tous les bords tournés vers nous.
     const c = comp.getContext('2d');
     c.globalCompositeOperation = 'source-over';
     c.clearRect(0, 0, SW, SH);
-    const T = Math.max(2, SH * EPAISSEUR), N = 7;
-    for (let k = N; k >= 1; k--) {
-      const u = k / N;                                   // 1 = le bas de la paroi
-      c.save();
-      c.globalCompositeOperation = 'source-over';
-      c.translate(T * .28 * u, T * u);
-      c.drawImage(mask, 0, 0);
-      c.globalCompositeOperation = 'source-in';
-      // du même ambre que le fromage au départ, assombri à mesure qu'on descend la paroi
-      const m = 1 - .62 * u;
-      c.fillStyle = `rgb(${Math.round(214 * m)},${Math.round(142 * m)},${Math.round(44 * m)})`;
-      c.fillRect(-SW, -SH, SW * 3, SH * 3);
-      c.restore();
-    }
-    // la face du dessus se pose sur la paroi
-    c.globalCompositeOperation = 'source-over';
     c.drawImage(face, 0, 0);
   }
 
@@ -639,7 +623,21 @@
       c.fillStyle = 'rgba(90,50,10,.9)'; c.beginPath(); c.arc(hx - hr * .15, hy - hr * .15, hr * .7, 0, TAU); c.fill();
     }
     c.restore();
+    // le bord de la face s'arrondit : un trait sombre à l'extérieur, un liseré clair juste dedans
     c.lineWidth = 5; c.strokeStyle = 'rgba(150,100,30,.8)'; c.stroke();
+    c.save(); c.clip(); c.lineWidth = 9; c.strokeStyle = 'rgba(255,240,170,.35)'; c.stroke(); c.restore();
+    // La tranche du couvercle, relevée sur l'émission : le couvercle ouvert montre une paroi
+    // épaisse, plus claire que sa face, entaillée par les mêmes encoches. On prépare donc sa
+    // silhouette en plusieurs teintes, du jaune clair contre la face au jaune brun au fond.
+    cv.walls = [];
+    for (let k = 0; k < 8; k++) {
+      const u = k / 7, w = document.createElement('canvas'); w.width = w.height = n;
+      const wc = w.getContext('2d'); wc.drawImage(cv, 0, 0);
+      wc.globalCompositeOperation = 'source-in';
+      wc.fillStyle = `rgb(${Math.round(246 - 92 * u)},${Math.round(222 - 100 * u)},${Math.round(124 - 86 * u)})`;
+      wc.fillRect(0, 0, n, n);
+      cv.walls.push(w);
+    }
     return cv;
   }
   function drawIntro(t, x0, y0, dw, dh) {
@@ -649,15 +647,30 @@
       const k = t < LID_START ? 1 : t < SHUT ? 1 - Math.pow((t - LID_START) / (SHUT - LID_START), 2) : 0;
       const phi = k * 2.3, sx = Math.cos(phi), fade = t > SHUT ? 1 - (t - SHUT) / .3 : 1;
       if (t < SHUT + .02) {                                  // the open hole
-        const g = c.createRadialGradient(cx, cy, r * .5, cx, cy, r);
-        g.addColorStop(0, '#030100'); g.addColorStop(.85, '#0c0500'); g.addColorStop(1, '#3a1d06');
-        c.fillStyle = g; c.beginPath(); c.arc(cx, cy, r, 0, TAU); c.fill();
+        // Relevé sur l'émission : le trou montre l'épaisseur de la dalle. Sa paroi intérieure se
+        // voit en bas et à gauche, éclairée ; le haut plonge dans le noir. Autour, le bord de la
+        // face s'arrondit vers le trou : clair côté lumière, brun-rouge côté ombre.
+        const w = r * .17;
+        c.save(); c.beginPath(); c.arc(cx, cy, r, 0, TAU); c.clip();
+        const pg = c.createLinearGradient(cx, cy + r, cx, cy - r * .2);
+        pg.addColorStop(0, '#e9ac46'); pg.addColorStop(.35, '#b86a1c'); pg.addColorStop(1, '#3a1704');
+        c.fillStyle = pg; c.fillRect(cx - r, cy - r, 2 * r, 2 * r);   // la paroi
+        const g = c.createRadialGradient(cx + w * .3, cy - w, r * .45, cx + w * .3, cy - w, r);
+        g.addColorStop(0, '#030100'); g.addColorStop(.85, '#0c0500'); g.addColorStop(1, '#2a1203');
+        c.fillStyle = g; c.beginPath(); c.arc(cx + w * .3, cy - w, r * .97, 0, TAU); c.fill();   // le fond
+        c.restore();
+        const lg = c.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+        lg.addColorStop(0, 'rgba(255,230,150,.75)'); lg.addColorStop(.5, 'rgba(214,140,48,.25)'); lg.addColorStop(1, 'rgba(92,26,2,.8)');
+        c.lineWidth = r * .1; c.strokeStyle = lg;
+        c.beginPath(); c.arc(cx, cy, r * 1.05, 0, TAU); c.stroke();   // le bord arrondi
       }
       c.save();
       c.globalAlpha = Math.max(0, fade);
-      c.translate(cx - r + r * sx, cy); c.scale(Math.max(.03, Math.abs(sx)), 1);
-      c.fillStyle = 'rgba(120,70,14,.9)';                    // thickness of the lid
-      c.beginPath(); c.arc(sx < 0 ? -r * .1 : r * .1, r * .02, r, 0, TAU); c.fill();
+      // la tranche du couvercle se voit d'autant plus qu'il pivote : nulle à plat, pleine de profil
+      const S = Math.max(.03, Math.abs(sx)), ep = r * .3 * Math.abs(Math.sin(phi));
+      c.translate(cx - r + r * sx, cy); c.scale(S, 1);
+      const W = lidTex.walls || [];
+      for (let k = W.length - 1; k >= 0; k--) c.drawImage(W[k], -r - ep * (k / 7) / S, -r, 2 * r, 2 * r);
       c.drawImage(lidTex, -r, -r, 2 * r, 2 * r);
       if (sx < 0) { c.fillStyle = 'rgba(40,20,0,.22)'; c.beginPath(); c.arc(0, 0, r * .97, 0, TAU); c.fill(); }   // back of the lid, in shade
       c.restore();

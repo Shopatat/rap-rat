@@ -263,3 +263,29 @@ préparer à part.
 `EPAISSEUR` (0,022, soit 2,2 % de la hauteur de l'écran) est réglable dans l'atelier, curseur
 « épaisseur de la tranche », de 0 à 6 %. Vérifié : l'aire dessinée grandit bien avec le réglage
 (60 354 → 62 209 → 65 126 points sondés à 0 %, 2,2 % et 5 %). `VERSION` en `rap-rat-v30`.
+
+## Le relief, relevé en gros plan (v31)
+
+Fabien a envoyé deux nouvelles captures (`references/relief/`, hors dépôt, avec `zooms.png` :
+six gros plans des bords) en demandant d'observer « le relief et l'épaisseur partout où tu
+peux ». Ce que montrent les gros plans :
+
+- **La tranche est une dalle épaisse aux bords arrondis.** À chaque bord mordu, la face du dessus
+  s'enroule : côté lumière (en haut à gauche) un liseré jaune clair, puis le bord plonge dans un
+  brun-rouge chaud avant le noir ; côté ombre (en bas à droite) ce brun-rouge s'étale plus large.
+  **Rien ne dépasse de la silhouette** : la paroi décalée sous les bords de la v30 était donc
+  fausse (et buguée : sa boucle peignait les sept couches de la même teinte). Retirée.
+- **Le trou de la trappe montre l'épaisseur** : paroi intérieure éclairée en bas et à gauche,
+  fond noir décalé vers le haut, bord arrondi autour (clair côté lumière, brun-rouge côté ombre).
+- **Le couvercle est un disque épais** dont la tranche, plus claire que la face, se voit
+  d'autant plus qu'il pivote : maintenant `0,3 × r × |sin φ|`, nulle à plat, pleine de profil.
+
+`compose()` fait quatre passes à l'intérieur du masque (bombé, arrondi côté ombre, liseré côté
+lumière, bord qui plonge) ; `EPAISSEUR` (curseur de l'atelier) règle la largeur de l'arrondi.
+
+Remarqué mais **pas touché** (choix déjà faits avec Fabien, à lui de dire) :
+- le couvercle et le trou de l'émission sont plus grands (diamètre ≈ 35–40 % de la hauteur de
+  l'image, contre 26 % chez nous) ;
+- la surface de l'émission est lisse avec de larges ondulations douces ; la nôtre a un grain fin ;
+- les trous de l'émission sont moins nombreux et plus gros, groupés vers le milieu, avec un
+  halo clair autour comme un cratère.
