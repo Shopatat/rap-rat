@@ -289,3 +289,22 @@ Remarqué mais **pas touché** (choix déjà faits avec Fabien, à lui de dire) 
 - la surface de l'émission est lisse avec de larges ondulations douces ; la nôtre a un grain fin ;
 - les trous de l'émission sont moins nombreux et plus gros, groupés vers le milieu, avec un
   halo clair autour comme un cratère.
+
+## Trappe, surface et trous (v32)
+
+Fabien : « occupe-toi de tout ». Les trois différences relevées en v31 sont traitées :
+
+- **La trappe** passe de 26 % à 38 % de la hauteur (rayon `.13` → `.19` dans `drawIntro`). Les
+  ondes gardent leur épaisseur d'origine (`r0`), sinon elles auraient grossi avec.
+- **La surface** est lisse : plus de petites taches (160 × l'allongement de l'écran, rayon 20–110)
+  ni de grain (± 3 par pixel). À la place, 18 larges ondulations (rayon 180–460) claires ou
+  sombres, et un tramage d'un seul niveau, invisible, contre les escaliers dans les dégradés.
+- **Les trous** : 70 au lieu de 110 (vérifié sur six tranches). Surtout beaucoup moins de trous
+  moyens (5 au lieu de 20 avant le facteur d'allongement), les gros montent à 22–34. Tirés de
+  préférence vers le milieu (acceptation gaussienne, écart 0,6) et jamais contre le bord de la
+  tranche — la marge était de 0,2 × r, un trou pouvait donc entailler le bord, ce que Fabien
+  avait refusé. Halo en cratère renforcé autour des gros trous (0,34–0,56 au lieu de 0,18–0,40) ;
+  le bord du trou, lui, reste net.
+- Nouveau raccourci de test : `RapRat.trous()` donne le nombre de trous posés.
+
+Les choix de relief sont reportés dans `CLAUDE.md`.

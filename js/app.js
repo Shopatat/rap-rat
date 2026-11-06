@@ -11,7 +11,7 @@
   const stage = $('stage'), view = $('view'), vctx = view.getContext('2d');
   const tex = mk(), mask = mk(), inv = mk(), comp = mk(), face = mk();
   // EPAISSEUR : la hauteur de la paroi, en part de la hauteur de l'écran (réglable dans l'atelier)
-  let EPAISSEUR = .022;
+  let EPAISSEUR = .022, nTrous = 0;
   let SW = 1024, SH = 1024, U = 1, A = 1, GH = GW, grid = new Uint8Array(GW * GW), cells0 = 1, cells = 1;
 
   // ---------- settings (per-viewer convenience) ----------
@@ -54,7 +54,9 @@
       size: rnd(.8, .95),
       sy: 1, rot: 0,
       wob: [],                                                   // a cheese hole is a burst bubble: a perfect circle
-      halo: rnd(.18, .4), haloR: rnd(1.3, 1.65),
+      // le halo clair autour du trou : sur l'émission, les gros trous sont des cratères dont le
+      // pourtour se soulève et accroche la lumière ; le bord du trou, lui, reste net
+      halo: small ? rnd(.14, .28) : rnd(.34, .56), haloR: small ? rnd(1.25, 1.5) : rnd(1.45, 1.85),
       warm: rnd(0, 1), gloss: rnd(.25, .55), spark: !small && Math.random() < .45, sparkA: rnd(-.6, .6)
     };
   }
@@ -139,28 +141,37 @@
     const g = c.createRadialGradient(cx, cy, big * .02, SW * .5, SH * .5, big * .7);
     g.addColorStop(0, '#e8ad44'); g.addColorStop(.35, '#dc9234'); g.addColorStop(.7, '#cd7a2b'); g.addColorStop(1, '#bb6524');
     c.fillStyle = g; c.fillRect(0, 0, SW, SH);
-    for (let i = 0; i < 160 * Math.max(A, 1 / A); i++) {
-      const x = Math.random() * SW, y = Math.random() * SH, r = rnd(20, 110) * U;
-      const light = Math.random() < .55;
+    // La surface, relevée sur l'émission : lisse, avec de larges ondulations douces, comme une
+    // pâte moulée qui accroche la lumière par grandes plages. Plus de petites taches ni de grain.
+    for (let i = 0; i < 18 * Math.max(A, 1 / A); i++) {
+      const x = Math.random() * SW, y = Math.random() * SH, r = rnd(180, 460) * U;
+      const light = Math.random() < .5;
       const m = c.createRadialGradient(x, y, 0, x, y, r);
-      m.addColorStop(0, light ? 'rgba(244,190,80,.08)' : 'rgba(196,96,24,.03)');
+      m.addColorStop(0, light ? 'rgba(248,196,92,.13)' : 'rgba(150,62,12,.09)');
       m.addColorStop(1, 'rgba(0,0,0,0)');
       c.fillStyle = m; c.fillRect(x - r, y - r, 2 * r, 2 * r);
     }
+    // un tramage d'un seul niveau, invisible, juste pour que les grands dégradés ne fassent pas
+    // d'escaliers sur l'écran
     const img = c.getImageData(0, 0, SW, SH), d = img.data;
-    for (let i = 0; i < d.length; i += 4) { const n = (Math.random() - .5) * 6; d[i] += n; d[i + 1] += n * .8; d[i + 2] += n * .4; }
+    for (let i = 0; i < d.length; i += 4) { const n = Math.random() - .5; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
     c.putImageData(img, 0, 0);
 
+    // Les trous, relevés sur l'émission : moins nombreux et plus gros qu'avant (surtout, presque
+    // plus de trous moyens), groupés vers le milieu, rares près des bords. Aucun ne touche le
+    // bord de la tranche : Fabien n'en veut pas (voir CLAUDE.md).
     const holes = [];
-    const specs = [[9, 22, 31], [20, 13, 21], [14, 7, 12], [8, 3, 5.5]];
+    const specs = [[10, 22, 34], [5, 15, 21], [10, 8, 12], [7, 3.5, 6]];
     for (const [n0, a, b] of specs) {
       const n = Math.round(n0 * (Math.max(SW, SH) / Math.min(SW, SH)));
       let placed = 0, tries = 0;
-      while (placed < n && tries < 6000) {
+      while (placed < n && tries < 9000) {
         tries++;
-        const r = rnd(a, b) * U;
-        const x = r * .2 + Math.random() * (SW - r * .4), y = r * .2 + Math.random() * (SH - r * .4);
-        if (holes.every(h => Math.hypot(h.x - x, h.y - y) > h.r + r + Math.max(16 * U, (h.r + r) * .9))) { holes.push(makeHole(x, y, r)); placed++; }
+        const r = rnd(a, b) * U, m = r * 1.6 + 8 * U;
+        const x = m + Math.random() * (SW - 2 * m), y = m + Math.random() * (SH - 2 * m);
+        const nx = (x - SW / 2) / (SW / 2), ny = (y - SH / 2) / (SH / 2);
+        if (Math.random() > Math.exp(-(nx * nx + ny * ny) / (2 * .6 * .6))) continue;   // vers le milieu
+        if (holes.every(h => Math.hypot(h.x - x, h.y - y) > h.r + r + Math.max(10 * U, (h.r + r) * .45))) { holes.push(makeHole(x, y, r)); placed++; }
       }
     }
     // holes go on their own layer, softened a touch like the TV picture
@@ -170,6 +181,7 @@
     for (const h of holes) drawHole(lc, h);
     c.drawImage(layer, 0, 0);
     layer.width = layer.height = 0;   // free the scratch layer
+    nTrous = holes.length;
     return holes;
   }
 
@@ -641,7 +653,9 @@
     return cv;
   }
   function drawIntro(t, x0, y0, dw, dh) {
-    const c = vctx, cx = x0 + dw / 2, cy = y0 + dh / 2, r = Math.min(dw, dh) * .13;
+    // la trappe, relevée sur l'émission : le trou et le couvercle font environ 38 % de la hauteur
+    // de l'image (26 % avant). Les ondes, elles, gardent leur épaisseur d'origine.
+    const c = vctx, cx = x0 + dw / 2, cy = y0 + dh / 2, r = Math.min(dw, dh) * .19, r0 = Math.min(dw, dh) * .13;
     c.save(); c.beginPath(); c.rect(x0, y0, dw, dh); c.clip();
     if (t < SHUT + .3) {
       const k = t < LID_START ? 1 : t < SHUT ? 1 - Math.pow((t - LID_START) / (SHUT - LID_START), 2) : 0;
@@ -687,7 +701,7 @@
           const a = j / 90 * TAU, w = rad * (1 + .025 * Math.sin(a * 7 + i * 2 + tt * 9));
           j ? c.lineTo(cx + Math.cos(a) * w, cy + Math.sin(a) * w) : c.moveTo(cx + Math.cos(a) * w, cy + Math.sin(a) * w);
         }
-        c.lineWidth = r * .34 * (.6 + .4 * life);
+        c.lineWidth = r0 * .34 * (.6 + .4 * life);
         c.strokeStyle = `rgba(206,214,218,${.6 * life})`; c.stroke();
         c.lineWidth *= .35; c.strokeStyle = `rgba(250,250,245,${.5 * life})`; c.stroke();
       }
@@ -783,6 +797,7 @@
     neuf() { resetCheese(); draw(); },                        // une tranche entière, intacte
     reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; if (o.etale != null) ETALE = o.etale; if (o.epaisseur != null) { EPAISSEUR = o.epaisseur; compose(); draw(); } },
     crocs: () => BITES,
+    trous: () => nTrous,
     actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE, epaisseur: EPAISSEUR }),
     ajuste() { fit(); },                                      // recaler la toile sur sa boîte
     freezeIntro(t) { if (!lidTex) lidTex = makeLid(); frozen = t; introStart = 0; draw(); } };
