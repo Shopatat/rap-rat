@@ -304,7 +304,7 @@
   // centre. 1 = le réglage d'origine ; plus haut, le morceau reste rond et centré plus tôt.
   // ETALE : à quel point le rat évite l'endroit qu'il vient de croquer, pour que le pourtour
   // soit rongé uniformément au lieu de partir en paquets.
-  let FOYERS = 8, RESTE = 0, PRES = .16, REGROUPE = 1.4, ETALE = .8;
+  let FOYERS = 8, RESTE = 0, PRES = .16, REGROUPE = 1.4, ETALE = .95;
   let foyers = [], derniers = [];
 
   // Pick a spot on the cheese's edge. Spots far from the middle are much more likely,
@@ -352,14 +352,18 @@
           const ux = ex - mx, uy = ey - my, r = Math.hypot(ux, uy) || 1e-6;
           const bord = Math.min(.5 * r / Math.max(Math.abs(ux), 1e-6), (A / 2) * r / Math.max(Math.abs(uy), 1e-6));
           const s = Math.min(1, r / bord);     // 1 sur le bord d'origine, 0 au milieu
-          w = Math.pow(s, 4 * REGROUPE) + .012;
-          // Et pour que ça morde vraiment PARTOUT : le rat évite ce qu'il vient de croquer.
-          // Sans ça, le pur hasard fait des paquets — un côté dévoré, l'autre intact.
+          w = Math.pow(s, 4 * REGROUPE) + .002;
+          // Ce que Fabien veut depuis le début : « qu'autant que possible ça morde dans un
+          // endroit pas déjà mordu ». Le rat se souvient donc de TOUTES ses morsures, pas des
+          // six dernières, et on regarde la plus proche : un endroit encore vierge garde tout
+          // son poids, un endroit déjà croqué s'effondre. ETALE dit à quel point.
+          let dmin = Infinity;
           for (const f of derniers) {
             const dd = (ex - f.x) * (ex - f.x) + (ey - f.y) * (ey - f.y);
-            w *= 1 - ETALE * Math.exp(-dd / (PRES * PRES));
+            if (dd < dmin) dmin = dd;
           }
-          if (w < 1e-5) w = 1e-5;
+          if (dmin < Infinity) w *= 1 - ETALE * Math.exp(-dmin / (PRES * PRES));
+          if (w < 1e-6) w = 1e-6;
         }
         edge.push(idx); base.push(w); total += w;
       }
@@ -386,9 +390,8 @@
     // le foyer ne suit la morsure qu'en partie : il s'élargit sur place au lieu de courir le long du bord
     if (fi >= 0) { foyers[fi].x += ((i + .5) / GW - foyers[fi].x) * .3; foyers[fi].y += ((j + .5) / GW - foyers[fi].y) * .3; }
     else { foyers.push({ x: (i + .5) / GW, y: (j + .5) / GW }); if (foyers.length > FOYERS) foyers.shift(); }
-    // la mémoire courte du rat : les derniers endroits croqués, qu'il évitera un moment
+    // la mémoire du rat : tous les endroits déjà croqués, qu'il évitera tant qu'il peut
     derniers.push({ x: (i + .5) / GW, y: (j + .5) / GW });
-    if (derniers.length > 6) derniers.shift();
     let nx = 0, ny = 0;
     for (let dj = -5; dj <= 5; dj++) for (let di = -5; di <= 5; di++) {
       const a = i + di, b = j + dj;

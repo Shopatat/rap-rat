@@ -160,9 +160,15 @@ bien vers le Centre ». Trois changements dans `pickEdge()`, `VERSION` en `rap-r
   sur une tranche entière ce rapport vaut 1 partout, donc le rat attaque le pourtour
   uniformément ; dès qu'un endroit est entamé il passe sous 1 et ce qui dépasse encore devient
   plus tentant. Le front avance ensemble et le reste se resserre en rond.
-- **Le rat a une mémoire courte** (`ETALE`, 0,8 ; nouveau curseur « mordre partout » dans
-  l'atelier) : il évite les six derniers endroits croqués. Sans ça le pur hasard fait des
-  paquets — un côté dévoré, l'autre intact, ce qui n'était pas « homogène partout ».
+- **Le rat se souvient de toutes ses morsures** (`ETALE`, 0,95 ; curseur « mordre partout » dans
+  l'atelier). Première version : il n'évitait que les six dernières, ce qui laissait encore des
+  paquets. Fabien a tranché — « qu'autant que possible ça morde dans un endroit pas déjà mordu,
+  c'est ça que je veux depuis le début » — donc on garde tout l'historique de la partie et on
+  regarde la morsure la plus proche : un endroit vierge garde tout son poids, un endroit déjà
+  croqué s'effondre. Le plancher de hasard passe de 0,012 à 0,002 pour que le bord intact
+  l'emporte vraiment. Mesuré à 20 crocs : les quatre côtés sont entamés à 25–34 points sur 40.
+  Rayon d'évitement = `PRES` (0,16) ; essayé à 0,26, c'est moins bon (la fin laisse des miettes
+  détachées). `VERSION` en `rap-rat-v28`.
 - **La fin ne vise plus que le centre de l'écran.** Elle visait un mélange du centre de l'écran
   et du milieu de ce qu'il reste ; ce dernier dérive au fil des morsures et le dernier morceau
   finissait de côté. Le trou du rat, lui, ne bouge pas.
