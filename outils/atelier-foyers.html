@@ -113,6 +113,17 @@ input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;b
   const total = R.crocs();
   $('n').max = total;
 
+  // les réglages que l'appli utilise vraiment, relevés avant qu'on y touche : les curseurs
+  // partent de là, sinon l'atelier montrerait autre chose que le jeu
+  const usine = R.actuels();
+  function auxValeursDeLAppli() {
+    $('f').value = usine.foyers;
+    $('r').value = Math.round(usine.reste * 100);
+    $('p').value = Math.round(usine.pres * 100);
+    $('g').value = Math.round(usine.regroupe * 100);
+  }
+  auxValeursDeLAppli();
+
   // un hasard reproductible : la même graine rejoue la même partie, réglages mis à part
   const vrai = Math.random;
   function semer(g) {
@@ -139,7 +150,7 @@ input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;b
   }
 
   for (const id of ['n', 'f', 'r', 'p', 'g', 'graine']) $(id).addEventListener('input', rejouer);
-  $('reset').addEventListener('click', () => { $('f').value = 4; $('r').value = 68; $('p').value = 16; $('g').value = 140; rejouer(); });
+  $('reset').addEventListener('click', () => { auxValeursDeLAppli(); rejouer(); });
   $('partout').addEventListener('click', () => { $('r').value = 0; rejouer(); });
   $('tirage').addEventListener('click', () => { $('graine').value = Math.floor(vrai() * 9999) + 1; rejouer(); });
 
@@ -177,8 +188,10 @@ input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;b
   function cacher() { for (const id of ['idleBar', 'runBar', 'endBar', 'header', 'banner', 'turn']) $(id).hidden = true; }
   cacher();
   const scene = $('scene');
-  new ResizeObserver(() => { cacher(); clearTimeout(scene._t); scene._t = setTimeout(rejouer, 60); }).observe(scene);
-  setTimeout(rejouer, 80);
+  // la toile doit être à la résolution réelle de sa boîte, sinon elle est étirée et floue
+  function recadre() { cacher(); R.ajuste(); rejouer(); }
+  new ResizeObserver(() => { clearTimeout(scene._t); scene._t = setTimeout(recadre, 60); }).observe(scene);
+  setTimeout(recadre, 80);
 })();
 </script>
 </body>

@@ -149,6 +149,15 @@ Deux chantiers en cours :
   (`loopStart` / `loopEnd`). L'appli gardera donc le `.mp3` tel quel et posera les deux repères.
   Un wav de 60 s pèserait 5 Mo contre 1,4 Mo pour le mp3 entier.
 
+## L'Atelier des foyers ne mentait plus
+
+Ses curseurs étaient restés sur mes anciennes hypothèses (4 foyers, 68 %) alors que l'appli
+tourne à 8 et 55 % depuis `rap-rat-v21` : l'atelier montrait autre chose que le jeu. Il lit
+maintenant les vraies valeurs au démarrage (`RapRat.actuels()`), et « Réglages actuels de
+l'appli » y revient pour de bon. Deuxième correction : la toile restait parfois à 300×150 et
+s'étirait — `RapRat.ajuste()` la recale sur sa boîte à la résolution réelle de l'écran.
+Vérifié en 375×812 : toile 626×288 pour une boîte de 313×144 en dpr 2.
+
 ## La musique est dans l'appli (aperçu)
 
 Fabien a écouté les trois boucles proposées : « plutôt à chier les trois ». Il reprendra le

@@ -714,6 +714,8 @@
     neuf() { resetCheese(); draw(); },                        // une tranche entière, intacte
     reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; },
     crocs: () => BITES,
+    actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE }),
+    ajuste() { fit(); },                                      // recaler la toile sur sa boîte
     freezeIntro(t) { if (!lidTex) lidTex = makeLid(); frozen = t; introStart = 0; draw(); } };
 
   resetCheese(); render();
