@@ -117,6 +117,21 @@ Deux chantiers en cours :
 - **Atelier de la boucle** (`outils/atelier-boucle.html`) : trouve le motif par autocorrélation,
   repère les collures, propose les meilleures boucles, fait écouter *la jointure seule* en boucle
   serrée, offre un fondu enchaîné et exporte le `.wav`.
+- **Le morceau entier est jouable** (demandé par Fabien : « je vois pas pourquoi on pourrait pas
+  prendre la musique complète »). Le poids n'a jamais été l'obstacle : le mp3 fait **1,4 Mo**, il
+  tient sans peine dans le cache hors ligne. Le seul vrai coût d'une longue boucle, c'est son
+  raccord. L'atelier a donc deux modes :
+  - *boucle courte* — deux ou quatre motifs, raccord 0,037 (excellent), mais 113 passages en
+    quinze minutes, et la moindre collure devient un tic ;
+  - *presque tout le morceau* — longueur égale à un nombre entier de motifs pour retomber en phase.
+    Meilleur candidat : **début 3,520 s, durée 59,662 s** (15 motifs), raccord **0,084** (bon),
+    16 passages. Le morceau quasi complet (21 motifs, 0,50 → 84,05 s) tient aussi, à 0,136.
+    Les 20 collures restent dedans — entendues une fois par minute elles passent pour de la musique,
+    c'est en boucle courte qu'elles deviennent gênantes.
+  Fondu enchaîné porté à 2 s (600 ms par défaut en mode long).
+- **Pas besoin d'exporter un wav** : Web Audio boucle n'importe où dans un son décodé
+  (`loopStart` / `loopEnd`). L'appli gardera donc le `.mp3` tel quel et posera les deux repères.
+  Un wav de 60 s pèserait 5 Mo contre 1,4 Mo pour le mp3 entier.
 
 ## Reste à trancher pour la musique
 
@@ -129,9 +144,9 @@ la musique boucle, donc une mesure couverte à un passage est souvent dégagée 
 
 Points à trancher avant de coder :
 
-- **Boucle ou morceau entier.** La partie dure de 10 à 60 minutes : une boucle courte (30 s à
-  1 min, bouclée proprement) pèse quelques centaines de Ko, un morceau entier de 15 min en mp3
-  pèse une quinzaine de Mo — trop lourd pour le cache hors ligne de `sw.js`.
+- **Boucle ou morceau entier.** Tranché côté technique : les deux marchent, le mp3 reste en entier
+  dans le dépôt et l'appli choisit ses repères. Reste à écouter les deux jointures et à choisir
+  (voir ci-dessus).
 - **La veille de l'écran.** Le minuteur tient avec `Date.now()`, mais sur iPhone le son se coupe
   quand l'appli passe en arrière-plan. À tester : un élément `<audio>` tient mieux que Web Audio,
   et il faudra sans doute relancer la musique au retour (`visibilitychange`), là où le croc

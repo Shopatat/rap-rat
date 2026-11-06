@@ -71,8 +71,8 @@ kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--li
     <h2>2 · Où boucler</h2>
     <canvas id="wave" width="900" height="130" aria-label="forme d’onde du morceau"></canvas>
     <div class="row">
-      <label class="fld">début (s)<input type="number" id="t0" step="0.01" min="0"></label>
-      <label class="fld">durée (s)<input type="number" id="dur" step="0.01" min="0.5"></label>
+      <label class="fld">début (s)<input type="number" id="t0" step="0.001" min="0"></label>
+      <label class="fld">durée (s)<input type="number" id="dur" step="0.001" min="0.5"></label>
       <span class="info" style="margin:0">Glisse sur la forme d’onde pour déplacer le début.</span>
     </div>
     <div class="row">
@@ -82,7 +82,16 @@ kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--li
       <button class="btn small" id="plus">+ un motif</button>
       <button class="btn small" id="cale">Caler sur le motif</button>
     </div>
+    <div class="row">
+      <span class="info" style="margin:0">longueur cherchée :</span>
+      <button class="btn small" id="modeCourt" aria-pressed="true">Boucle courte</button>
+      <button class="btn small" id="modeLong" aria-pressed="false">Presque tout le morceau</button>
+    </div>
     <div class="row" id="candidats"></div>
+    <div class="info" id="modeInfo">Une boucle courte (deux ou quatre motifs) se recolle presque
+      parfaitement, mais elle repasse souvent : plus de cent fois en un quart d’heure. Le morceau
+      presque entier ne repasse que quinze fois, au prix d’un raccord un peu moins net — c’est là
+      que le fondu enchaîné sert.</div>
   </section>
 
   <section id="ecoute" hidden>
@@ -96,7 +105,7 @@ kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--li
     </div>
     <div class="row">
       <label class="sld">fondu enchaîné au raccord <span class="val" id="xfV">0 ms</span>
-        <input type="range" id="xf" min="0" max="200" step="5" value="0"></label>
+        <input type="range" id="xf" min="0" max="2000" step="10" value="0"></label>
     </div>
     <div class="info">
       « Écouter la jointure » démarre une seconde et demie avant la fin : tu n’entends que le
@@ -112,9 +121,13 @@ kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--li
       <button class="btn primary" id="export">Exporter la boucle en .wav</button>
       <span class="info" style="margin:0" id="taille"></span>
     </div>
+    <div class="info" id="pourAppli"></div>
     <div class="info">
-      Pose le fichier dans <code>sons/</code>, ajoute-le à <code>FILES</code> dans <code>sw.js</code>
-      et incrémente <code>VERSION</code>. Attention au poids : le cache hors ligne embarque tout.
+      Deux routes. Soit tu exportes le passage en <code>.wav</code> et tu le poses dans
+      <code>sons/</code> — propre, mais lourd. Soit on garde le <code>.mp3</code> tel quel et
+      l’appli boucle entre les deux repères ci-dessus : Web Audio sait boucler n’importe où dans un
+      son décodé, donc le fichier ne bouge pas. Dans les deux cas, ajoute-le à <code>FILES</code>
+      dans <code>sw.js</code> et incrémente <code>VERSION</code>.
     </div>
   </section>
 </div>
@@ -205,29 +218,60 @@ kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--li
   }
 
   // ---------- la qualité d'un raccord ----------
-  function qualite(t0, t1, ms = 60) {
+  function qualite(t0, t1, ms = 60, pas = 1) {
     const sr = buf.sampleRate, a = Math.round(t0 * sr), b = Math.round(t1 * sr), L = Math.round(sr * ms / 1000);
     if (a < L || b > mono.length) return 2;
     let num = 0, den = 0;
-    for (let i = 0; i < L; i++) { const x = mono[b - L + i], y = mono[a - L + i]; num += (x - y) * (x - y); den += x * x + y * y; }
+    for (let i = 0; i < L; i += pas) { const x = mono[b - L + i], y = mono[a - L + i]; num += (x - y) * (x - y); den += x * x + y * y; }
     return num / (den + 1e-9);
   }
 
   // ---------- chercher les meilleurs candidats ----------
+  let longue = false;
   function cherche() {
     const box = $('candidats'); box.innerHTML = '';
     if (!motif) return;
-    const res = [];
-    for (const k of [2, 4]) {
-      const L = motif * k;
-      for (let t0 = .05; t0 + L < buf.duration - .05; t0 += .01) {
-        if (collures.some(c => c.t > t0 - .05 && c.t < t0 + L + .05)) continue;   // pas de collure dedans
-        res.push({ t0, L, q: qualite(t0, t0 + L) });
+    let gardes;
+    if (longue) {
+      // on garde presque tout le morceau : la longueur fait un nombre entier de motifs, pour que
+      // la musique retombe en phase. Les collures du monteur restent dedans — elles font partie
+      // du morceau, on ne peut pas les éviter sur une boucle d'une minute.
+      gardes = [];
+      const kMax = Math.floor((buf.duration - .5) / motif);
+      for (let k = kMax; k >= Math.max(3, Math.round(kMax * .6)); k--) {
+        const L = motif * k;
+        let gros = null;
+        for (let t0 = .05; t0 + L < buf.duration - .05; t0 += .01) {
+          const q = qualite(t0, t0 + L, 40, 16);
+          if (!gros || q < gros.q) gros = { t0, L, q };
+        }
+        if (!gros) continue;
+        // affinage : début au millième près, longueur libre à ±120 ms autour du multiple
+        let f = { t0: gros.t0, L, q: qualite(gros.t0, gros.t0 + L) };
+        for (let t0 = gros.t0 - .03; t0 <= gros.t0 + .03; t0 += .001)
+          for (let d = -.12; d <= .12; d += .002) {
+            const L2 = L + d;
+            if (t0 < .05 || t0 + L2 > buf.duration - .02) continue;
+            const q = qualite(t0, t0 + L2);
+            if (q < f.q) f = { t0, L: L2, q };
+          }
+        gardes.push(f);
       }
+      gardes.sort((a, b) => a.q - b.q);
+      gardes = gardes.slice(0, 5);
+    } else {
+      const res = [];
+      for (const k of [2, 4]) {
+        const L = motif * k;
+        for (let t0 = .05; t0 + L < buf.duration - .05; t0 += .01) {
+          if (collures.some(c => c.t > t0 - .05 && c.t < t0 + L + .05)) continue; // pas de collure dedans
+          res.push({ t0, L, q: qualite(t0, t0 + L) });
+        }
+      }
+      res.sort((a, b) => a.q - b.q);
+      gardes = [];
+      for (const r of res) { if (gardes.every(g => Math.abs(g.t0 - r.t0) > 1 || Math.abs(g.L - r.L) > .01)) gardes.push(r); if (gardes.length >= 5) break; }
     }
-    res.sort((a, b) => a.q - b.q);
-    const gardes = [];
-    for (const r of res) { if (gardes.every(g => Math.abs(g.t0 - r.t0) > 1 || Math.abs(g.L - r.L) > .01)) gardes.push(r); if (gardes.length >= 5) break; }
     if (!gardes.length) return;
     const lab = document.createElement('span');
     lab.className = 'info'; lab.style.margin = '0'; lab.textContent = 'trouvés pour toi :';
@@ -235,14 +279,15 @@ kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--li
     gardes.forEach((g, i) => {
       const b = document.createElement('button');
       b.className = 'btn small';
-      b.textContent = `${g.t0.toFixed(2)} s · ${g.L.toFixed(2)} s`;
+      b.textContent = `${g.t0.toFixed(2)} s · ${g.L.toFixed(2)} s`
+        + (longue ? ` (${Math.round(g.L / motif)} motifs)` : '');
       b.addEventListener('click', () => { pose(g.t0, g.L); });
       box.append(b);
       if (i === 0) pose(g.t0, g.L);
     });
   }
 
-  function pose(t0, L) { $('t0').value = t0.toFixed(2); $('dur').value = L.toFixed(2); maj(); }
+  function pose(t0, L) { $('t0').value = t0.toFixed(3); $('dur').value = L.toFixed(3); maj(); }
   const deb = () => clamp(+$('t0').value || 0, 0, buf.duration - .2);
   const lon = () => clamp(+$('dur').value || 1, .2, buf.duration - deb());
 
@@ -253,6 +298,10 @@ kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--li
     s.className = 'note ' + (q < .2 ? 'bon' : q < .5 ? 'moyen' : 'mauvais');
     s.title = q.toFixed(3);
     $('taille').textContent = `${lon().toFixed(2)} s · wav 16 bits mono ≈ ${Math.round(lon() * 44100 * 2 / 1024)} Ko`;
+    const tours = Math.ceil(15 * 60 / lon());
+    $('pourAppli').innerHTML = `Pour boucler le mp3 tel quel dans l’appli : <b>début ${deb().toFixed(3)} s</b>, `
+      + `<b>fin ${(deb() + lon()).toFixed(3)} s</b>` + (+$('xf').value ? `, fondu ${$('xf').value} ms` : '')
+      + `. Soit ${tours} passages sur une partie de quinze minutes.`;
     dessine(); dessineJoint();
     if (src) joue(false);          // on relance avec les nouvelles bornes
   }
@@ -264,7 +313,22 @@ kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--li
     if (!motif) return;
     $('dur').value = (Math.max(1, Math.round(lon() / motif)) * motif).toFixed(2); maj();
   });
-  $('xf').addEventListener('input', () => { $('xfV').textContent = $('xf').value + ' ms'; if (src) joue(false); });
+  $('xf').addEventListener('input', () => {
+    const v = +$('xf').value;
+    $('xfV').textContent = v >= 1000 ? (v / 1000).toFixed(2).replace('.', ',') + ' s' : v + ' ms';
+    if (src) joue(false);
+  });
+  function mode(l) {
+    longue = l;
+    $('modeLong').setAttribute('aria-pressed', String(l));
+    $('modeCourt').setAttribute('aria-pressed', String(!l));
+    // une boucle longue supporte — et demande — un fondu plus large
+    $('xf').value = l ? 600 : 0;
+    $('xf').dispatchEvent(new Event('input'));
+    if (buf) cherche();
+  }
+  $('modeCourt').addEventListener('click', () => mode(false));
+  $('modeLong').addEventListener('click', () => mode(true));
 
   // ---------- dessins ----------
   function trace(cv, a, b, marques) {
@@ -332,12 +396,14 @@ kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--li
     src = ac.createBufferSource(); src.buffer = b;
     src.loop = true; src.loopStart = t0; src.loopEnd = t1;
     src.connect(ac.destination);
-    src.start(0, depuisJoint ? Math.max(t0, t1 - 1.5) : t0);
+    src.start(0, depuisJoint ? Math.max(t0, t1 - 1.5 - xf) : t0);
     $('play').setAttribute('aria-pressed', 'true');
   }
   // fabrique une version de la boucle dont la fin se fond dans le début
   async function fondu(xf) {
-    const sr = buf.sampleRate, L = Math.round(lon() * sr), a = Math.round(deb() * sr), F = Math.round(xf * sr);
+    const sr = buf.sampleRate, L = Math.round(lon() * sr), a = Math.round(deb() * sr);
+    // le fondu puise dans ce qui précède le début : il ne peut pas être plus long que ça
+    const F = Math.min(Math.round(xf * sr), a, L);
     const out = new AudioBuffer({ length: L, sampleRate: sr, numberOfChannels: buf.numberOfChannels });
     for (let c = 0; c < buf.numberOfChannels; c++) {
       const x = buf.getChannelData(c), y = out.getChannelData(c);
