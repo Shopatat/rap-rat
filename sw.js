@@ -1,9 +1,9 @@
 // Service worker : garde l'appli en cache pour qu'elle marche hors ligne.
 // Pense à changer VERSION à chaque mise à jour, sinon les téléphones gardent l'ancienne version.
-const VERSION = "rap-rat-v24";
+const VERSION = "rap-rat-v25";
 const FILES = [
   "./", "./index.html", "./manifest.webmanifest", "./css/style.css", "./js/app.js",
-  "./sons/croc.wav", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png",
+  "./sons/croc.wav", "./sons/musique.mp3", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png",
   "./icons/apple-touch-icon.png", "./icons/favicon-32.png"
 ];
 

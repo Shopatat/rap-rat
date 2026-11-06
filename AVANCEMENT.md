@@ -149,6 +149,26 @@ Deux chantiers en cours :
   (`loopStart` / `loopEnd`). L'appli gardera donc le `.mp3` tel quel et posera les deux repères.
   Un wav de 60 s pèserait 5 Mo contre 1,4 Mo pour le mp3 entier.
 
+## La musique est dans l'appli (aperçu)
+
+Fabien a écouté les trois boucles proposées : « plutôt à chier les trois ». Il reprendra le
+raccord lui-même, chez lui, dans Audacity. En attendant il veut le morceau **entier, tel quel**,
+pour l'avoir dans l'oreille et repérer les couacs. `VERSION` en `rap-rat-v25`.
+
+- `sons/musique.mp3` (1,4 Mo), servi tel quel, **sans travail de raccord** : quand il se termine,
+  il repart du début (`loop` sur l'élément `<audio>`). Ça s'entendra, c'est assumé pour l'instant.
+- Elle démarre **à l'ouverture de l'appli**, pas au lancement d'une partie.
+- Un élément `<audio>` plutôt que Web Audio : sur iPhone il tient mieux la veille et les
+  allers-retours vers une autre appli. Elle est relancée sur `visibilitychange`, `pageshow`,
+  `focus`, et au moindre `pause` inattendu — iOS coupe le son dès qu'on part ailleurs.
+- iOS refuse de jouer avant un geste : le premier toucher de l'écran débloque la lecture.
+- Bouton **« Musique : oui/non »** à côté de « Son », mémorisé dans `localStorage`.
+- **iOS ignore `volume` sur un élément `<audio>`** : la musique sort au volume du téléphone, on ne
+  peut pas la baisser sous le croc. Si ça gêne, il faudra la passer en Web Audio (au prix de la
+  tenue en arrière-plan) ou baisser le gain dans le fichier lui-même.
+- **Le dépôt est public** : poser ce mp3 dans `sons/` le publie sur GitHub Pages sous le nom de
+  Fabien. À confirmer avant de pousser.
+
 ## Reste à trancher pour la musique
 
 Fabien veut ajouter la musique du jeu. **Décidé** : on part sur la version américaine, plus punchy

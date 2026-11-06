@@ -482,6 +482,29 @@
     o.connect(og); og.connect(master); o.start(t0); o.stop(t0 + .16);
   }
 
+  // ---------- la musique ----------
+  // Elle tourne dès l'ouverture de l'appli, pas seulement pendant une partie, et elle se
+  // reboucle toute seule. Pour l'instant c'est le morceau entier tel quel : le raccord n'est
+  // pas travaillé, Fabien le reprendra à la maison. C'est un aperçu, pas la version finale.
+  const music = $('music');
+  let musicOn = store.get('music', true);
+  function musicPlay() {
+    if (!music) return;                       // l'Atelier des foyers n'a pas l'élément
+    if (!musicOn) { music.pause(); return; }
+    music.volume = .6;                        // ignoré par iOS, utile sur l'ordinateur
+    const p = music.play();
+    if (p && p.catch) p.catch(() => {});      // refusé tant que l'écran n'a pas été touché
+  }
+  // iOS coupe le son dès qu'on part ailleurs (YouTube, écran verrouillé, appel…) :
+  // au retour on relance sans poser de question.
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') musicPlay(); });
+  window.addEventListener('pageshow', musicPlay);
+  window.addEventListener('focus', musicPlay);
+  if (music) music.addEventListener('pause', () => { if (musicOn && document.visibilityState === 'visible') setTimeout(musicPlay, 400); });
+  // le premier contact avec l'écran débloque la lecture : sans geste, iOS refuse
+  for (const ev of ['pointerdown', 'touchstart', 'keydown']) document.addEventListener(ev, musicPlay, { passive: true });
+  musicPlay();
+
   // ---------- screen stays awake ----------
   let wake = null;
   async function keepAwake() { try { if (navigator.wakeLock && !wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); } } catch (e) { wake = null; } }
@@ -526,6 +549,10 @@
     $('durPlus').disabled = durMin === DURATIONS[DURATIONS.length - 1];
     $('soundBtn').textContent = 'Son : ' + (soundOn ? 'oui' : 'non');
     $('soundBtn').setAttribute('aria-pressed', String(soundOn));
+    if ($('musicBtn')) {
+      $('musicBtn').textContent = 'Musique : ' + (musicOn ? 'oui' : 'non');
+      $('musicBtn').setAttribute('aria-pressed', String(musicOn));
+    }
     if (state !== 'running') stage.classList.remove('nocursor');
     dimmed = state === 'paused';
     measureReserve();
@@ -662,6 +689,7 @@
   $('durMinus').addEventListener('click', () => { const i = DURATIONS.indexOf(durMin); if (i > 0) { durMin = DURATIONS[i - 1]; store.set('dur', durMin); render(); } });
   $('durPlus').addEventListener('click', () => { const i = DURATIONS.indexOf(durMin); if (i < DURATIONS.length - 1) { durMin = DURATIONS[i + 1]; store.set('dur', durMin); render(); } });
   $('soundBtn').addEventListener('click', () => { soundOn = !soundOn; store.set('sound', soundOn); if (soundOn) { ensureAudio(); crunch(false); } render(); });
+  if ($('musicBtn')) $('musicBtn').addEventListener('click', () => { musicOn = !musicOn; store.set('music', musicOn); musicPlay(); render(); });
   if (document.fullscreenEnabled) {
     $('fsBtn').hidden = false;
     $('fsBtn').addEventListener('click', () => {
