@@ -233,3 +233,16 @@ Points à trancher avant de coder :
 
 L'atelier du son sert aussi pour ça : il décode n'importe quel fichier, mais il est taillé pour
 des extraits courts. Pour une boucle, il faudra vérifier le raccord début/fin à l'oreille.
+
+## Le relief de la tranche
+
+Fabien, capture de l'émission à l'appui : « tu peux constater que le fromage a un certain
+relief ». Il y avait déjà deux ombres intérieures le long des morsures, mais uniformes : aucune
+direction, donc aucune épaisseur lisible. `compose()` pose maintenant quatre passes, lumière
+venant d'en haut à gauche : ombre douce tout autour, paroi sombre côté opposé à la lumière,
+liseré ambré côté lumière, puis un trait net pour que le bord reste franc (pas de flou, règle
+déjà tranchée avec Fabien). `VERSION` en `rap-rat-v29`.
+
+Reste ouvert : sur la capture, le cœur de la tranche est nettement plus clair qu'au bord, presque
+blanc-jaune. Le dégradé actuel est plus plat. Ne pas y toucher sans Fabien — la teinte « orange
+profond et saturé, centre plus jaune » a été choisie avec lui.

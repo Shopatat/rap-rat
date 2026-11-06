@@ -200,14 +200,30 @@
     ic.globalCompositeOperation = 'destination-out';
     ic.drawImage(mask, 0, 0);
 
-    const OFF = SW * 3;
+    // L'épaisseur de la tranche. On projette l'ombre du « dehors » vers l'intérieur du fromage :
+    // dessiné très à gauche, l'inverse du masque ne laisse que son ombre, décalée pile en place.
+    // Relevé sur l'émission : la tranche a du relief, chaque morsure ouvre une paroi. On éclaire
+    // donc d'en haut à gauche — les bords tournés vers la lumière s'allument d'un liseré ambré,
+    // ceux qui lui tournent le dos s'enfoncent dans l'ombre.
+    const OFF = SW * 3, D = SW * .009;
     c.globalCompositeOperation = 'source-atop';
+    // 1. l'ombre douce tout autour, qui creuse la tranche
     c.shadowOffsetX = OFF; c.shadowOffsetY = 0;
-    c.shadowColor = 'rgba(70,24,0,.55)'; c.shadowBlur = SW * .03;
+    c.shadowColor = 'rgba(70,24,0,.5)'; c.shadowBlur = SW * .03;
     c.drawImage(inv, -OFF, 0);
-    c.shadowColor = 'rgba(40,12,0,.8)'; c.shadowBlur = SW * .009;
+    // 2. la paroi sombre, du côté opposé à la lumière
+    c.shadowOffsetX = OFF - D; c.shadowOffsetY = -D;
+    c.shadowColor = 'rgba(40,12,0,.85)'; c.shadowBlur = SW * .011;
     c.drawImage(inv, -OFF, 0);
-    c.shadowColor = 'rgba(0,0,0,0)'; c.shadowBlur = 0; c.shadowOffsetX = 0;
+    // 3. la paroi éclairée : un liseré chaud, discret, côté lumière
+    c.shadowOffsetX = OFF + D; c.shadowOffsetY = D;
+    c.shadowColor = 'rgba(255,212,122,.72)'; c.shadowBlur = SW * .008;
+    c.drawImage(inv, -OFF, 0);
+    // 4. le trait net qui redonne le bord franc, sans flou
+    c.shadowOffsetX = OFF; c.shadowOffsetY = 0;
+    c.shadowColor = 'rgba(30,9,0,.75)'; c.shadowBlur = SW * .0035;
+    c.drawImage(inv, -OFF, 0);
+    c.shadowColor = 'rgba(0,0,0,0)'; c.shadowBlur = 0; c.shadowOffsetX = 0; c.shadowOffsetY = 0;
     c.globalCompositeOperation = 'source-over';
   }
 
