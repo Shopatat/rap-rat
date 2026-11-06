@@ -86,7 +86,19 @@ kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--li
       <span class="info" style="margin:0">longueur cherchée :</span>
       <button class="btn small" id="modeCourt" aria-pressed="true">Boucle courte</button>
       <button class="btn small" id="modeLong" aria-pressed="false">Presque tout le morceau</button>
+      <button class="btn small" id="modeTout" aria-pressed="false">Tout garder</button>
     </div>
+    <div class="row">
+      <span class="info" style="margin:0">déplacer un bord :</span>
+      <button class="btn small" id="dm">début ◂</button>
+      <button class="btn small" id="dp">début ▸</button>
+      <button class="btn small" id="fm">fin ◂</button>
+      <button class="btn small" id="fp">fin ▸</button>
+      <button class="btn small" id="affine">Chercher le mieux autour</button>
+    </div>
+    <div class="info">Un raccord se joue à la milliseconde : décalé de cinq, le meilleur passage
+      devient le pire. Tu ne règles donc jamais les bords toi-même — tu dis « plutôt par là »
+      (les flèches déplacent d’un cinquième de motif) et l’atelier recale au sample près.</div>
     <div class="row" id="candidats"></div>
     <div class="info" id="modeInfo">Une boucle courte (deux ou quatre motifs) se recolle presque
       parfaitement, mais elle repasse souvent : plus de cent fois en un quart d’heure. Le morceau
@@ -223,16 +235,45 @@ kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--li
     if (a < L || b > mono.length) return 2;
     let num = 0, den = 0;
     for (let i = 0; i < L; i += pas) { const x = mono[b - L + i], y = mono[a - L + i]; num += (x - y) * (x - y); den += x * x + y * y; }
-    return num / (den + 1e-9);
+    if (den < 1e-5 * (L / pas)) return 2;     // du silence contre du silence : ce n'est pas un raccord
+    return num / den;
+  }
+  // là où le son commence et finit vraiment (le morceau a du blanc au début et à la fin)
+  function bords() {
+    const s = .004; let a = 0, b = mono.length - 1;
+    while (a < mono.length && Math.abs(mono[a]) < s) a++;
+    while (b > a && Math.abs(mono[b]) < s) b--;
+    return [a / buf.sampleRate, b / buf.sampleRate];
   }
 
   // ---------- chercher les meilleurs candidats ----------
-  let longue = false;
+  let quel = 'court';
   function cherche() {
     const box = $('candidats'); box.innerHTML = '';
     if (!motif) return;
     let gardes;
-    if (longue) {
+    if (quel === 'tout') {
+      // on garde tout : le début glisse un peu après le premier son, la fin un peu avant le
+      // dernier, et on cherche le couple qui se recolle le mieux. Aucune contrainte de motif —
+      // sur un morceau entier, c'est la seule liberté qui reste.
+      const [d0, d1] = bords(), M = 8;
+      let gros = null;
+      for (let t0 = d0; t0 < d0 + M; t0 += .008)
+        for (let t1 = d1 - M; t1 < d1; t1 += .008) {
+          const q = qualite(t0, t1, 40, 16);
+          if (!gros || q < gros.q) gros = { t0, t1, q };
+        }
+      gardes = [];
+      if (gros) {
+        let f = { t0: gros.t0, L: gros.t1 - gros.t0, q: qualite(gros.t0, gros.t1) };
+        for (let t0 = gros.t0 - .01; t0 <= gros.t0 + .01; t0 += .0005)
+          for (let t1 = gros.t1 - .01; t1 <= gros.t1 + .01; t1 += .0005) {
+            const q = qualite(t0, t1);
+            if (q < f.q) f = { t0, L: t1 - t0, q };
+          }
+        gardes.push(f);
+      }
+    } else if (quel === 'long') {
       // on garde presque tout le morceau : la longueur fait un nombre entier de motifs, pour que
       // la musique retombe en phase. Les collures du monteur restent dedans — elles font partie
       // du morceau, on ne peut pas les éviter sur une boucle d'une minute.
@@ -280,7 +321,8 @@ kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--li
       const b = document.createElement('button');
       b.className = 'btn small';
       b.textContent = `${g.t0.toFixed(2)} s · ${g.L.toFixed(2)} s`
-        + (longue ? ` (${Math.round(g.L / motif)} motifs)` : '');
+        + (quel === 'long' ? ` (${Math.round(g.L / motif)} motifs)` : '')
+        + (quel === 'tout' ? ' (tout le morceau)' : '');
       b.addEventListener('click', () => { pose(g.t0, g.L); });
       box.append(b);
       if (i === 0) pose(g.t0, g.L);
@@ -316,19 +358,46 @@ kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--li
   $('xf').addEventListener('input', () => {
     const v = +$('xf').value;
     $('xfV').textContent = v >= 1000 ? (v / 1000).toFixed(2).replace('.', ',') + ' s' : v + ' ms';
-    if (src) joue(false);
+    if (buf) maj();          // le fondu change aussi les repères à recopier dans l'appli
   });
-  function mode(l) {
-    longue = l;
-    $('modeLong').setAttribute('aria-pressed', String(l));
-    $('modeCourt').setAttribute('aria-pressed', String(!l));
+  function mode(m) {
+    quel = m;
+    for (const [id, v] of [['modeCourt', 'court'], ['modeLong', 'long'], ['modeTout', 'tout']])
+      $(id).setAttribute('aria-pressed', String(m === v));
     // une boucle longue supporte — et demande — un fondu plus large
-    $('xf').value = l ? 600 : 0;
+    $('xf').value = m === 'court' ? 0 : m === 'long' ? 600 : 1200;
     $('xf').dispatchEvent(new Event('input'));
     if (buf) cherche();
   }
-  $('modeCourt').addEventListener('click', () => mode(false));
-  $('modeLong').addEventListener('click', () => mode(true));
+  $('modeCourt').addEventListener('click', () => mode('court'));
+  $('modeLong').addEventListener('click', () => mode('long'));
+  $('modeTout').addEventListener('click', () => mode('tout'));
+
+  // ---------- affiner ----------
+  // Un raccord se joue à la milliseconde : décalé de 5 ms, le meilleur passage devient le pire.
+  // On ne règle donc pas les bords à la main — on dit « plutôt par là » et la machine recale.
+  function affine(large) {
+    const t0 = deb(), t1 = deb() + lon(), M = large ? .25 : .025;
+    let f = { t0, t1, q: qualite(t0, t1) };
+    const pas = large ? .001 : .0005;
+    for (let a = t0 - M; a <= t0 + M; a += pas)
+      for (let b = t1 - M; b <= t1 + M; b += pas) {
+        if (a < .02 || b > buf.duration - .02 || b - a < .2) continue;
+        const q = qualite(a, b, 60, large ? 4 : 1);
+        if (q < f.q) f = { t0: a, t1: b, q };
+      }
+    pose(f.t0, f.t1 - f.t0);
+  }
+  // déplacer un bord « musicalement » (un cinquième de motif), puis laisser la machine recaler
+  function pousse(bord, part) {
+    const d = (motif || 1) * part;
+    if (bord === 'debut') { $('t0').value = Math.max(.02, deb() + d).toFixed(3); $('dur').value = (lon() - d).toFixed(3); }
+    else $('dur').value = Math.max(.2, lon() + d).toFixed(3);
+    affine(true);          // large, sinon on retombe sur un mauvais calage juste à côté
+  }
+  for (const [id, bord, part] of [['dm', 'debut', -.2], ['dp', 'debut', .2], ['fm', 'fin', -.2], ['fp', 'fin', .2]])
+    $(id).addEventListener('click', () => pousse(bord, part));
+  $('affine').addEventListener('click', () => affine(true));
 
   // ---------- dessins ----------
   function trace(cv, a, b, marques) {
@@ -409,8 +478,10 @@ kbd{font:600 11px var(--ui);background:var(--panel-hi);border:1px solid var(--li
       const x = buf.getChannelData(c), y = out.getChannelData(c);
       for (let i = 0; i < L; i++) y[i] = x[a + i] || 0;
       for (let i = 0; i < F; i++) {                       // la fin se mêle à ce qui précède le début
+        // fondu à puissance constante : avec un simple (1−k)/k, deux passages qui ne se
+        // ressemblent pas s'effondrent de 3 dB au milieu et on entend un trou.
         const k = i / F, av = x[a - F + i] || 0;
-        y[L - F + i] = y[L - F + i] * (1 - k) + av * k;
+        y[L - F + i] = y[L - F + i] * Math.cos(k * Math.PI / 2) + av * Math.sin(k * Math.PI / 2);
       }
     }
     return out;

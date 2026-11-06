@@ -129,6 +129,22 @@ Deux chantiers en cours :
     Les 20 collures restent dedans — entendues une fois par minute elles passent pour de la musique,
     c'est en boucle courte qu'elles deviennent gênantes.
   Fondu enchaîné porté à 2 s (600 ms par défaut en mode long).
+- **Troisième mode, « Tout garder »** : le début glisse après le premier son, la fin avant le
+  dernier, et l'atelier cherche le couple qui se recolle le mieux, sans contrainte de motif.
+  Résultat : **7,485 → 84,029 s** (76,5 s), raccord **0,178**. C'est deux fois moins bon que la
+  boucle de 15 motifs (0,084), et c'est instructif : la recherche fuit d'elle-même les sept
+  premières secondes — exactement là où sont les collures du monteur (4,9 / 5,9 / 6,9 / 8,9 /
+  10,9 s). Le début du fichier est du rafistolage, pas de la musique.
+- **Le raccord se joue à la milliseconde** : décalé de 5 ms, le meilleur passage tombe à 1,004
+  (« mauvais »). Les bords ne se règlent donc pas à la main. Les flèches « début ◂ ▸ / fin ◂ ▸ »
+  déplacent d'un cinquième de motif, puis l'atelier recale tout seul (± 250 ms au millième).
+  « Chercher le mieux autour » fait la même chose sans bouger d'abord.
+- **Fondu à puissance constante** (`cos`/`sin` au lieu de `1−k`/`k`) : avec un fondu linéaire, deux
+  passages qui ne se ressemblent pas s'effondrent de 3 dB au milieu du raccord et on entend un
+  trou — pile le défaut qu'on cherchait à masquer.
+- **Note de Fabien** : ce mp3 est déjà un travail de prélèvement fait par quelqu'un, nettoyé à
+  coups de raccords. Les 20 collures sont donc de lui, pas de l'émission ; et rien ne garantit
+  qu'un raccord parfait existe dans ce fichier.
 - **Pas besoin d'exporter un wav** : Web Audio boucle n'importe où dans un son décodé
   (`loopStart` / `loopEnd`). L'appli gardera donc le `.mp3` tel quel et posera les deux repères.
   Un wav de 60 s pèserait 5 Mo contre 1,4 Mo pour le mp3 entier.
