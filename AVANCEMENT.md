@@ -149,6 +149,29 @@ Deux chantiers en cours :
   (`loopStart` / `loopEnd`). L'appli gardera donc le `.mp3` tel quel et posera les deux repères.
   Un wav de 60 s pèserait 5 Mo contre 1,4 Mo pour le mp3 entier.
 
+## Mordre partout, et se regrouper au centre
+
+Demandé par Fabien : « j'ai envie que ça morde de manière homogène partout et que ça se regroupe
+bien vers le Centre ». Trois changements dans `pickEdge()`, `VERSION` en `rap-rat-v27` :
+
+- **Le bord est mesuré autrement.** Plus de distance « en boîte » (qui mangeait le milieu des
+  côtés en premier) ni de distance au centre brute (qui mangerait les coins en premier). On
+  compare chaque bout de bord à ce qu'allait la tranche d'origine **dans cette direction-là** :
+  sur une tranche entière ce rapport vaut 1 partout, donc le rat attaque le pourtour
+  uniformément ; dès qu'un endroit est entamé il passe sous 1 et ce qui dépasse encore devient
+  plus tentant. Le front avance ensemble et le reste se resserre en rond.
+- **Le rat a une mémoire courte** (`ETALE`, 0,8 ; nouveau curseur « mordre partout » dans
+  l'atelier) : il évite les six derniers endroits croqués. Sans ça le pur hasard fait des
+  paquets — un côté dévoré, l'autre intact, ce qui n'était pas « homogène partout ».
+- **La fin ne vise plus que le centre de l'écran.** Elle visait un mélange du centre de l'écran
+  et du milieu de ce qu'il reste ; ce dernier dérive au fil des morsures et le dernier morceau
+  finissait de côté. Le trou du rat, lui, ne bouge pas.
+- `RESTE` passe à 0 : les foyers sont désactivés par défaut, puisqu'ils servaient justement à
+  faire s'acharner le rat au même endroit. Le mécanisme reste là, réglable dans l'atelier.
+- Essais comparés en planches de six étapes (`references/essais/`, hors dépôt) :
+  **regroupement 1,4 est le meilleur**. À 2,2 le morceau se recentre plus tôt mais finit en
+  lamelle de travers ; à 3,0 il s'étire en serpent et laisse des miettes détachées.
+
 ## L'Atelier des foyers ne mentait plus
 
 Ses curseurs étaient restés sur mes anciennes hypothèses (4 foyers, 68 %) alors que l'appli

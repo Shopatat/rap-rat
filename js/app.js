@@ -177,7 +177,7 @@
     SH = Math.round(SW * A); U = Math.min(SW, SH) / 1024; GH = Math.max(1, Math.round(GW * A));
     for (const c of [tex, mask, inv, comp]) { c.width = SW; c.height = SH; }
     grid = new Uint8Array(GW * GH); grid.fill(1); cells0 = cells = GW * GH;
-    foyers = [];                     // nouvelle tranche, nouveaux foyers
+    foyers = []; derniers = [];      // nouvelle tranche, nouveaux foyers
     paintTexture();
     const m = mask.getContext('2d');
     m.globalCompositeOperation = 'source-over';
@@ -302,8 +302,10 @@
   // (réglables à chaud depuis l'Atelier des foyers, outils/atelier-foyers.html)
   // REGROUPE : à quel point le rat vise ce qui dépasse, pour que la tranche se resserre sur le
   // centre. 1 = le réglage d'origine ; plus haut, le morceau reste rond et centré plus tôt.
-  let FOYERS = 8, RESTE = .55, PRES = .16, REGROUPE = 1.4;
-  let foyers = [];
+  // ETALE : à quel point le rat évite l'endroit qu'il vient de croquer, pour que le pourtour
+  // soit rongé uniformément au lieu de partir en paquets.
+  let FOYERS = 8, RESTE = 0, PRES = .16, REGROUPE = 1.4, ETALE = .8;
+  let foyers = [], derniers = [];
 
   // Pick a spot on the cheese's edge. Spots far from the middle are much more likely,
   // so the rat works from the outside in and the last morsel ends up near the centre.
@@ -311,10 +313,9 @@
     const edge = [], base = []; let total = 0;
     const mx = .5, my = A / 2;
     // où en est la tranche : le milieu de ce qu'il reste, et s'il en reste peu
-    let sx = 0, sy = 0, n = 0;
-    for (let idx = 0; idx < grid.length; idx++) if (grid[idx]) { sx += idx % GW; sy += (idx / GW) | 0; n++; }
+    let n = 0;
+    for (let idx = 0; idx < grid.length; idx++) if (grid[idx]) n++;
     const fin = n < cells0 * Math.min(.55, .3 * REGROUPE);   // la fin : on resserre et on arrondit
-    const cx = n ? (sx / n + .5) / GW : mx, cy = n ? (sy / n + .5) / GW : my;
     for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
       const idx = j * GW + i;
       if (!grid[idx]) continue;
@@ -325,7 +326,7 @@
           // On mord donc ce qui dépasse : loin du milieu de ce qu'il reste, loin du centre de
           // l'écran, et surtout les pointes isolées, qui n'ont presque plus de fromage autour.
           const ex = (i + .5) / GW, ey = (j + .5) / GW;
-          const dC = Math.hypot(ex - cx, ey - cy), dE = Math.hypot(ex - mx, ey - my);
+          const dE = Math.hypot(ex - mx, ey - my);
           let autour = 0, tot = 0;
           for (let b = -4; b <= 4; b += 2) for (let a = -4; a <= 4; a += 2) {
             const u = i + a, v = j + b; tot++;
@@ -335,18 +336,30 @@
           // Les pointes laissées entre deux morsures ne sont donc PAS mangées en priorité ; au
           // contraire, le rat mord dans la masse, et les piquants restent debout.
           const masse = autour / tot;
-          // tout à la fin, on oublie le milieu de ce qu'il reste et on vise le centre de l'écran :
-          // c'est là qu'est le trou du rat, donc c'est là que la dernière bouchée doit se trouver
-          const serre = Math.min(1, Math.max(0, 1 - n / (cells0 * .15)));
-          w = Math.pow(dC * (1 - serre) + dE * (.5 * REGROUPE + serre), 2 * REGROUPE) * (1 + 2 * masse * masse) + .004;
+          // On ne vise QUE le centre de l'écran, pas le milieu de ce qu'il reste : ce dernier
+          // dérive au fil des morsures et le dernier morceau finissait de côté. Le trou du rat,
+          // lui, ne bouge pas — c'est là que la dernière bouchée doit se trouver.
+          w = Math.pow(dE, 2 + 2 * REGROUPE) * (1 + masse) + .0004;
         } else {
-          const dx = Math.abs((i + .5) / GW - mx) / .5, dy = Math.abs((j + .5) / GW - my) / (A / 2);
-          // Relevé sur les seize étapes de `references/etapes/` : le rat ronge tout le pourtour
-          // à la fois, coins compris, et le front avance vers l'intérieur à peu près à la même
-          // vitesse partout. La tranche garde donc longtemps une silhouette large et carrée ;
-          // le resserrement sur le centre, lui, est l'affaire de la fin de partie.
-          const d = Math.max(dx, dy) - .1 * Math.min(dx, dy);
-          w = Math.pow(d, 3) + .02;
+          // Demandé par Fabien : « que ça morde de manière homogène partout et que ça se
+          // regroupe bien vers le centre ». On mesure donc chaque bout de bord non pas par sa
+          // distance au centre — les coins seraient mangés en premier — mais par ce qu'il lui
+          // reste par rapport à la tranche d'origine dans CETTE direction-là. Sur une tranche
+          // entière, ce rapport vaut 1 partout : le rat attaque donc le pourtour uniformément.
+          // Dès qu'un endroit a été entamé, il descend sous 1 et devient moins intéressant que
+          // ce qui dépasse encore : le front avance ensemble et le reste se resserre en rond.
+          const ex = (i + .5) / GW, ey = (j + .5) / GW;
+          const ux = ex - mx, uy = ey - my, r = Math.hypot(ux, uy) || 1e-6;
+          const bord = Math.min(.5 * r / Math.max(Math.abs(ux), 1e-6), (A / 2) * r / Math.max(Math.abs(uy), 1e-6));
+          const s = Math.min(1, r / bord);     // 1 sur le bord d'origine, 0 au milieu
+          w = Math.pow(s, 4 * REGROUPE) + .012;
+          // Et pour que ça morde vraiment PARTOUT : le rat évite ce qu'il vient de croquer.
+          // Sans ça, le pur hasard fait des paquets — un côté dévoré, l'autre intact.
+          for (const f of derniers) {
+            const dd = (ex - f.x) * (ex - f.x) + (ey - f.y) * (ey - f.y);
+            w *= 1 - ETALE * Math.exp(-dd / (PRES * PRES));
+          }
+          if (w < 1e-5) w = 1e-5;
         }
         edge.push(idx); base.push(w); total += w;
       }
@@ -373,6 +386,9 @@
     // le foyer ne suit la morsure qu'en partie : il s'élargit sur place au lieu de courir le long du bord
     if (fi >= 0) { foyers[fi].x += ((i + .5) / GW - foyers[fi].x) * .3; foyers[fi].y += ((j + .5) / GW - foyers[fi].y) * .3; }
     else { foyers.push({ x: (i + .5) / GW, y: (j + .5) / GW }); if (foyers.length > FOYERS) foyers.shift(); }
+    // la mémoire courte du rat : les derniers endroits croqués, qu'il évitera un moment
+    derniers.push({ x: (i + .5) / GW, y: (j + .5) / GW });
+    if (derniers.length > 6) derniers.shift();
     let nx = 0, ny = 0;
     for (let dj = -5; dj <= 5; dj++) for (let di = -5; di <= 5; di++) {
       const a = i + di, b = j + dj;
@@ -712,9 +728,9 @@
   window.RapRat = { skip(sec) { if (state === 'running' || state === 'paused') elapsed += sec; },
     bites(n, from = 0) { for (let i = 0; i < n; i++) bite(from + i, BITES); compose(); draw(); },
     neuf() { resetCheese(); draw(); },                        // une tranche entière, intacte
-    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; },
+    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; if (o.etale != null) ETALE = o.etale; },
     crocs: () => BITES,
-    actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE }),
+    actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE }),
     ajuste() { fit(); },                                      // recaler la toile sur sa boîte
     freezeIntro(t) { if (!lidTex) lidTex = makeLid(); frozen = t; introStart = 0; draw(); } };
 
