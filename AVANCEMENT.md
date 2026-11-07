@@ -308,3 +308,27 @@ Fabien : « occupe-toi de tout ». Les trois différences relevées en v31 sont 
 - Nouveau raccourci de test : `RapRat.trous()` donne le nombre de trous posés.
 
 Les choix de relief sont reportés dans `CLAUDE.md`.
+
+## Deux musiques au choix (v33)
+
+Fabien a fourni un nouveau fichier, « Rap Rat thème.mp3 » (étiquettes : « Rap Rat Theme », +TEK,
+3 min 38, 128 kb/s, 3,5 Mo) : « mets celle-là à la place de l'autre, ou en choix alternatif ».
+
+- Les deux sont dans `sons/` : `theme.mp3` (le nouveau, **par défaut**) et `instrumental.mp3`
+  (l'ancien `musique.mp3`, « Rap Rat Theme (Instrumental) », 1 min 25, renommé).
+- Le bouton passe de **« Musique : thème »** à **« Musique : instru »** puis **« Musique : non »**.
+  Changer de morceau le reprend au début. Choix gardé dans `localStorage` (`raprat.morceau`) ;
+  l'ancien réglage oui/non est repris (non reste non, oui devient le thème).
+- L'élément `<audio>` n'a plus de `src` dans `index.html` : c'est `js/app.js` qui met le morceau
+  choisi, pour ne pas charger l'autre pour rien.
+- **Service worker** : Safari lit une musique par bouts (en-tête `Range`) et peut refuser de la
+  jouer si on lui renvoie le fichier entier en 200 — c'était le cas depuis la v25, jamais vérifié
+  sur l'iPhone. Les `.mp3` sont maintenant servis depuis le cache (fichier complet rechargé à
+  chaque `VERSION`), découpés au bout demandé, en 206. Vérifié sur localhost en installant le
+  service worker à la main : 206 pour `0-1`, `1000000-`, `-500`, 416 au-delà de la fin, 200 sans
+  `Range`, et la lecture passe par lui.
+- **Volume** : le thème est nettement plus fort que l'instrumental (moyenne −16,5 dB contre
+  −20,7 dB), au niveau du croc (−16,6 dB). iOS ignore `volume`, donc sur l'iPhone il sort à
+  plein. Si le croc est couvert, on peut baisser le gain du mp3 sans le réencoder (comme mp3gain :
+  on change le gain global de chaque trame, par pas de 1,5 dB).
+- Pas encore entendu sur l'iPhone.

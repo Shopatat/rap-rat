@@ -35,7 +35,7 @@
       <button id="durPlus" type="button" aria-label="Plus de temps">+</button>
     </div>
     <button class="btn" id="soundBtn" type="button" aria-pressed="true">Son : oui</button>
-    <button class="btn" id="musicBtn" type="button" aria-pressed="true">Musique : oui</button>
+    <button class="btn" id="musicBtn" type="button" aria-pressed="true">Musique : thème</button>
   </div>
   <button class="btn primary wide" id="startBtn" type="button">C'est parti !</button>
   <span class="hint">Pendant la partie, touche l'écran pour faire apparaître la pause.</span>
@@ -65,8 +65,9 @@
 </div>
 
 <!-- La musique du jeu. Un <audio> plutôt que Web Audio : sur iPhone il tient mieux la veille
-     et les allers-retours vers une autre appli. « loop » suffit — si elle se termine, elle repart. -->
-<audio id="music" src="sons/musique.mp3" loop preload="auto" playsinline></audio>
+     et les allers-retours vers une autre appli. « loop » suffit — si elle se termine, elle repart.
+     Pas de src ici : js/app.js met le morceau choisi (thème ou instrumental). -->
+<audio id="music" loop preload="auto" playsinline></audio>
 
 <script src="js/app.js"></script>
 </body>

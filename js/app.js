@@ -538,11 +538,20 @@
   // Elle tourne dès l'ouverture de l'appli, pas seulement pendant une partie, et elle se
   // reboucle toute seule. Pour l'instant c'est le morceau entier tel quel : le raccord n'est
   // pas travaillé, Fabien le reprendra à la maison. C'est un aperçu, pas la version finale.
+  // Deux morceaux au choix, le bouton Musique passe de l'un à l'autre puis coupe :
+  // le thème complet (3 min 38, ajouté par Fabien le 07/11/2026, par défaut)
+  // et l'instrumental (1 min 25, le premier aperçu).
+  const MORCEAUX = { theme: { src: 'sons/theme.mp3', nom: 'thème' }, instru: { src: 'sons/instrumental.mp3', nom: 'instru' } };
+  const CHOIX = ['theme', 'instru', 'non'];
   const music = $('music');
-  let musicOn = store.get('music', true);
+  // l'ancien réglage « music » (oui / non) est repris : non reste non, oui devient le thème
+  let morceau = store.get('morceau', store.get('music', true) ? 'theme' : 'non');
+  if (!CHOIX.includes(morceau)) morceau = 'theme';
   function musicPlay() {
     if (!music) return;                       // l'Atelier des foyers n'a pas l'élément
-    if (!musicOn) { music.pause(); return; }
+    if (morceau === 'non') { music.pause(); return; }
+    const src = MORCEAUX[morceau].src;
+    if (music.getAttribute('src') !== src) music.src = src;   // nouveau morceau : il part du début
     music.volume = .6;                        // ignoré par iOS, utile sur l'ordinateur
     const p = music.play();
     if (p && p.catch) p.catch(() => {});      // refusé tant que l'écran n'a pas été touché
@@ -552,7 +561,7 @@
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') musicPlay(); });
   window.addEventListener('pageshow', musicPlay);
   window.addEventListener('focus', musicPlay);
-  if (music) music.addEventListener('pause', () => { if (musicOn && document.visibilityState === 'visible') setTimeout(musicPlay, 400); });
+  if (music) music.addEventListener('pause', () => { if (morceau !== 'non' && document.visibilityState === 'visible') setTimeout(musicPlay, 400); });
   // le premier contact avec l'écran débloque la lecture : sans geste, iOS refuse
   for (const ev of ['pointerdown', 'touchstart', 'keydown']) document.addEventListener(ev, musicPlay, { passive: true });
   musicPlay();
@@ -602,8 +611,8 @@
     $('soundBtn').textContent = 'Son : ' + (soundOn ? 'oui' : 'non');
     $('soundBtn').setAttribute('aria-pressed', String(soundOn));
     if ($('musicBtn')) {
-      $('musicBtn').textContent = 'Musique : ' + (musicOn ? 'oui' : 'non');
-      $('musicBtn').setAttribute('aria-pressed', String(musicOn));
+      $('musicBtn').textContent = 'Musique : ' + (morceau === 'non' ? 'non' : MORCEAUX[morceau].nom);
+      $('musicBtn').setAttribute('aria-pressed', String(morceau !== 'non'));
     }
     if (state !== 'running') stage.classList.remove('nocursor');
     dimmed = state === 'paused';
@@ -772,7 +781,10 @@
   $('durMinus').addEventListener('click', () => { const i = DURATIONS.indexOf(durMin); if (i > 0) { durMin = DURATIONS[i - 1]; store.set('dur', durMin); render(); } });
   $('durPlus').addEventListener('click', () => { const i = DURATIONS.indexOf(durMin); if (i < DURATIONS.length - 1) { durMin = DURATIONS[i + 1]; store.set('dur', durMin); render(); } });
   $('soundBtn').addEventListener('click', () => { soundOn = !soundOn; store.set('sound', soundOn); if (soundOn) { ensureAudio(); crunch(false); } render(); });
-  if ($('musicBtn')) $('musicBtn').addEventListener('click', () => { musicOn = !musicOn; store.set('music', musicOn); musicPlay(); render(); });
+  if ($('musicBtn')) $('musicBtn').addEventListener('click', () => {
+    morceau = CHOIX[(CHOIX.indexOf(morceau) + 1) % CHOIX.length];
+    store.set('morceau', morceau); musicPlay(); render();
+  });
   if (document.fullscreenEnabled) {
     $('fsBtn').hidden = false;
     $('fsBtn').addEventListener('click', () => {
