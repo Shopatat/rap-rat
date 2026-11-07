@@ -11,7 +11,10 @@
 <link rel="stylesheet" href="../css/style.css">
 <style>
 :root{--line:rgba(244,201,106,.16)}
-html,body{height:auto;overflow:auto;background:var(--bg);user-select:auto;-webkit-user-select:auto}
+html,body{height:auto;background:var(--bg);user-select:auto;-webkit-user-select:auto}
+/* c'est la page qui défile, pas body : sinon la tranche ne reste pas collée en haut */
+html{overflow:auto}
+body{overflow:visible}
 body{margin:0;padding:10px max(12px,env(safe-area-inset-right)) 40px max(12px,env(safe-area-inset-left));font:14px/1.45 var(--ui);color:var(--ink)}
 .tete{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:0 0 8px}
 h1{font-family:var(--display);color:var(--cheese);font-size:22px;margin:0}
@@ -61,6 +64,18 @@ select,input[type=text],textarea{font:14px var(--ui);color:var(--ink);background
 textarea{width:100%;min-height:80px;resize:vertical}
 input[type=text]{width:100%}
 #apercu{width:100%;height:110px;display:block;border-radius:8px;background:#0b0705;margin-bottom:8px}
+#dessin{width:100%;height:240px;display:block;border-radius:8px;background:#0b0705;touch-action:none;cursor:crosshair}
+.formes{list-style:none;padding:0;margin:6px 0}
+.formes li{display:flex;gap:6px;align-items:center;padding:6px 0;border-top:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+.formes li canvas{width:84px;height:44px;border-radius:6px;background:#0b0705;flex:none}
+.formes li .nomF{flex:1;min-width:90px}
+.formes li small{display:block;color:var(--muted)}
+.formes li.active{background:rgba(224,138,44,.12)}
+.formes label{display:flex;gap:4px;align-items:center;font-size:12px;color:var(--muted)}
+.formes select{padding:4px}
+.formes .btn2{min-height:30px;padding:0 10px;font-size:12.5px}
+#formeActive{font-size:12.5px;color:var(--muted);margin:-2px 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#formeActive b{color:var(--cream)}
 .note{font-size:12px;color:var(--muted);margin:4px 0 8px}
 .parties{list-style:none;padding:0;margin:6px 0}
 .parties li{display:flex;gap:6px;align-items:center;padding:5px 0;border-top:1px solid var(--line);font-size:13px}
@@ -124,12 +139,14 @@ input[type=text]{width:100%}
     <div class="onglets" role="tablist">
       <button role="tab" data-onglet="croc" aria-selected="true">Croc</button>
       <button role="tab" data-onglet="voir" aria-selected="false">Voir</button>
+      <button role="tab" data-onglet="formes" aria-selected="false">Formes</button>
       <button role="tab" data-onglet="garder" aria-selected="false">Garder</button>
     </div>
 
     <!-- ===== le prochain croc ===== -->
     <section id="o-croc">
       <canvas id="apercu"></canvas>
+      <div id="formeActive"></div>
       <div class="choix">ronds
         <button class="btn2" data-ronds="1">1</button><button class="btn2" data-ronds="2">2</button>
         <button class="btn2" data-ronds="3">3</button><button class="btn2" data-ronds="4">4</button>
@@ -192,6 +209,36 @@ input[type=text]{width:100%}
         <select id="duree"><option>10</option><option selected>15</option><option>20</option><option>30</option><option>45</option><option>60</option></select> min
       </div>
       <p class="note">L’appli fait toujours 72 crocs puis la dernière bouchée : une partie plus longue espace seulement les crocs. Sous la tranche, tu vois à quel moment de la partie tomberait le croc où tu en es, et ce que l’appli aurait mangé au même moment.</p>
+    </section>
+
+    <!-- ===== les formes : la bibliothèque, et le dessin au doigt ===== -->
+    <section id="o-formes" hidden>
+      <h2>Les formes du rat</h2>
+      <p class="note">Coche les formes que le rat a le droit d’utiliser quand il propose, mord ou finit, et donne-leur un poids (3 = trois fois plus souvent). « Pour moi » prend la forme pour tes propres crocs.</p>
+      <ul class="formes" id="formes"></ul>
+      <div class="outils">
+        <button class="btn2" id="garderRonds">Garder le croc réglé dans l’onglet Croc</button>
+      </div>
+      <p class="note" id="formesInfo"></p>
+
+      <h2>Dessiner une forme</h2>
+      <p class="note">La ligne est le bord de la tranche, le fromage est en dessous. Dessine d’un seul trait le contour du croc : pars d’au-dessus de la ligne, plonge dans le fromage, ressors. En clair : un croc de l’appli, pour la taille. Le petit trait marque l’endroit visé.</p>
+      <canvas id="dessin"></canvas>
+      <div class="outils">
+        <button class="btn2" id="effacerTrait">Effacer le trait</button>
+      </div>
+      <input type="text" id="nomForme" placeholder="Nom de la forme (facultatif)" style="margin-top:8px">
+      <div class="outils">
+        <button class="btn2 primary" id="garderDessin" disabled>Garder cette forme</button>
+      </div>
+      <h2>Une photo en dessous</h2>
+      <p class="note">Une morsure en gros plan, pour la décalquer : agrandis-la, tourne-la pour que le bord de la tranche suive la ligne.</p>
+      <div class="choix"><input type="file" id="dessinPhoto" accept="image/*"><button class="btn2" id="dpOter">Retirer</button></div>
+      <label class="sld">taille de la photo <span class="val" id="dpZV"></span><input type="range" id="dpZ" min="20" max="500" step="1" value="100"></label>
+      <label class="sld">tourner <span class="val" id="dpRV"></span><input type="range" id="dpR" min="-180" max="180" step="1" value="0"></label>
+      <label class="sld">gauche — droite <span class="val" id="dpXV"></span><input type="range" id="dpX" min="-100" max="100" step="1" value="0"></label>
+      <label class="sld">haut — bas <span class="val" id="dpYV"></span><input type="range" id="dpY" min="-100" max="100" step="1" value="0"></label>
+      <label class="sld">fromage par-dessus <span class="val" id="dpOV"></span><input type="range" id="dpO" min="0" max="90" step="1" value="30"></label>
     </section>
 
     <!-- ===== enregistrer, envoyer ===== -->
@@ -282,8 +329,54 @@ input[type=text]{width:100%}
   function garderReglages() { const o = reglage(); ecrire('reglages', o); }
   (() => { const o = lire('reglages', null); if (o) { poserReglages(o); for (const k of CASES) if (o[k] != null) $(k).checked = o[k]; } afficherReglages(); })();
 
+  // ================= la bibliothèque de formes =================
+  // appli = les deux ronds tirés comme dans le jeu ; ronds = des réglages de l'onglet Croc gardés ;
+  // contour = une forme dessinée au doigt (en rayons de croc, u le long du bord, v vers l'extérieur).
+  // « rat » : le rat de l'atelier a le droit de l'utiliser, « poids » : à quel point il la préfère.
+  const APPLI = { id: 'appli', nom: 'Deux ronds, tirés comme l’appli', type: 'appli', rat: true, poids: 1 };
+  let formes = lire('formes', null) || [APPLI];
+  if (!formes.some(f => f.id === 'appli')) formes.unshift(APPLI);
+  let formeActive = null;                       // une forme dessinée prise pour TES crocs (sinon les ronds réglés)
+  function garderFormes() { ecrire('formes', formes); }
+  const entre = (a, b) => a + Math.random() * (b - a);
+  const PLAT = { depth: 0, width: .37, irr: 0 };
+  function formeDe(f, varie) {
+    const g = nouvelleGraine();
+    if (f.type === 'appli') return Object.assign(R.forme(), { id: f.id });
+    if (f.type === 'contour') return { id: f.id, lobes: 1, L: [.86], ecart: .6, tilt: varie ? entre(-.1, .1) : 0, shallow: 0, advance: 0, vague: PLAT, contour: f.contour, graine: g };
+    const o = f.params, n = o.ronds, L0 = .86 * (varie ? 1 + entre(-.04, .04) : 1), Ln = L0 * o.inegal / 100, L = [];
+    for (let i = 0; i < n; i++) L.push(n === 1 ? L0 : L0 + (Ln - L0) * i / (n - 1));
+    return { id: f.id, lobes: n, L, ecart: o.ecart / 100, tilt: o.biais * DEG + (varie ? entre(-.12, .12) : 0), shallow: o.recul / 100,
+      advance: Math.max(0, o.avance / 100 + (varie ? entre(-.1, .1) : 0)), vague: { depth: o.vprof / 100, width: o.vlarg / 100, irr: o.virr / 100 }, graine: g };
+  }
+  // le rat de l'atelier pioche dans les formes cochées, selon leur poids
+  R.choixForme(() => {
+    const c = formes.filter(f => f.rat);
+    if (!c.length) return Object.assign(R.forme(), { id: 'appli' });
+    let t = 0; for (const f of c) t += f.poids || 1;
+    let x = Math.random() * t;
+    for (const f of c) { x -= f.poids || 1; if (x <= 0) return formeDe(f, true); }
+    return formeDe(c[c.length - 1], true);
+  });
+  function afficherForme() {
+    const d = $('formeActive'), fa = formeActive && formes.find(f => f.id === formeActive);
+    d.innerHTML = '';
+    if (!fa) { d.textContent = 'Forme : les ronds réglés ci-dessous.'; return; }
+    const s = document.createElement('span'); s.innerHTML = 'Forme dessinée : <b></b> (taille, avancée, recul, biais et direction s’appliquent)';
+    s.querySelector('b').textContent = fa.nom;
+    const b = document.createElement('button'); b.className = 'btn2'; b.textContent = 'Revenir aux ronds';
+    b.onclick = () => { formeActive = null; afficherForme(); retouche(); };
+    d.append(s, b);
+  }
+
   // la forme du croc, construite comme dans l'appli (js/app.js, tirerForme / shapeTemplate)
   function formeDuReglage(g) {
+    const fa = formeActive && formes.find(f => f.id === formeActive);
+    if (fa && fa.type === 'contour') {
+      const o = reglage();
+      return { id: fa.id, lobes: 1, L: [.86], ecart: .6, tilt: o.biais * DEG + (o.varier ? jit.t : 0), shallow: o.recul / 100,
+        advance: Math.max(0, o.avance / 100 + (o.varier ? jit.a : 0)), vague: PLAT, contour: fa.contour, graine: g };
+    }
     const o = reglage(), n = ronds, L0 = .86 * (o.varier ? 1 + jit.l : 1), Ln = L0 * o.inegal / 100, L = [];
     for (let i = 0; i < n; i++) L.push(n === 1 ? L0 : L0 + (Ln - L0) * i / (n - 1));
     return { lobes: n, L, ecart: o.ecart / 100,
@@ -294,6 +387,12 @@ input[type=text]{width:100%}
   // l'inverse : remettre les curseurs sur un croc (proposé par le rat, ou tiré au hasard)
   function reglerDepuis(c) {
     const f = c.forme, n = f.lobes;
+    if (f.contour) {
+      formeActive = formes.some(x => x.id === f.id) ? f.id : null;
+      poserReglages({ taille: Math.round(c.R / REF() * 100), avance: Math.round(f.advance * 100), recul: Math.round(f.shallow * 100), biais: Math.round(f.tilt / DEG), dir: 0 });
+      $('varier').checked = false; afficherForme(); return;
+    }
+    formeActive = null; afficherForme();
     poserReglages({ taille: Math.round(c.R / REF() * 100), ronds: n, ecart: Math.round(f.ecart * 100),
       inegal: n > 1 ? Math.round(f.L[n - 1] / f.L[0] * 100) : 100, avance: Math.round(f.advance * 100),
       recul: Math.round(f.shallow * 100), biais: Math.round(f.tilt / DEG), dir: 0,
@@ -561,12 +660,12 @@ input[type=text]{width:100%}
     const ronds = R.ronds(c), W = cad.w;
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const o of ronds) { x0 = Math.min(x0, X(o.x - o.r)); y0 = Math.min(y0, Y(o.y - o.r)); x1 = Math.max(x1, X(o.x + o.r)); y1 = Math.max(y1, Y(o.y + o.r)); }
+    if (ronds.poly) for (const [x, y] of ronds.poly) { x0 = Math.min(x0, X(x)); y0 = Math.min(y0, Y(y)); x1 = Math.max(x1, X(x)); y1 = Math.max(y1, Y(y)); }
     x0 = Math.floor(x0) - 2; y0 = Math.floor(y0) - 2; const bw = Math.ceil(x1 - x0) + 4, bh = Math.ceil(y1 - y0) + 4;
     if (bw < 2 || bh < 2) return;
     tampon.width = bw; tampon.height = bh; const t = tampon.getContext('2d');
-    const chemin = ctx => { ctx.beginPath(); for (const o of ronds) { const px = X(o.x) - x0, py = Y(o.y) - y0, pr = o.r * W; ctx.moveTo(px + pr, py); ctx.arc(px, py, pr, 0, TAU); } };
-    dc.save(); dc.translate(x0, y0); dc.fillStyle = 'rgba(255,244,214,.22)'; chemin(dc); dc.fill(); dc.restore();
-    t.fillStyle = 'rgba(28,6,0,.72)'; chemin(t); t.fill();
+    dc.fillStyle = 'rgba(255,244,214,.22)'; remplir(dc, ronds, X, Y, W);
+    t.fillStyle = 'rgba(28,6,0,.72)'; remplir(t, ronds, x => X(x) - x0, y => Y(y) - y0, W);
     const m = R.masque(), sx = m.width / W;
     t.globalCompositeOperation = 'destination-in';
     t.drawImage(m, (x0 - cad.x) * sx, (y0 - cad.y) * sx, bw * sx, bh * sx, 0, 0, bw, bh);
@@ -580,23 +679,33 @@ input[type=text]{width:100%}
     dc.beginPath(); dc.moveTo(hx + ax * s, hy + ay * s); dc.lineTo(hx - ay * s * .7, hy + ax * s * .7); dc.lineTo(hx + ay * s * .7, hy - ax * s * .7); dc.closePath(); dc.fill();
   }
 
-  // l'aperçu de la forme : le croc posé sur un bord droit, à l'échelle
-  function dessinerApercu() {
-    const cv = $('apercu'), dpr = Math.min(3, window.devicePixelRatio || 1);
-    const w = Math.round(cv.clientWidth * dpr), h = Math.round(cv.clientHeight * dpr);
+  // remplir la forme d'un croc (ses ronds, et son contour s'il est dessiné), px / py : vers les pixels
+  function remplir(ctx, rr, px, py, k) {
+    ctx.beginPath();
+    for (const o of rr) { const a = px(o.x), b = py(o.y), r = o.r * k; ctx.moveTo(a + r, b); ctx.arc(a, b, r, 0, TAU); }
+    ctx.fill();
+    if (rr.poly) { ctx.beginPath(); rr.poly.forEach(([x, y], i) => i ? ctx.lineTo(px(x), py(y)) : ctx.moveTo(px(x), py(y))); ctx.closePath(); ctx.fill(); }
+  }
+  // un croc posé sur un bord droit, à l'échelle (l'aperçu de l'onglet Croc, les vignettes des formes)
+  function peindreCroc(cv, c, texte, W, H) {
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    const w = W || Math.round(cv.clientWidth * dpr), h = H || Math.round(cv.clientHeight * dpr);
     if (!w || !h) return;
     if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
     const g = cv.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h);
     const bord = h * .22, ech = h * .4 / REF();         // un croc de l'appli fait environ deux tiers de la hauteur
-    const c = vise && vise.prop ? vise.prop : candidat() || { R: +$('taille').value / 100 * REF(), forme: formeDuReglage(graine) };
     const rr = R.ronds({ x: 0, y: 0, nx: 0, ny: -1, R: c.R, push: .05, forme: c.forme });
     const grad = g.createLinearGradient(0, bord, 0, h); grad.addColorStop(0, '#e8ad44'); grad.addColorStop(1, '#bb6524');
     g.fillStyle = grad; g.fillRect(0, bord, w, h - bord);
-    g.globalCompositeOperation = 'destination-out'; g.beginPath();
-    for (const o of rr) { const px = w / 2 + o.x * ech, py = bord + o.y * ech, pr = o.r * ech; g.moveTo(px + pr, py); g.arc(px, py, pr, 0, TAU); }
-    g.fill(); g.globalCompositeOperation = 'source-over';
-    g.fillStyle = 'rgba(246,234,214,.55)'; g.font = Math.round(10.5 * dpr) + 'px system-ui,sans-serif'; g.textAlign = 'left';
-    g.fillText(c.forme.lobes + (c.forme.lobes > 1 ? ' ronds' : ' rond') + ' · taille ' + Math.round(c.R / REF() * 100) + ' %', 6 * dpr, 13 * dpr);
+    g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000';
+    remplir(g, rr, x => w / 2 + x * ech, y => bord + y * ech, ech);
+    g.globalCompositeOperation = 'source-over';
+    if (texte) { g.fillStyle = 'rgba(246,234,214,.55)'; g.font = Math.round(10.5 * dpr) + 'px system-ui,sans-serif'; g.textAlign = 'left'; g.fillText(texte, 6 * dpr, 13 * dpr); }
+  }
+  function dessinerApercu() {
+    const c = vise && vise.prop ? vise.prop : candidat() || { R: +$('taille').value / 100 * REF(), forme: formeDuReglage(graine) };
+    const f = c.forme, nom = f.contour ? 'forme dessinée' : f.lobes + (f.lobes > 1 ? ' ronds' : ' rond');
+    peindreCroc($('apercu'), c, nom + ' · taille ' + Math.round(c.R / REF() * 100) + ' %');
   }
 
   // ================= les chiffres sous la tranche =================
@@ -633,39 +742,49 @@ input[type=text]{width:100%}
   const COLONNES = ['qui : m = Fabien, p = proposé par le rat et accepté, r = le rat, f = dernière bouchée',
     'x (0 à 1, largeur de la tranche)', 'y (0 à A, en largeurs)', 'angle d’où vient le croc (°, 0 = depuis la droite, 90 = depuis le bas)',
     'taille (1 = le croc de l’appli en début de partie)', 'ronds', 'écart', 'L premier rond', 'L dernier rond', 'biais (°)', 'avancée', 'recul',
-    'vagues profondeur', 'vagues largeur', 'vagues irrégularité', 'graine', 'mangé après (%)', 'îles après', 'miettes après (moins de 0,1 %)'];
+    'vagues profondeur', 'vagues largeur', 'vagues irrégularité', 'graine', 'mangé après (%)', 'îles après', 'miettes après (moins de 0,1 %)',
+    'forme (id dans « formes » ; vide = ronds réglés à la main)'];
   function versTexte(liste = crocs) {
     const g = R.grille();
     return {
       atelier: 'morsures', version: 1, nom: $('nom').value.trim() || 'Sans nom', notes: $('notes').value.trim(),
       date: new Date().toISOString(),
       tranche: { A: arr(g.A, 5), crocAppli: arr(REF(), 6), crocsAppli: BITES, ecran: scene.clientWidth + '×' + scene.clientHeight },
+      // toute la bibliothèque : les formes cochées pour le rat, leur poids, et les contours dessinés
+      formes: formes.map(f => Object.assign({}, f)),
       colonnes: COLONNES,
       crocs: liste.map(c => {
-        if (c.fin) return ['f', null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 100, 0, 0];
+        if (c.fin) return ['f', null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 100, 0, 0, null];
         const f = c.forme, n = f.lobes;
         return [c.q || 'm', arr(c.x, 5), arr(c.y, 5), arr(Math.atan2(c.ny, c.nx) / DEG, 3), arr(c.R / REF(), 4), n, arr(f.ecart, 4),
           arr(f.L[0], 4), arr(f.L[n - 1], 4), arr(f.tilt / DEG, 2), arr(f.advance, 4), arr(f.shallow, 4),
           arr(f.vague.depth, 3), arr(f.vague.width, 3), arr(f.vague.irr, 3), f.graine,
-          c.apres ? arr(c.apres.mange * 100, 2) : null, c.apres ? c.apres.iles : null, c.apres ? c.apres.miettes : null];
+          c.apres ? arr(c.apres.mange * 100, 2) : null, c.apres ? c.apres.iles : null, c.apres ? c.apres.miettes : null, f.id || null];
       })
     };
   }
   function depuisTexte(o) {
     if (!o || o.atelier !== 'morsures' || !Array.isArray(o.crocs)) throw new Error('pas un texte de l’atelier');
     const g = R.grille(), k = o.tranche && o.tranche.A ? g.A / o.tranche.A : 1, ref = REF();
+    // les formes du texte rejoignent la bibliothèque si elles n'y sont pas
+    const lib = {};
+    for (const f of o.formes || []) { lib[f.id] = f; if (!formes.some(x => x.id === f.id)) formes.push(Object.assign({}, f)); }
+    if (o.formes && o.formes.length) garderFormes();
     return o.crocs.map(l => {
       if (l[0] === 'f') return { q: 'f', fin: true };
       const n = l[5], L = []; for (let i = 0; i < n; i++) L.push(n === 1 ? l[7] : l[7] + (l[8] - l[7]) * i / (n - 1));
-      const a = l[3] * DEG;
-      return { q: l[0], x: l[1], y: l[2] * k, nx: Math.cos(a), ny: Math.sin(a), R: l[4] * ref, push: .05,
-        forme: { lobes: n, L, ecart: l[6], tilt: l[9] * DEG, advance: l[10], shallow: l[11], vague: { depth: l[12], width: l[13], irr: l[14] }, graine: l[15] } };
+      const a = l[3] * DEG, id = l[19] || null, contour = id && lib[id] && lib[id].contour;
+      const forme = { lobes: n, L, ecart: l[6], tilt: l[9] * DEG, advance: l[10], shallow: l[11], vague: { depth: l[12], width: l[13], irr: l[14] }, graine: l[15] };
+      if (id) forme.id = id;
+      if (contour) forme.contour = contour;
+      return { q: l[0], x: l[1], y: l[2] * k, nx: Math.cos(a), ny: Math.sin(a), R: l[4] * ref, push: .05, forme };
     });
   }
   function texteCompact(o) {
     // une ligne par croc : plus lisible une fois collé dans la conversation
-    const tete = Object.assign({}, o, { crocs: '§' }), s = JSON.stringify(tete, null, 1);
-    return s.replace('"§"', '[\n' + o.crocs.map(l => '  ' + JSON.stringify(l)).join(',\n') + '\n ]');
+    const tete = Object.assign({}, o, { crocs: '§', formes: '¤' }), s = JSON.stringify(tete, null, 1);
+    return s.replace('"¤"', '[\n' + (o.formes || []).map(f => '  ' + JSON.stringify(f)).join(',\n') + '\n ]')
+      .replace('"§"', '[\n' + o.crocs.map(l => '  ' + JSON.stringify(l)).join(',\n') + '\n ]');
   }
   function chargerTexte(o) {
     $('nom').value = o.nom && o.nom !== 'Sans nom' ? o.nom : ''; $('notes').value = o.notes || '';
@@ -772,11 +891,151 @@ input[type=text]{width:100%}
   $('calqueOp').addEventListener('input', () => { $('calque').style.opacity = +$('calqueOp').value / 100; $('calqueOpV').textContent = $('calqueOp').value + ' %'; });
   $('calqueOpV').textContent = '50 %';
 
+  // ================= l'onglet Formes : la liste =================
+  function utiliserForme(f) {
+    if (f.type === 'appli') { formeActive = null; poserReglages(DEFAUT); $('varier').checked = true; }
+    else if (f.type === 'ronds') { formeActive = null; poserReglages(f.params); $('varier').checked = false; }
+    else { formeActive = f.id; poserReglages({ avance: 0, recul: 0, biais: 0, dir: 0 }); }
+    afficherForme(); retouche(); listerFormes();
+    $('formesInfo').textContent = '« ' + f.nom + ' » sert maintenant à tes crocs.';
+  }
+  function listerFormes() {
+    const ul = $('formes'); ul.innerHTML = '';
+    formes.forEach((f, i) => {
+      const li = document.createElement('li');
+      if (f.id === formeActive) li.className = 'active';
+      const cv = document.createElement('canvas');
+      const p = formeDe(f, false), dpr = Math.min(3, window.devicePixelRatio || 1);
+      peindreCroc(cv, { R: (f.type === 'ronds' ? f.params.taille / 100 : 1) * REF(), forme: p }, null, Math.round(84 * dpr), Math.round(44 * dpr));
+      const nom = document.createElement('div'); nom.className = 'nomF'; nom.textContent = f.nom;
+      const sm = document.createElement('small');
+      sm.textContent = f.type === 'appli' ? 'comme le jeu' : f.type === 'ronds' ? f.params.ronds + (f.params.ronds > 1 ? ' ronds réglés' : ' rond réglé') : 'dessinée au doigt';
+      nom.append(sm);
+      const lab = document.createElement('label'), cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = !!f.rat; lab.append(cb, document.createTextNode('le rat'));
+      cb.onchange = () => { f.rat = cb.checked; garderFormes(); };
+      const sel = document.createElement('select');
+      for (const v of [1, 2, 3, 5, 10]) { const o = document.createElement('option'); o.value = v; o.textContent = '×' + v; sel.append(o); }
+      sel.value = f.poids || 1; sel.title = 'poids';
+      sel.onchange = () => { f.poids = +sel.value; garderFormes(); };
+      const use = document.createElement('button'); use.className = 'btn2'; use.textContent = 'Pour moi';
+      use.onclick = () => utiliserForme(f);
+      li.append(cv, nom, lab, sel, use);
+      if (f.type !== 'appli') {
+        const sup = document.createElement('button'); sup.className = 'btn2'; sup.textContent = '×'; sup.title = 'Supprimer';
+        sup.onclick = () => {
+          if (!sup.dataset.arme) { sup.dataset.arme = '1'; sup.textContent = 'Sûr ?'; sup.classList.add('warn'); setTimeout(() => { delete sup.dataset.arme; sup.textContent = '×'; sup.classList.remove('warn'); }, 3000); return; }
+          formes.splice(i, 1); if (formeActive === f.id) { formeActive = null; afficherForme(); retouche(); }
+          garderFormes(); listerFormes();
+        };
+        li.append(sup);
+      }
+      ul.append(li);
+    });
+  }
+  $('garderRonds').addEventListener('click', () => {
+    if (formeActive) { $('formesInfo').textContent = 'Ton croc utilise déjà une forme dessinée : elle est dans la liste.'; return; }
+    const o = reglage(), params = { ronds, taille: o.taille };
+    for (const k of ['ecart', 'inegal', 'avance', 'recul', 'biais', 'vprof', 'vlarg', 'virr']) params[k] = o[k];
+    const n = formes.filter(f => f.type === 'ronds').length + 1;
+    const f = { id: 'r' + Date.now().toString(36), nom: $('nomForme').value.trim() || 'Mes ronds ' + n, type: 'ronds', rat: true, poids: 1, params };
+    formes.push(f); garderFormes(); listerFormes(); $('nomForme').value = '';
+    $('formesInfo').textContent = '« ' + f.nom + ' » est gardée, et cochée pour le rat.';
+  });
+
+  // ================= l'onglet Formes : dessiner au doigt =================
+  const dessin = $('dessin');
+  let trait = [], contourDessine = null, photoD = null;
+  const DP = { dpZ: v => v + ' %', dpR: v => v + '°', dpX: v => v, dpY: v => v, dpO: v => v + ' %' };
+  function geoDessin() {
+    const dpr = Math.min(3, window.devicePixelRatio || 1), w = Math.round(dessin.clientWidth * dpr), h = Math.round(dessin.clientHeight * dpr);
+    return { dpr, w, h, bord: h * .32, k: h * .3 };             // k : un rayon de croc de l'appli, en pixels
+  }
+  // le dessin est en rayons de croc ; l'appli pousse chaque croc de 0,05 rayon vers l'extérieur
+  const PUSHD = .05;
+  function peindreDessin() {
+    const G = geoDessin(); if (!G.w || !G.h) return;
+    if (dessin.width !== G.w || dessin.height !== G.h) { dessin.width = G.w; dessin.height = G.h; }
+    const g = dessin.getContext('2d'), { w, h, bord, k, dpr } = G;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h);
+    const PX = u => w / 2 + u * k, PY = v => bord - v * k;
+    if (photoD) {
+      g.save(); g.translate(w / 2 + +$('dpX').value / 100 * w, h / 2 + +$('dpY').value / 100 * h); g.rotate(+$('dpR').value * DEG);
+      const s = +$('dpZ').value / 100 * Math.max(w / photoD.width, h / photoD.height); g.scale(s, s);
+      g.drawImage(photoD, -photoD.width / 2, -photoD.height / 2); g.restore();
+    }
+    const grad = g.createLinearGradient(0, bord, 0, h); grad.addColorStop(0, '#e8ad44'); grad.addColorStop(1, '#bb6524');
+    g.globalAlpha = photoD ? +$('dpO').value / 100 : 1; g.fillStyle = grad; g.fillRect(0, bord, w, h - bord); g.globalAlpha = 1;
+    // en clair, un croc de l'appli (deux ronds, avancée moyenne) pour la taille
+    const ref = R.ronds({ x: 0, y: 0, nx: 0, ny: -1, R: 1, push: PUSHD, forme: { lobes: 2, L: [.86, .86], ecart: .59, tilt: 0, shallow: 0, advance: .25, vague: PLAT, graine: 1 } });
+    g.fillStyle = 'rgba(255,246,222,.22)'; remplir(g, ref, x => w / 2 + x * k, y => bord + y * k, k);
+    if (contourDessine) {
+      g.fillStyle = 'rgba(20,6,0,.82)'; g.beginPath();
+      contourDessine.forEach(([u, v], i) => i ? g.lineTo(PX(u), PY(v + PUSHD)) : g.moveTo(PX(u), PY(v + PUSHD))); g.closePath(); g.fill();
+    }
+    g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1.5 * dpr; g.beginPath(); g.moveTo(0, bord); g.lineTo(w, bord); g.stroke();
+    g.beginPath(); g.moveTo(w / 2, bord - 6 * dpr); g.lineTo(w / 2, bord + 6 * dpr); g.stroke();
+    if (trait.length > 1) {
+      g.strokeStyle = '#f4c96a'; g.lineWidth = 2.5 * dpr; g.lineJoin = g.lineCap = 'round'; g.beginPath();
+      trait.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke();
+    }
+    for (const id in DP) $(id + 'V').textContent = DP[id](+$(id).value);
+  }
+  // du trait au contour : en rayons de croc, fermé par l'extérieur, lissé, allégé
+  function construireContour() {
+    const { w, bord, k } = geoDessin();
+    let pts = trait.map(([x, y]) => [(x - w / 2) / k, (bord - y) / k - PUSHD]);
+    if (pts.length < 6 || !pts.some(p => p[1] < -PUSHD)) return null;      // le trait doit entrer dans le fromage
+    const haut = Math.max(1.2, ...pts.map(p => p[1])) + .4;
+    let P = [[pts[0][0], haut], ...pts, [pts[pts.length - 1][0], haut]];
+    for (let it = 0; it < 2; it++) {                                        // lissage de Chaikin
+      const Q = [];
+      for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length]; Q.push([a[0] * .75 + b[0] * .25, a[1] * .75 + b[1] * .25], [a[0] * .25 + b[0] * .75, a[1] * .25 + b[1] * .75]); }
+      P = Q;
+    }
+    const pas = Math.max(1, Math.ceil(P.length / 90));
+    return P.filter((_, i) => i % pas === 0).map(([u, v]) => [arr(u, 3), arr(v, 3)]);
+  }
+  let traceEnCours = false;
+  const ptDessin = e => { const r = dessin.getBoundingClientRect(), d = dessin.width / r.width; return [(e.clientX - r.left) * d, (e.clientY - r.top) * d]; };
+  dessin.addEventListener('pointerdown', e => { traceEnCours = true; try { dessin.setPointerCapture(e.pointerId); } catch (_) {} trait = [ptDessin(e)]; contourDessine = null; $('garderDessin').disabled = true; peindreDessin(); });
+  dessin.addEventListener('pointermove', e => {
+    if (!traceEnCours) return;
+    const p = ptDessin(e), q = trait[trait.length - 1];
+    if (Math.hypot(p[0] - q[0], p[1] - q[1]) > 2) { trait.push(p); peindreDessin(); }
+  });
+  const finTrait = () => {
+    if (!traceEnCours) return; traceEnCours = false;
+    contourDessine = construireContour();
+    $('garderDessin').disabled = !contourDessine;
+    $('formesInfo').textContent = contourDessine ? '' : 'Le trait doit plonger dans le fromage (sous la ligne) et en ressortir.';
+    peindreDessin();
+  };
+  dessin.addEventListener('pointerup', finTrait);
+  dessin.addEventListener('pointercancel', finTrait);
+  $('effacerTrait').addEventListener('click', () => { trait = []; contourDessine = null; $('garderDessin').disabled = true; peindreDessin(); });
+  $('garderDessin').addEventListener('click', () => {
+    if (!contourDessine) return;
+    const n = formes.filter(f => f.type === 'contour').length + 1;
+    const f = { id: 'd' + Date.now().toString(36), nom: $('nomForme').value.trim() || 'Dessin ' + n, type: 'contour', rat: true, poids: 1, contour: contourDessine };
+    formes.push(f); garderFormes();
+    trait = []; contourDessine = null; $('garderDessin').disabled = true; $('nomForme').value = '';
+    utiliserForme(f); peindreDessin();
+    $('formesInfo').textContent = '« ' + f.nom + ' » est gardée : elle sert à tes crocs, et le rat peut l’utiliser.';
+  });
+  for (const id in DP) $(id).addEventListener('input', peindreDessin);
+  $('dessinPhoto').addEventListener('change', () => {
+    const f = $('dessinPhoto').files[0]; if (!f) return;
+    const img = new Image(); img.onload = () => { photoD = img; peindreDessin(); }; img.src = URL.createObjectURL(f);
+  });
+  $('dpOter').addEventListener('click', () => { photoD = null; $('dessinPhoto').value = ''; peindreDessin(); });
+
   // ================= onglets =================
   function ongletVers(nom) {
     for (const b of document.querySelectorAll('[data-onglet]')) b.setAttribute('aria-selected', String(b.dataset.onglet === nom));
-    for (const s of ['croc', 'voir', 'garder']) $('o-' + s).hidden = s !== nom;
+    for (const s of ['croc', 'voir', 'formes', 'garder']) $('o-' + s).hidden = s !== nom;
     if (nom === 'croc') dessinerApercu();
+    if (nom === 'formes') { listerFormes(); peindreDessin(); }
     if (nom === 'garder') { listerParties(); $('exportTexte').value = texteCompact(versTexte(crocs.concat(futurs.slice().reverse()))); }
   }
   for (const b of document.querySelectorAll('[data-onglet]')) b.addEventListener('click', () => ongletVers(b.dataset.onglet));
@@ -785,6 +1044,7 @@ input[type=text]{width:100%}
   // l'appli réserve de la place pour ses barres tant qu'elles ne sont pas vraiment « hidden »
   function cacher() { for (const id of ['idleBar', 'runBar', 'endBar', 'header', 'banner', 'turn']) $(id).hidden = true; }
   cacher();
+  afficherForme();
   // la partie en cours, reprise là où tu l'avais laissée
   (() => {
     const o = lire('courante', null);

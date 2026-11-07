@@ -308,6 +308,13 @@
       vague: { depth: WAVE.depth, width: WAVE.width, irr: WAVE.irr }, graine: (Math.random() * 4294967296) >>> 0 };
   }
   function shapeTemplate(p = tirerForme()) {
+    // une forme dessinée au doigt dans l'Atelier des morsures : un contour fermé, en rayons de
+    // croc (u le long du bord, v vers l'extérieur), tourné du biais et poussé de l'avancée
+    if (p.contour) {
+      const ct = Math.cos(p.tilt || 0), st = Math.sin(p.tilt || 0), dv = (p.shallow || 0) - (p.advance || 0), out = [];
+      out.poly = p.contour.map(([u, v]) => [u * ct - v * st, u * st + v * ct + dv]);
+      return out;
+    }
     const out = [], hasard = alea(p.graine), n = Math.max(1, Math.round(p.lobes || 2));
     const Ls = []; for (let i = 0; i < n; i++) Ls.push(p.L[Math.min(i, p.L.length - 1)]);
     // les ronds côte à côte : chacun à `ecart` × (les deux rayons) de son voisin, le tout centré
@@ -336,17 +343,32 @@
   }
   function realize(tpl, px, py, nx, ny, R, push) {
     const tx = -ny, ty = nx, cx = px + nx * R * push, cy = py + ny * R * push;
-    return tpl.map(o => ({ x: cx + tx * o.u * R + nx * o.v * R, y: cy + ty * o.u * R + ny * o.v * R, r: o.r * R }));
+    const out = tpl.map(o => ({ x: cx + tx * o.u * R + nx * o.v * R, y: cy + ty * o.u * R + ny * o.v * R, r: o.r * R }));
+    if (tpl.poly) out.poly = tpl.poly.map(([u, v]) => [cx + tx * u * R + nx * v * R, cy + ty * u * R + ny * v * R]);
+    return out;
+  }
+  function dansPoly(x, y, P) {
+    let dedans = false;
+    for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
+      const [xi, yi] = P[i], [xj, yj] = P[j];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) dedans = !dedans;
+    }
+    return dedans;
   }
   function forCellsIn(circles, fn) {
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const c of circles) { x0 = Math.min(x0, c.x - c.r); y0 = Math.min(y0, c.y - c.r); x1 = Math.max(x1, c.x + c.r); y1 = Math.max(y1, c.y + c.r); }
+    const P = circles.poly;
+    if (P) for (const [x, y] of P) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
     const i0 = Math.max(0, Math.floor(x0 * GW)), i1 = Math.min(GW - 1, Math.ceil(x1 * GW));
     const j0 = Math.max(0, Math.floor(y0 * GW)), j1 = Math.min(GH - 1, Math.ceil(y1 * GW));
     for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
       const idx = j * GW + i; if (!grid[idx]) continue;
       const x = (i + .5) / GW, y = (j + .5) / GW;
-      for (const c of circles) { const dx = x - c.x, dy = y - c.y; if (dx * dx + dy * dy <= c.r * c.r) { fn(idx); break; } }
+      let pris = false;
+      for (const c of circles) { const dx = x - c.x, dy = y - c.y; if (dx * dx + dy * dy <= c.r * c.r) { pris = true; break; } }
+      if (!pris && P && dansPoly(x, y, P)) pris = true;
+      if (pris) fn(idx);
     }
   }
   function countRemoval(circles) { let n = 0; forCellsIn(circles, () => n++); return n; }
@@ -465,6 +487,10 @@
     m.beginPath();
     for (const c of circles) { m.moveTo(c.x * SW + c.r * SW, c.y * SW); m.arc(c.x * SW, c.y * SW, c.r * SW, 0, TAU); }
     m.fill();
+    if (circles.poly) {                 // un contour dessiné, rempli à part (son sens de tracé est quelconque)
+      m.beginPath(); circles.poly.forEach(([x, y], i) => i ? m.lineTo(x * SW, y * SW) : m.moveTo(x * SW, y * SW));
+      m.closePath(); m.fill();
+    }
     m.globalCompositeOperation = 'source-over';
     forCellsIn(circles, idx => { grid[idx] = 0; cells--; });
   }
@@ -477,6 +503,8 @@
   // bite size is the one measured on the show (about 1.7 % of the slice per bite, centred on the edge),
   // scaled to the cheese's area; pacing may only nudge it, so every bite looks like the TV one
   const PUSH = .05, baseR = () => .077 * Math.sqrt(A / .75);
+  // l'Atelier des morsures peut donner au rat les formes cochées par Fabien ; le jeu, lui, tire les siennes
+  let choixForme = null;
   function tailleCroc(tpl, e, k, total) {
     const target = cells0 * (1 - (k + 1) / total), needed = cells - target;
     const R0 = baseR(), late = k > total * .9, RMIN = R0 * .8, RMAX = R0 * (late ? 1.8 : 1.25);
@@ -505,7 +533,7 @@
       return { fin: true };
     }
     const e = pickEdge(); if (!e) return null;
-    const p = tirerForme(), tpl = shapeTemplate(p), R = tailleCroc(tpl, e, k, total);
+    const p = (choixForme || tirerForme)(), tpl = shapeTemplate(p), R = tailleCroc(tpl, e, k, total);
     applyBite(realize(tpl, e.x, e.y, e.nx, e.ny, R, PUSH));
     return { x: e.x, y: e.y, nx: e.nx, ny: e.ny, R, push: PUSH, forme: p };
   }
@@ -857,7 +885,7 @@
       const e = pickEdge();
       foyers = f0; derniers.length = d0;
       if (!e) return null;
-      const p = tirerForme();
+      const p = (choixForme || tirerForme)();
       return { x: e.x, y: e.y, nx: e.nx, ny: e.ny, R: tailleCroc(shapeTemplate(p), e, k, total), push: PUSH, forme: p };
     },
     efface() {                                                // la tranche entière, mêmes trous
@@ -872,6 +900,7 @@
     r0: () => baseR(),
     compte: c => countRemoval(realize(shapeTemplate(c.forme), c.x, c.y, c.nx, c.ny, c.R, c.push == null ? PUSH : c.push)),
     son(big) { ensureAudio(); crunch(big); },
+    choixForme(fn) { choixForme = typeof fn === 'function' ? fn : null; },   // les formes que le rat a le droit d'utiliser
     freezeIntro(t) { if (!lidTex) lidTex = makeLid(); frozen = t; introStart = 0; draw(); } };
 
   resetCheese(); render();

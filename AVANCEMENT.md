@@ -15,10 +15,8 @@ pour que ça reste harmonieux jusqu'à la fin.
 Plan en trois étapes, chacune utilisable seule :
 
 1. **Atelier des morsures** (`outils/atelier-morsures.html`) — **fait (v34)**, voir plus bas.
-2. **Atelier des formes** — une bibliothèque de formes, avec celles que le rat a le droit
-   d'utiliser cochées (et leur poids), une forme dessinée au doigt par-dessus une photo en gros
-   plan, et le rat de l'atelier qui pioche dans les formes cochées. Il faudra que l'appli sache
-   creuser un contour quelconque, pas seulement des ronds (`applyBite` + la grille).
+2. **Atelier des formes** — **fait (v35)** : onglet « Formes » de l'Atelier des morsures,
+   voir plus bas.
 3. **Mon travail** — relire les parties que Fabien colle dans la conversation, en tirer les
    règles (où, dans quel ordre, quelle taille, quelle forme), et recaler le rat de l'appli et
    son rythme.
@@ -119,8 +117,8 @@ Les anciens chantiers (le son du croc, le plein écran) sont faits, voir « Fait
 
 Fabien essaie l'Atelier des morsures sur l'iPhone
 (https://shopatat.github.io/rap-rat/outils/atelier-morsures.html), fait une ou plusieurs
-parties à la main, et colle le texte « Copier pour Claude » dans la conversation. Selon ce
-qu'il en dit : l'étape 2 (Atelier des formes) ou directement l'étape 3.
+parties à la main (et dessine des formes s'il veut), et colle le texte « Copier pour Claude »
+dans la conversation. Ensuite, l'étape 3 : lire ses parties et recaler le rat de l'appli.
 
 ## La musique
 
@@ -384,3 +382,27 @@ d'une graine (`alea`) ; `shapeTemplate` sait faire 1 à 4 ronds. La taille vient
 (`croquer`, `mordre`, `proposer`, `efface`, `grille`, `masque`, `cadre`, `compte`…). Vérifié :
 une partie entière de 73 crocs va au bout (moitié mangée au 37ᵉ), l'Atelier des foyers marche.
 Le copier-coller n'a été vérifié que dans le navigateur de l'ordinateur, pas sur l'iPhone.
+
+## Les formes (v35, étape 2 sur 3)
+
+Un onglet « Formes » dans l'Atelier des morsures :
+
+- **La bibliothèque** : « Deux ronds, tirés comme l'appli » (toujours là), les ronds réglés dans
+  l'onglet Croc qu'on garde, et les formes dessinées. Pour chacune : une vignette, une case
+  « le rat » (il a le droit de l'utiliser quand il propose, mord ou finit), un poids (×1 à ×10),
+  « Pour moi » (la prendre pour ses propres crocs), supprimer. Gardée dans le téléphone
+  (`raprat.morsures.formes`).
+- **Dessiner** : la ligne est le bord de la tranche, le fromage dessous, un croc de l'appli en
+  clair pour la taille. Un seul trait, qui plonge dans le fromage et en ressort ; il est fermé
+  par l'extérieur, lissé (Chaikin) et allégé à 90 points au plus. Une photo peut aller dessous
+  (taille, rotation, décalage, fromage plus ou moins transparent par-dessus).
+- Une forme dessinée prend la taille, l'avancée, le recul, le biais et la direction de l'onglet
+  Croc ; elle n'a pas de vagues (le trait est le bord).
+- **Le texte envoyé** contient toute la bibliothèque (`formes`, contours compris) et, pour chaque
+  croc, l'id de sa forme (colonne 20). Relu, il redonne la même tranche (vérifié).
+
+Dans l'appli : `shapeTemplate` sait faire un contour (`p.contour`, en rayons de croc), `realize`,
+`forCellsIn` (point dans le polygone) et `applyBite` le creusent. `RapRat.choixForme(fn)` laisse
+l'atelier choisir les formes du rat ; le jeu, lui, tire toujours les siennes (`tirerForme`).
+Corrigé au passage : la tranche ne restait pas collée en haut quand on fait défiler les
+réglages (c'était `body` qui défilait).
