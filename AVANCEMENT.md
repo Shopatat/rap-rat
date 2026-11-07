@@ -5,12 +5,25 @@ Carnet de bord du projet : où on en est, ce qui est décidé, ce qui vient apr�
 
 ## Objectif du moment
 
-Deux chantiers en cours :
+**Les morsures, faites par Fabien lui-même** (demandé le 07/11/2026). C'est dur à décrire,
+alors il veut un atelier très complet : il y fait les crocs à la main pour me montrer ce qu'il
+cherche. Il veut régler leur forme (« littéralement les formes », il enverra peut-être des
+photos de près), leur position, leur taille et leur profondeur, surtout au début. Il veut aussi
+voir les défauts qui peuvent arriver (îles, etc.). Ensuite, c'est mon travail de caler le temps
+pour que ça reste harmonieux jusqu'à la fin.
 
-1. **Le son du croc** — remplacer le son synthétisé par un vrai croquement.
-   Fabien veut si possible celui de l'émission.
-2. **Le plein écran** — la tranche doit occuper tout l'écran de l'iPhone 16 Pro Max,
-   quitte à jouer en paysage (en portrait, la barre d'état iOS reste par-dessus).
+Plan en trois étapes, chacune utilisable seule :
+
+1. **Atelier des morsures** (`outils/atelier-morsures.html`) — **fait (v34)**, voir plus bas.
+2. **Atelier des formes** — une bibliothèque de formes, avec celles que le rat a le droit
+   d'utiliser cochées (et leur poids), une forme dessinée au doigt par-dessus une photo en gros
+   plan, et le rat de l'atelier qui pioche dans les formes cochées. Il faudra que l'appli sache
+   creuser un contour quelconque, pas seulement des ronds (`applyBite` + la grille).
+3. **Mon travail** — relire les parties que Fabien colle dans la conversation, en tirer les
+   règles (où, dans quel ordre, quelle taille, quelle forme), et recaler le rat de l'appli et
+   son rythme.
+
+Les anciens chantiers (le son du croc, le plein écran) sont faits, voir « Fait ».
 
 ## Fait
 
@@ -104,8 +117,10 @@ Deux chantiers en cours :
 
 ## Prochaine action
 
-Écouter le croc nettoyé en situation sur l'iPhone (une partie entière espace les crocs d'environ
-12 secondes) et dire s'il manque de corps depuis la coupe du début, ou s'il faut varier davantage.
+Fabien essaie l'Atelier des morsures sur l'iPhone
+(https://shopatat.github.io/rap-rat/outils/atelier-morsures.html), fait une ou plusieurs
+parties à la main, et colle le texte « Copier pour Claude » dans la conversation. Selon ce
+qu'il en dit : l'étape 2 (Atelier des formes) ou directement l'étape 3.
 
 ## La musique
 
@@ -332,3 +347,40 @@ Fabien a fourni un nouveau fichier, « Rap Rat thème.mp3 » (étiquettes : « R
   plein. Si le croc est couvert, on peut baisser le gain du mp3 sans le réencoder (comme mp3gain :
   on change le gain global de chaque trame, par pas de 1,5 dB).
 - Pas encore entendu sur l'iPhone.
+
+## Atelier des morsures (v34, étape 1 sur 3)
+
+`outils/atelier-morsures.html`, sur la vraie tranche de l'appli (même rendu, même grille), à la
+forme de l'iPhone en paysage (956 × 440). Marche au doigt, en paysage (tranche à gauche,
+réglages à droite) comme en portrait.
+
+- **Viser, croquer** : toucher la tranche pose un croc fantôme (clair : sa forme, sombre : ce
+  qu'il enlèverait), on le glisse au doigt. « Coller au bord » le pose sur le bord le plus
+  proche, comme le rat. « Croquer ! » le valide ; en mode rapide, lever le doigt suffit.
+- **Le croc** : taille (100 % = le croc de l'appli en début de partie, 0,8 × `baseR`), nombre
+  de ronds (1 à 4), avancée des dents, recul, biais, écart, inégalité des ronds, direction
+  (comme l'appli, face au bord, vers le centre) et rotation, vagues du bord, « varier un peu »
+  comme le rat, « au hasard » tire une forme comme l'appli. Un aperçu montre le croc sur un bord droit.
+- **Le rat** : « propose » montre où mordrait l'appli (accepté tel quel → noté `p`),
+  « mord » et « finit » le laissent faire (`r`), « dernière bouchée » avale le reste (`f`).
+- **Voir** : îles (morceaux détachés d'au moins 0,1 %) et miettes en rouge, numéros dans le
+  creux de chaque croc, trajet dans l'ordre, cercle de la trappe, calque photo (une capture
+  posée par-dessus, transparence, largeur, hauteur, décalage) et l'heure où tomberait chaque
+  croc pour une partie de 10 à 60 min, à côté de ce que l'appli aurait mangé au même moment.
+- **Garder** : annuler / refaire, revoir la partie au curseur, la dérouler. Tout s'enregistre
+  dans le téléphone (`localStorage`, `raprat.morsures.*`), parties nommées, notes libres.
+  Copie de secours automatique avant d'oublier 5 crocs ou plus. « Copier pour Claude », fichier
+  `.json`, image `.png`, et relecture d'un texte collé.
+- **Le texte envoyé** : un en-tête (forme de la tranche `A`, taille de référence, notes) puis
+  une ligne par croc, colonnes décrites dans le texte lui-même : qui, x, y (en largeurs de
+  tranche), angle d'où vient le croc, taille, ronds, écart, rayons, biais, avancée, recul,
+  vagues, graine, mangé et îles après. La graine redonne le même bord ondulé : relu, le texte
+  redonne la même tranche (vérifié : 0 case de différence).
+
+Dans l'appli (`js/app.js`), sans rien changer au jeu : la forme d'un croc est maintenant tirée
+par `tirerForme()` (les mêmes tirages qu'avant) puis construite par `shapeTemplate(p)` à partir
+d'une graine (`alea`) ; `shapeTemplate` sait faire 1 à 4 ronds. La taille vient de
+`tailleCroc()`, `bite()` renvoie ce qu'il a croqué, et `RapRat` a les raccourcis de l'atelier
+(`croquer`, `mordre`, `proposer`, `efface`, `grille`, `masque`, `cadre`, `compte`…). Vérifié :
+une partie entière de 73 crocs va au bout (moitié mangée au 37ᵉ), l'Atelier des foyers marche.
+Le copier-coller n'a été vérifié que dans le navigateur de l'ordinateur, pas sur l'iPhone.

@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Atelier des morsures — Rap Rat</title>
+<!-- Atelier des morsures : Fabien y fait les crocs lui-même, un par un (forme, taille, position,
+     direction), pour montrer ce qu'il cherche. La tranche est celle du vrai code de l'appli
+     (js/app.js) : ce qu'on voit ici est exactement ce que le jeu dessinerait. Chaque partie
+     s'enregistre et se copie en texte, que Claude relit pour régler le rat de l'appli. -->
+<link rel="stylesheet" href="../css/style.css">
+<style>
+:root{--line:rgba(244,201,106,.16)}
+html,body{height:auto;overflow:auto;background:var(--bg);user-select:auto;-webkit-user-select:auto}
+body{margin:0;padding:10px max(12px,env(safe-area-inset-right)) 40px max(12px,env(safe-area-inset-left));font:14px/1.45 var(--ui);color:var(--ink)}
+.tete{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:0 0 8px}
+h1{font-family:var(--display);color:var(--cheese);font-size:22px;margin:0}
+.tete details{font-size:13px;color:var(--muted)}
+.tete summary{cursor:pointer;color:var(--cream)}
+.tete details p{margin:6px 0;max-width:80ch}
+.plan{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:12px;align-items:start}
+@media (max-width:820px){.plan{grid-template-columns:1fr}}
+.gauche{position:sticky;top:6px}
+@media (max-width:820px){.gauche{position:static}}
+/* la scène : l'appli tourne dedans, en vrai, à la forme de l'écran de l'iPhone en paysage */
+.scene{position:relative;width:100%;aspect-ratio:956/440;border-radius:10px;overflow:hidden;background:#000;touch-action:none;cursor:crosshair}
+.scene .stage{position:absolute!important;inset:0!important}
+.scene .bar,.scene .banner,.scene header,.scene .turn{display:none!important}
+#calque{position:absolute;pointer-events:none;opacity:.5;object-fit:fill;z-index:1}
+#dessus{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
+.outils{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.btn2{font:500 13.5px/1 var(--ui);color:var(--ink);background:var(--panel-hi);border:1px solid var(--line);
+  border-radius:999px;padding:0 13px;min-height:38px;cursor:pointer;white-space:nowrap}
+.btn2:hover{background:#3a2818}
+.btn2:disabled{opacity:.4;cursor:default}
+.btn2.primary{background:var(--cheese);color:var(--on-cheese);border-color:transparent;font-weight:700}
+.btn2.rat{background:#26303a;border-color:#3d4b58}
+.btn2.warn{background:#7a2414;border-color:transparent}
+.btn2[aria-pressed="true"]{background:var(--cheese);color:var(--on-cheese);border-color:transparent}
+.stats{font-size:12.5px;color:var(--muted);margin-top:8px;font-variant-numeric:tabular-nums}
+.stats b{color:var(--cream);font-weight:600}
+.stats .ile{color:#ff7a66}
+.ligne{display:flex;gap:10px;align-items:center;margin-top:6px}
+.ligne label.sld{flex:1}
+.panneau{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.onglets{display:flex;gap:4px;margin-bottom:10px}
+.onglets button{flex:1;font:600 13px/1 var(--ui);color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:999px;min-height:34px;cursor:pointer}
+.onglets button[aria-selected="true"]{background:var(--panel-hi);color:var(--cream);border-color:rgba(244,201,106,.4)}
+section[hidden]{display:none}
+h2{font:600 11.5px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+h2:first-child{margin-top:0}
+label.sld{display:flex;flex-direction:column;gap:1px;font-size:12px;color:var(--muted);margin-bottom:6px}
+label.sld input{width:100%;accent-color:var(--cheese)}
+.val{color:var(--cream);font-variant-numeric:tabular-nums}
+.choix{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;align-items:center;font-size:12px;color:var(--muted)}
+.choix .btn2{min-height:32px;padding:0 11px}
+label.case{display:flex;gap:8px;align-items:center;font-size:13px;margin:5px 0;cursor:pointer}
+label.case input{accent-color:var(--cheese);width:18px;height:18px}
+select{max-width:100%}
+select,input[type=text],textarea{font:14px var(--ui);color:var(--ink);background:#0d0906;border:1px solid var(--line);border-radius:8px;padding:7px 8px}
+textarea{width:100%;min-height:80px;resize:vertical}
+input[type=text]{width:100%}
+#apercu{width:100%;height:110px;display:block;border-radius:8px;background:#0b0705;margin-bottom:8px}
+.note{font-size:12px;color:var(--muted);margin:4px 0 8px}
+.parties{list-style:none;padding:0;margin:6px 0}
+.parties li{display:flex;gap:6px;align-items:center;padding:5px 0;border-top:1px solid var(--line);font-size:13px}
+.parties li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.parties li small{color:var(--muted)}
+.parties .btn2{min-height:30px;padding:0 10px;font-size:12.5px}
+#exportTexte{font:11px/1.35 ui-monospace,Menlo,monospace;min-height:120px}
+.legende{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:4px 0}
+.legende i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+</style>
+</head>
+<body>
+<div class="tete">
+  <h1>Atelier des morsures</h1>
+  <details>
+    <summary>Comment ça marche</summary>
+    <p><b>Viser</b> : touche la tranche, le croc fantôme apparaît (en sombre, ce qu’il enlèverait). Glisse le doigt pour le déplacer. Avec « Coller au bord », il se pose tout seul sur le bord le plus proche, comme le rat de l’appli.</p>
+    <p><b>Croquer</b> : règle la forme dans l’onglet Croc (taille, nombre de ronds, avancée des dents, biais…), puis touche « Croquer ! ». En mode rapide, lever le doigt suffit.</p>
+    <p><b>Le rat</b> : « Le rat propose » montre où mordrait l’appli, tu acceptes ou tu déplaces. « Le rat mord » et « Le rat finit » le laissent faire. Les îles (morceaux détachés) s’affichent en rouge.</p>
+    <p><b>Garder</b> : tout s’enregistre tout seul sur ce téléphone. « Copier pour Claude », puis colle dans la conversation : je vois chacun de tes crocs, dans l’ordre, et je peux régler le rat d’après ça. Écris aussi ce que tu cherches dans les notes, même en vrac.</p>
+  </details>
+</div>
+
+<div class="plan">
+  <div class="gauche">
+    <div class="scene" id="scene">
+      <div class="stage" id="stage"><canvas id="view"></canvas></div>
+      <img id="calque" alt="" hidden>
+      <canvas id="dessus"></canvas>
+      <div class="banner" id="banner" hidden></div>
+      <header id="header"><span class="mark">Rap Rat</span></header>
+      <div class="bar" id="idleBar">
+        <div class="stepper"><button id="durMinus" type="button">−</button><output id="durOut"></output><button id="durPlus" type="button">+</button></div>
+        <button class="btn" id="soundBtn" type="button"></button>
+        <button class="btn" id="startBtn" type="button"></button>
+      </div>
+      <div class="bar" id="runBar" hidden><button class="btn" id="pauseBtn" type="button"></button><button class="btn" id="restartBtn" type="button"></button><button class="btn" id="fsBtn" type="button" hidden></button></div>
+      <div class="bar" id="endBar" hidden><button class="btn" id="againBtn" type="button"></button></div>
+      <div class="turn" id="turn"></div>
+    </div>
+    <div class="outils">
+      <button class="btn2 primary" id="croquer" disabled>Croquer !</button>
+      <button class="btn2" id="annuler" disabled>Annuler</button>
+      <button class="btn2" id="refaire" disabled>Refaire</button>
+      <button class="btn2 rat" id="propose">Le rat propose</button>
+      <button class="btn2 rat" id="mord">Le rat mord</button>
+      <button class="btn2 rat" id="finit">Le rat finit</button>
+      <button class="btn2" id="bouchee">Dernière bouchée</button>
+      <button class="btn2" id="toutRecommencer">Tout recommencer</button>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="stats" id="infoVise"></div>
+    <div class="ligne">
+      <label class="sld">revoir la partie <span class="val" id="revV">0</span>
+        <input type="range" id="rev" min="0" max="0" step="1" value="0"></label>
+      <button class="btn2" id="derouler" aria-pressed="false">Dérouler</button>
+    </div>
+  </div>
+
+  <div class="panneau">
+    <div class="onglets" role="tablist">
+      <button role="tab" data-onglet="croc" aria-selected="true">Croc</button>
+      <button role="tab" data-onglet="voir" aria-selected="false">Voir</button>
+      <button role="tab" data-onglet="garder" aria-selected="false">Garder</button>
+    </div>
+
+    <!-- ===== le prochain croc ===== -->
+    <section id="o-croc">
+      <canvas id="apercu"></canvas>
+      <div class="choix">ronds
+        <button class="btn2" data-ronds="1">1</button><button class="btn2" data-ronds="2">2</button>
+        <button class="btn2" data-ronds="3">3</button><button class="btn2" data-ronds="4">4</button>
+        <span style="flex:1"></span>
+        <button class="btn2" id="hasard" title="Une forme tirée comme le fait l'appli">Au hasard</button>
+        <button class="btn2" id="autreBord" title="Même forme, autres vagues">Autres vagues</button>
+      </div>
+      <label class="sld">taille <span class="val" id="tailleV"></span><input type="range" id="taille" min="40" max="250" step="1" value="100"></label>
+      <label class="sld">avancée des dents (comme deux doigts) <span class="val" id="avanceV"></span><input type="range" id="avance" min="0" max="100" step="1" value="25"></label>
+      <label class="sld">recul (le croc mord moins profond) <span class="val" id="reculV"></span><input type="range" id="recul" min="0" max="50" step="1" value="0"></label>
+      <label class="sld">biais (le croc penche) <span class="val" id="biaisV"></span><input type="range" id="biais" min="-45" max="45" step="1" value="0"></label>
+      <label class="sld">écart entre les ronds (petit = soudés) <span class="val" id="ecartV"></span><input type="range" id="ecart" min="35" max="95" step="1" value="59"></label>
+      <label class="sld">inégalité des ronds <span class="val" id="inegalV"></span><input type="range" id="inegal" min="70" max="130" step="1" value="100"></label>
+
+      <h2>Direction</h2>
+      <div class="choix">
+        <select id="mode">
+          <option value="appli">comme l’appli (face au bord, un peu vers le centre)</option>
+          <option value="bord">face au bord</option>
+          <option value="centre">droit vers le centre</option>
+        </select>
+      </div>
+      <label class="sld">tourner le croc <span class="val" id="dirV"></span><input type="range" id="dir" min="-90" max="90" step="1" value="0"></label>
+
+      <h2>Bord ondulé</h2>
+      <label class="sld">profondeur des vagues <span class="val" id="vprofV"></span><input type="range" id="vprof" min="0" max="30" step="1" value="8"></label>
+      <label class="sld">largeur des vagues <span class="val" id="vlargV"></span><input type="range" id="vlarg" min="10" max="80" step="1" value="37"></label>
+      <label class="sld">irrégularité <span class="val" id="virrV"></span><input type="range" id="virr" min="0" max="100" step="1" value="15"></label>
+
+      <h2>En visant</h2>
+      <label class="case"><input type="checkbox" id="aimant" checked> Coller au bord le plus proche</label>
+      <label class="case"><input type="checkbox" id="rapide"> Mode rapide : croquer en levant le doigt</label>
+      <label class="case"><input type="checkbox" id="varier"> Varier un peu chaque croc (comme le rat)</label>
+      <label class="case"><input type="checkbox" id="son" checked> Son du croc</label>
+      <button class="btn2" id="reglagesAppli">Revenir au croc de l’appli</button>
+    </section>
+
+    <!-- ===== ce qu'on montre par-dessus ===== -->
+    <section id="o-voir" hidden>
+      <h2>Par-dessus la tranche</h2>
+      <label class="case"><input type="checkbox" id="vIles" checked> Les îles et les miettes en rouge (morceaux détachés)</label>
+      <label class="case"><input type="checkbox" id="vNum" checked> Le numéro de chaque croc</label>
+      <label class="case"><input type="checkbox" id="vTrajet"> Relier les crocs dans l’ordre</label>
+      <label class="case"><input type="checkbox" id="vCentre"> Le trou du rat, au centre</label>
+      <div class="legende"><span><i style="background:#f4c96a"></i>toi</span><span><i style="background:#8fd18a"></i>proposé par le rat</span><span><i style="background:#8aa3b8"></i>le rat</span></div>
+
+      <h2>Calque photo</h2>
+      <p class="note">Pose une capture de l’émission par-dessus la tranche pour recopier où mord le rat. Elle reste sur ton téléphone, elle n’est pas enregistrée.</p>
+      <div class="choix"><input type="file" id="calqueFichier" accept="image/*"><button class="btn2" id="calqueOter">Retirer</button></div>
+      <label class="sld">transparence <span class="val" id="calqueOpV"></span><input type="range" id="calqueOp" min="5" max="95" step="1" value="50"></label>
+      <p class="note">Une capture VHS a du noir autour du fromage : agrandis-la et décale-la jusqu’à ce que son fromage tombe sur la tranche.</p>
+      <label class="sld">largeur <span class="val" id="calqueLV"></span><input type="range" id="calqueL" min="50" max="300" step="1" value="100"></label>
+      <label class="sld">hauteur <span class="val" id="calqueHV"></span><input type="range" id="calqueH" min="50" max="300" step="1" value="100"></label>
+      <label class="sld">gauche — droite <span class="val" id="calqueXV"></span><input type="range" id="calqueX" min="-60" max="60" step="1" value="0"></label>
+      <label class="sld">haut — bas <span class="val" id="calqueYV"></span><input type="range" id="calqueY" min="-60" max="60" step="1" value="0"></label>
+      <button class="btn2" id="calqueZero">Remettre à plat</button>
+
+      <h2>Le temps</h2>
+      <div class="choix">pour une partie de
+        <select id="duree"><option>10</option><option selected>15</option><option>20</option><option>30</option><option>45</option><option>60</option></select> min
+      </div>
+      <p class="note">L’appli fait toujours 72 crocs puis la dernière bouchée : une partie plus longue espace seulement les crocs. Sous la tranche, tu vois à quel moment de la partie tomberait le croc où tu en es, et ce que l’appli aurait mangé au même moment.</p>
+    </section>
+
+    <!-- ===== enregistrer, envoyer ===== -->
+    <section id="o-garder" hidden>
+      <h2>Cette partie</h2>
+      <input type="text" id="nom" placeholder="Nom de la partie">
+      <h2>Ce que tu cherches</h2>
+      <textarea id="notes" placeholder="En vrac : ce qui te plaît, ce qui ne va pas, ce que le rat fait de travers…"></textarea>
+      <div class="outils">
+        <button class="btn2 primary" id="copier">Copier pour Claude</button>
+        <button class="btn2" id="telecharger">Fichier</button>
+        <button class="btn2" id="image">Image</button>
+      </div>
+      <p class="note" id="copieInfo">Copie, puis colle dans la conversation : je reçois tous tes crocs, dans l’ordre, avec tes notes.</p>
+
+      <h2>Mes parties</h2>
+      <div class="outils">
+        <button class="btn2" id="enregistrer">Enregistrer</button>
+        <button class="btn2" id="nouvelle">Nouvelle partie</button>
+      </div>
+      <ul class="parties" id="parties"></ul>
+
+      <h2>Reprendre un texte</h2>
+      <textarea id="importTexte" placeholder="Colle ici un texte copié avec « Copier pour Claude »"></textarea>
+      <div class="outils">
+        <button class="btn2" id="importer">Charger ce texte</button>
+        <input type="file" id="importFichier" accept=".json,application/json,text/plain">
+      </div>
+
+      <h2>Le texte envoyé</h2>
+      <textarea id="exportTexte" readonly></textarea>
+    </section>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const R = window.RapRat;
+  R.atelier();                                   // la barre d'espace ne lance pas de partie
+  const BITES = R.crocs(), TOTAL = BITES + 1;   // comme en partie : 72 crocs, puis la dernière bouchée
+  const TAU = Math.PI * 2, DEG = Math.PI / 180;
+  const scene = $('scene'), view = $('view'), dessus = $('dessus'), dc = dessus.getContext('2d');
+  const arr = (v, n) => Math.round(v * Math.pow(10, n)) / Math.pow(10, n);
+  const fr = (v, n) => v.toFixed(n).replace('.', ',');
+  // « taille 100 % » = le croc que fait l'appli en début de partie : elle le règle sur le rythme,
+  // et au début il reste à son plus petit, 0,8 × sa taille de base (js/app.js, tailleCroc)
+  const REF = () => .8 * R.r0();
+  const lire = (k, d) => { try { const v = localStorage.getItem('raprat.morsures.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
+  const ecrire = (k, v) => { try { localStorage.setItem('raprat.morsures.' + k, JSON.stringify(v)); } catch (e) {} };
+
+  // ================= la partie =================
+  // crocs : ce qui a été croqué, dans l'ordre. futurs : ce qu'« Annuler » a retiré, pour « Refaire ».
+  // Un croc : { q, x, y, nx, ny, R, push, forme, apres } — q dit qui l'a choisi :
+  // m = Fabien, p = proposé par le rat et accepté tel quel, r = le rat, f = la dernière bouchée.
+  let crocs = [], futurs = [], vise = null, graine = nouvelleGraine(), jit = tirerJit();
+  let etat = { mange: 0, morceaux: 1, iles: 0, ilesPct: 0, creux: 0, marque: null };
+  function nouvelleGraine() { return (Math.random() * 4294967296) >>> 0; }
+  function tirerJit() { const r = (a, b) => a + Math.random() * (b - a); return { t: r(-.12, .12), a: r(-.1, .1), l: r(-.04, .04), s: r(-.06, .06) }; }
+
+  // ================= les réglages du prochain croc =================
+  const CURSEURS = {
+    taille: v => v + ' %', avance: v => fr(v / 100, 2), recul: v => fr(v / 100, 2), biais: v => v + '°',
+    ecart: v => fr(v / 100, 2), inegal: v => v + ' %', dir: v => v + '°',
+    vprof: v => v + ' %', vlarg: v => v + ' %', virr: v => v + ' %'
+  };
+  const CASES = ['aimant', 'rapide', 'varier', 'son', 'vIles', 'vNum', 'vTrajet', 'vCentre'];
+  const DEFAUT = { taille: 100, avance: 25, recul: 0, biais: 0, ecart: 59, inegal: 100, dir: 0, vprof: 8, vlarg: 37, virr: 15, ronds: 2, mode: 'appli' };
+  let ronds = 2;
+  function reglage() {
+    const o = { ronds, mode: $('mode').value };
+    for (const k in CURSEURS) o[k] = +$(k).value;
+    for (const k of CASES) o[k] = $(k).checked;
+    return o;
+  }
+  function afficherReglages() {
+    for (const k in CURSEURS) $(k + 'V').textContent = CURSEURS[k](+$(k).value);
+    for (const b of document.querySelectorAll('[data-ronds]')) b.setAttribute('aria-pressed', String(+b.dataset.ronds === ronds));
+    $('ecart').disabled = $('inegal').disabled = ronds === 1;
+  }
+  function poserReglages(o) {
+    for (const k in CURSEURS) if (o[k] != null) $(k).value = o[k];
+    if (o.ronds) ronds = o.ronds;
+    if (o.mode) $('mode').value = o.mode;
+    afficherReglages();
+  }
+  function garderReglages() { const o = reglage(); ecrire('reglages', o); }
+  (() => { const o = lire('reglages', null); if (o) { poserReglages(o); for (const k of CASES) if (o[k] != null) $(k).checked = o[k]; } afficherReglages(); })();
+
+  // la forme du croc, construite comme dans l'appli (js/app.js, tirerForme / shapeTemplate)
+  function formeDuReglage(g) {
+    const o = reglage(), n = ronds, L0 = .86 * (o.varier ? 1 + jit.l : 1), Ln = L0 * o.inegal / 100, L = [];
+    for (let i = 0; i < n; i++) L.push(n === 1 ? L0 : L0 + (Ln - L0) * i / (n - 1));
+    return { lobes: n, L, ecart: o.ecart / 100,
+      tilt: o.biais * DEG + (o.varier ? jit.t : 0), shallow: o.recul / 100,
+      advance: Math.max(0, o.avance / 100 + (o.varier ? jit.a : 0)),
+      vague: { depth: o.vprof / 100, width: o.vlarg / 100, irr: o.virr / 100 }, graine: g };
+  }
+  // l'inverse : remettre les curseurs sur un croc (proposé par le rat, ou tiré au hasard)
+  function reglerDepuis(c) {
+    const f = c.forme, n = f.lobes;
+    poserReglages({ taille: Math.round(c.R / REF() * 100), ronds: n, ecart: Math.round(f.ecart * 100),
+      inegal: n > 1 ? Math.round(f.L[n - 1] / f.L[0] * 100) : 100, avance: Math.round(f.advance * 100),
+      recul: Math.round(f.shallow * 100), biais: Math.round(f.tilt / DEG), dir: 0,
+      vprof: Math.round(f.vague.depth * 100), vlarg: Math.round(f.vague.width * 100), virr: Math.round(f.vague.irr * 100) });
+    $('varier').checked = false;
+  }
+
+  // ================= la grille de l'appli : bords, direction, îles =================
+  let bords = null;                              // les cases du bord, recalculées après chaque croc
+  function lesBords() {
+    if (bords) return bords;
+    const { grid, GW, GH } = R.grille(); bords = [];
+    for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
+      const k = j * GW + i; if (!grid[k]) continue;
+      if (i === 0 || j === 0 || i === GW - 1 || j === GH - 1 || !grid[k - 1] || !grid[k + 1] || !grid[k - GW] || !grid[k + GW]) bords.push(k);
+    }
+    return bords;
+  }
+  function bordLePlusProche(x, y) {
+    const { GW } = R.grille(), b = lesBords(); let best = null, dm = Infinity;
+    for (const k of b) { const bx = (k % GW + .5) / GW, by = (((k / GW) | 0) + .5) / GW, d = (bx - x) ** 2 + (by - y) ** 2; if (d < dm) { dm = d; best = { x: bx, y: by }; } }
+    return best;
+  }
+  // la direction d'où vient le croc (vers l'extérieur), calculée comme le rat de l'appli :
+  // la moyenne des cases vides autour, plus un peu de « depuis le centre »
+  function normaleEn(x, y, mode) {
+    const { grid, GW, GH, A } = R.grille();
+    let rx = x - .5, ry = y - A / 2; const rl = Math.hypot(rx, ry) || 1; rx /= rl; ry /= rl;
+    if (mode === 'centre') return { nx: rx, ny: ry };
+    const i = Math.max(0, Math.min(GW - 1, Math.floor(x * GW))), j = Math.max(0, Math.min(GH - 1, Math.floor(y * GW)));
+    const vide = (a, b) => a < 0 || b < 0 || a >= GW || b >= GH || !grid[b * GW + a];
+    let nx = 0, ny = 0;
+    for (let dj = -5; dj <= 5; dj++) for (let di = -5; di <= 5; di++) if (vide(i + di, j + dj)) { nx += di; ny += dj; }
+    if (Math.hypot(nx, ny) < 1e-6) {             // en plein fromage : vers la case vide la plus proche
+      let trouve = false;
+      for (let r = 6; r < 80 && !trouve; r += 2) for (let t = 0; t < 32; t++) {
+        const a = t / 32 * TAU, di = Math.round(Math.cos(a) * r), dj = Math.round(Math.sin(a) * r);
+        if (vide(i + di, j + dj)) { nx += di; ny += dj; trouve = true; }
+      }
+      if (!trouve) { nx = rx; ny = ry; }
+    }
+    const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
+    if (mode === 'appli') { nx += rx * .45; ny += ry * .45; const l2 = Math.hypot(nx, ny) || 1; nx /= l2; ny /= l2; }
+    return { nx, ny };
+  }
+  // les morceaux qui restent : le plus gros est la tranche, les autres sont des îles.
+  // Les creux fermés sont des trous croqués en plein fromage, qui ne touchent pas le bord.
+  function analyse() {
+    const { grid, GW, GH, cells, cells0 } = R.grille(), N = GW * GH;
+    const lab = new Int32Array(N).fill(-1), pile = new Int32Array(N), tailles = [];
+    for (let s = 0; s < N; s++) {
+      if (!grid[s] || lab[s] >= 0) continue;
+      const id = tailles.length; let h = 0, n = 0; pile[h++] = s; lab[s] = id;
+      while (h) {
+        const k = pile[--h]; n++; const i = k % GW;
+        for (const v of [i > 0 ? k - 1 : -1, i < GW - 1 ? k + 1 : -1, k - GW, k + GW]) if (v >= 0 && v < N && grid[v] && lab[v] < 0) { lab[v] = id; pile[h++] = v; }
+      }
+      tailles.push(n);
+    }
+    let gros = 0; for (let c = 1; c < tailles.length; c++) if (tailles[c] > tailles[gros]) gros = c;
+    const marque = new Uint8Array(N); let ilesN = 0;
+    for (let k = 0; k < N; k++) if (lab[k] >= 0 && lab[k] !== gros) { marque[k] = 1; ilesN++; }
+    // les creux fermés
+    const vu = new Uint8Array(N); let creux = 0;
+    for (let s = 0; s < N; s++) {
+      if (grid[s] || vu[s]) continue;
+      let h = 0, bord = false; pile[h++] = s; vu[s] = 1;
+      while (h) {
+        const k = pile[--h], i = k % GW, j = (k / GW) | 0;
+        if (i === 0 || j === 0 || i === GW - 1 || j === GH - 1) bord = true;
+        for (const v of [i > 0 ? k - 1 : -1, i < GW - 1 ? k + 1 : -1, k - GW, k + GW]) if (v >= 0 && v < N && !grid[v] && !vu[v]) { vu[v] = 1; pile[h++] = v; }
+      }
+      if (!bord) creux++;
+    }
+    // une île se voit ; une miette (moins de 0,1 % de la tranche) est un éclat resté entre deux crocs
+    let iles = 0, miettes = 0;
+    tailles.forEach((t, c) => { if (c !== gros) { if (t >= cells0 * .001) iles++; else miettes++; } });
+    etat = { mange: 1 - cells / cells0, morceaux: tailles.length, iles, miettes, detaches: Math.max(0, tailles.length - 1),
+      ilesPct: ilesN / cells0, creux, marque };
+    bords = null;
+    return etat;
+  }
+
+  // ================= le croc qu'on vise =================
+  function candidat() {
+    if (!vise) return null;
+    if (vise.prop) return Object.assign({}, vise.prop, { q: 'p' });
+    const o = reglage();
+    let n = vise.n || normaleEn(vise.x, vise.y, o.mode);
+    if (o.dir) { const a = o.dir * DEG, c = Math.cos(a), s = Math.sin(a); n = { nx: n.nx * c - n.ny * s, ny: n.nx * s + n.ny * c }; }
+    return { q: 'm', x: vise.x, y: vise.y, nx: n.nx, ny: n.ny, R: o.taille / 100 * (o.varier ? 1 + jit.s : 1) * REF(), push: .05, forme: formeDuReglage(graine) };
+  }
+  function viserEn(e) {
+    const r = scene.getBoundingClientRect(), cad = R.cadre(); if (!cad) return;
+    const dpr = view.width / r.width;
+    let x = ((e.clientX - r.left) * dpr - cad.x) / cad.w, y = ((e.clientY - r.top) * dpr - cad.y) / cad.w;
+    if ($('aimant').checked) { const b = bordLePlusProche(x, y); if (b) { x = b.x; y = b.y; } }
+    vise = { x, y };
+    peindre(); infos();
+  }
+  // toucher un réglage après une proposition du rat : le croc devient le tien, au même endroit
+  function retouche() {
+    if (vise && vise.prop) { const p = vise.prop; vise = { x: p.x, y: p.y, n: { nx: p.nx, ny: p.ny } }; }
+    afficherReglages(); dessinerApercu(); peindre(); infos(); garderReglages();
+  }
+
+  let appui = false;
+  scene.addEventListener('pointerdown', e => {
+    if (e.button > 0) return;
+    if (etat.mange >= .999) return;
+    appui = true; try { scene.setPointerCapture(e.pointerId); } catch (_) {}
+    viserEn(e);
+  });
+  scene.addEventListener('pointermove', e => { if (appui) viserEn(e); });
+  scene.addEventListener('pointerup', () => { if (!appui) return; appui = false; if ($('rapide').checked && vise) croquer(); });
+  scene.addEventListener('pointercancel', () => { appui = false; });
+
+  // ================= croquer, annuler, le rat =================
+  function enregistrer(c) {
+    analyse();
+    c.apres = { mange: etat.mange, iles: etat.iles, miettes: etat.miettes };
+    crocs.push(c);
+  }
+  function oublierFuturs() {
+    // garde une copie avant d'oublier beaucoup de crocs (annulés puis remplacés par un autre)
+    if (futurs.length >= 5) sauverPartie(versTexte(crocs.concat(futurs.slice().reverse())), ' (avant retouche)');
+    futurs = [];
+  }
+  function apresChangement(son) {
+    R.redessine(); analyse(); peindre(); stats(); infos(); sauverCourante();
+    if (son && $('son').checked) R.son(son === 'fin');
+  }
+  function croquer() {
+    const c = candidat(); if (!c) return;
+    oublierFuturs();
+    R.croquer(c); enregistrer(c);
+    vise = null; graine = nouvelleGraine(); jit = tirerJit();
+    dessinerApercu(); apresChangement('croc');
+  }
+  function annuler() { if (!crocs.length) return; futurs.push(crocs.pop()); vise = null; rejouer(); }
+  function refaire() {
+    if (!futurs.length) return;
+    const c = futurs.pop(); R.croquer(c); crocs.push(c); vise = null; apresChangement();
+  }
+  function allerA(v) {
+    while (crocs.length > v) futurs.push(crocs.pop());
+    while (crocs.length < v && futurs.length) crocs.push(futurs.pop());
+    vise = null; rejouer();
+  }
+  function rejouer() {
+    R.efface();
+    for (const c of crocs) {
+      R.croquer(c);
+      // un texte relu ne dit pas toujours ce qu'il restait après chaque croc : on le recompte
+      if (!c.apres) { analyse(); c.apres = { mange: etat.mange, iles: etat.iles, miettes: etat.miettes }; }
+    }
+    apresChangement();
+  }
+  function ratMord(k) {
+    const c = k >= TOTAL - 1 ? (R.croquer({ fin: true }), { fin: true }) : R.mordre(k, TOTAL);
+    if (!c) return null;
+    c.q = c.fin ? 'f' : 'r'; enregistrer(c); return c;
+  }
+  $('croquer').addEventListener('click', croquer);
+  $('annuler').addEventListener('click', annuler);
+  $('refaire').addEventListener('click', refaire);
+  $('propose').addEventListener('click', () => {
+    const p = R.proposer(crocs.length, TOTAL); if (!p) return;
+    vise = { x: p.x, y: p.y, prop: p }; graine = p.forme.graine;
+    reglerDepuis(p); dessinerApercu(); peindre(); infos();
+  });
+  $('mord').addEventListener('click', () => {
+    if (etat.mange >= .999) return;
+    oublierFuturs(); const c = ratMord(crocs.length); vise = null; if (c) apresChangement(c.fin ? 'fin' : 'croc');
+  });
+  $('finit').addEventListener('click', () => {
+    if (etat.mange >= .999) return;
+    oublierFuturs(); vise = null;
+    for (let k = crocs.length; k < 400; k++) { const c = ratMord(k); if (!c || c.fin) break; }
+    apresChangement('fin');
+  });
+  $('bouchee').addEventListener('click', () => {
+    if (etat.mange >= .999) return;
+    oublierFuturs(); R.croquer({ fin: true }); enregistrer({ q: 'f', fin: true }); vise = null; apresChangement('fin');
+  });
+  let arme = null;
+  $('toutRecommencer').addEventListener('click', () => {
+    const b = $('toutRecommencer');
+    if (!arme) { b.textContent = 'Sûr ? Retouche'; b.classList.add('warn'); arme = setTimeout(() => { arme = null; b.textContent = 'Tout recommencer'; b.classList.remove('warn'); }, 3000); return; }
+    clearTimeout(arme); arme = null; b.textContent = 'Tout recommencer'; b.classList.remove('warn');
+    if (crocs.length + futurs.length >= 5) sauverPartie(versTexte(crocs.concat(futurs.slice().reverse())), ' (avant de tout recommencer)');
+    crocs = []; futurs = []; vise = null; rejouer();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' && e.target.type === 'text') return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? refaire() : annuler(); }
+    else if (e.key === 'Enter' && vise) { e.preventDefault(); croquer(); }
+  });
+
+  // revoir la partie, croc par croc
+  $('rev').addEventListener('input', () => allerA(+$('rev').value));
+  let film = 0;
+  function arreterFilm() { clearInterval(film); film = 0; $('derouler').setAttribute('aria-pressed', 'false'); }
+  $('derouler').addEventListener('click', () => {
+    if (film) { arreterFilm(); return; }
+    const total = crocs.length + futurs.length; if (!total) return;
+    if (!futurs.length) allerA(0);
+    $('derouler').setAttribute('aria-pressed', 'true');
+    film = setInterval(() => {
+      if (!futurs.length) { arreterFilm(); return; }
+      const c = futurs.pop(); R.croquer(c); crocs.push(c); vise = null;
+      apresChangement(c.fin ? 'fin' : 'croc');
+    }, 450);
+  });
+
+  // ================= les réglages bougent =================
+  for (const k in CURSEURS) $(k).addEventListener('input', retouche);
+  $('mode').addEventListener('change', () => { if (vise) vise.n = null; retouche(); });
+  for (const b of document.querySelectorAll('[data-ronds]')) b.addEventListener('click', () => { ronds = +b.dataset.ronds; retouche(); });
+  for (const k of CASES) $(k).addEventListener('change', () => { garderReglages(); peindre(); infos(); dessinerApercu(); });
+  $('hasard').addEventListener('click', () => {
+    const f = R.forme(); graine = f.graine;
+    reglerDepuis({ R: REF(), forme: f }); retouche();
+  });
+  $('autreBord').addEventListener('click', () => { graine = nouvelleGraine(); jit = tirerJit(); retouche(); });
+  $('reglagesAppli').addEventListener('click', () => { poserReglages(DEFAUT); $('varier').checked = true; retouche(); });
+
+  // ================= dessiner par-dessus la tranche =================
+  function couleurDe(q) { return q === 'm' ? '#f4c96a' : q === 'p' ? '#8fd18a' : '#8aa3b8'; }
+  const tampon = document.createElement('canvas');
+  function peindre() {
+    const cad = R.cadre(); if (!cad) return;
+    if (dessus.width !== view.width || dessus.height !== view.height) { dessus.width = view.width; dessus.height = view.height; }
+    dc.setTransform(1, 0, 0, 1, 0, 0); dc.clearRect(0, 0, dessus.width, dessus.height);
+    const W = cad.w, X = x => cad.x + x * W, Y = y => cad.y + y * W;
+    const dpr = view.width / (scene.clientWidth || 1), { GW, GH, A } = R.grille();
+    if ($('vCentre').checked) {
+      dc.strokeStyle = 'rgba(255,255,255,.55)'; dc.lineWidth = 1.5 * dpr; dc.setLineDash([5 * dpr, 4 * dpr]);
+      dc.beginPath(); dc.arc(X(.5), Y(A / 2), Math.min(cad.w, cad.h) * .19, 0, TAU); dc.stroke(); dc.setLineDash([]);
+    }
+    if ($('vIles').checked && etat.marque && etat.detaches) {
+      dc.fillStyle = 'rgba(255,48,32,.6)'; const s = W / GW;
+      for (let k = 0; k < etat.marque.length; k++) if (etat.marque[k]) dc.fillRect(X((k % GW) / GW), Y(((k / GW) | 0) / GW), s + .6, s + .6);
+    }
+    const pts = crocs.filter(c => !c.fin);
+    if ($('vTrajet').checked && pts.length > 1) {
+      dc.strokeStyle = 'rgba(255,255,255,.45)'; dc.lineWidth = 1.2 * dpr; dc.beginPath();
+      pts.forEach((c, i) => i ? dc.lineTo(X(c.x), Y(c.y)) : dc.moveTo(X(c.x), Y(c.y))); dc.stroke();
+    }
+    if ($('vNum').checked) {
+      const rr = 7.5 * dpr; dc.font = '600 ' + Math.round(9 * dpr) + 'px system-ui,sans-serif'; dc.textAlign = 'center'; dc.textBaseline = 'middle';
+      crocs.forEach((c, i) => {
+        if (c.fin) return;
+        // dans le creux du croc, pas sur le bord d'origine (qui sort souvent de l'écran)
+        const lx = X(c.x - c.nx * c.R * .6), ly = Y(c.y - c.ny * c.R * .6);
+        dc.fillStyle = couleurDe(c.q); dc.beginPath(); dc.arc(lx, ly, rr, 0, TAU); dc.fill();
+        dc.fillStyle = '#1b0d03'; dc.fillText(String(i + 1), lx, ly + .5 * dpr);
+      });
+    }
+    const c = candidat();
+    if (c) fantome(c, cad, X, Y, dpr);
+  }
+  // le croc fantôme : en clair toute sa forme, en sombre ce qu'il enlèverait vraiment
+  function fantome(c, cad, X, Y, dpr) {
+    const ronds = R.ronds(c), W = cad.w;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const o of ronds) { x0 = Math.min(x0, X(o.x - o.r)); y0 = Math.min(y0, Y(o.y - o.r)); x1 = Math.max(x1, X(o.x + o.r)); y1 = Math.max(y1, Y(o.y + o.r)); }
+    x0 = Math.floor(x0) - 2; y0 = Math.floor(y0) - 2; const bw = Math.ceil(x1 - x0) + 4, bh = Math.ceil(y1 - y0) + 4;
+    if (bw < 2 || bh < 2) return;
+    tampon.width = bw; tampon.height = bh; const t = tampon.getContext('2d');
+    const chemin = ctx => { ctx.beginPath(); for (const o of ronds) { const px = X(o.x) - x0, py = Y(o.y) - y0, pr = o.r * W; ctx.moveTo(px + pr, py); ctx.arc(px, py, pr, 0, TAU); } };
+    dc.save(); dc.translate(x0, y0); dc.fillStyle = 'rgba(255,244,214,.22)'; chemin(dc); dc.fill(); dc.restore();
+    t.fillStyle = 'rgba(28,6,0,.72)'; chemin(t); t.fill();
+    const m = R.masque(), sx = m.width / W;
+    t.globalCompositeOperation = 'destination-in';
+    t.drawImage(m, (x0 - cad.x) * sx, (y0 - cad.y) * sx, bw * sx, bh * sx, 0, 0, bw, bh);
+    t.globalCompositeOperation = 'source-over';
+    dc.drawImage(tampon, x0, y0);
+    // le point visé, et une flèche dans le sens du croc
+    const px = X(c.x), py = Y(c.y), L = c.R * W * 1.25;
+    dc.strokeStyle = '#fff'; dc.fillStyle = '#fff'; dc.lineWidth = 1.6 * dpr;
+    dc.beginPath(); dc.moveTo(px + c.nx * L * .9, py + c.ny * L * .9); dc.lineTo(px - c.nx * L * .35, py - c.ny * L * .35); dc.stroke();
+    const ax = -c.nx, ay = -c.ny, hx = px + ax * L * .35, hy = py + ay * L * .35, s = 5 * dpr;
+    dc.beginPath(); dc.moveTo(hx + ax * s, hy + ay * s); dc.lineTo(hx - ay * s * .7, hy + ax * s * .7); dc.lineTo(hx + ay * s * .7, hy - ax * s * .7); dc.closePath(); dc.fill();
+  }
+
+  // l'aperçu de la forme : le croc posé sur un bord droit, à l'échelle
+  function dessinerApercu() {
+    const cv = $('apercu'), dpr = Math.min(3, window.devicePixelRatio || 1);
+    const w = Math.round(cv.clientWidth * dpr), h = Math.round(cv.clientHeight * dpr);
+    if (!w || !h) return;
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    const g = cv.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h);
+    const bord = h * .22, ech = h * .4 / REF();         // un croc de l'appli fait environ deux tiers de la hauteur
+    const c = vise && vise.prop ? vise.prop : candidat() || { R: +$('taille').value / 100 * REF(), forme: formeDuReglage(graine) };
+    const rr = R.ronds({ x: 0, y: 0, nx: 0, ny: -1, R: c.R, push: .05, forme: c.forme });
+    const grad = g.createLinearGradient(0, bord, 0, h); grad.addColorStop(0, '#e8ad44'); grad.addColorStop(1, '#bb6524');
+    g.fillStyle = grad; g.fillRect(0, bord, w, h - bord);
+    g.globalCompositeOperation = 'destination-out'; g.beginPath();
+    for (const o of rr) { const px = w / 2 + o.x * ech, py = bord + o.y * ech, pr = o.r * ech; g.moveTo(px + pr, py); g.arc(px, py, pr, 0, TAU); }
+    g.fill(); g.globalCompositeOperation = 'source-over';
+    g.fillStyle = 'rgba(246,234,214,.55)'; g.font = Math.round(10.5 * dpr) + 'px system-ui,sans-serif'; g.textAlign = 'left';
+    g.fillText(c.forme.lobes + (c.forme.lobes > 1 ? ' ronds' : ' rond') + ' · taille ' + Math.round(c.R / REF() * 100) + ' %', 6 * dpr, 13 * dpr);
+  }
+
+  // ================= les chiffres sous la tranche =================
+  function mmss(s) { s = Math.round(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+  function stats() {
+    const n = crocs.length, D = +$('duree').value * 60, fini = crocs.length && crocs[crocs.length - 1].fin;
+    const appli = Math.min(1, n / TOTAL);
+    let t = 'Croc <b>' + n + '</b>' + (futurs.length ? ' (+' + futurs.length + ' à refaire)' : '') +
+      ' · mangé <b>' + fr(etat.mange * 100, 1) + ' %</b>' +
+      (fini ? '' : ' — l’appli en serait à ' + fr(appli * 100, 0) + ' %');
+    const det = [];
+    if (etat.iles) det.push(etat.iles + (etat.iles > 1 ? ' îles' : ' île'));
+    if (etat.miettes) det.push(etat.miettes + (etat.miettes > 1 ? ' miettes' : ' miette'));
+    t += ' · ' + (etat.morceaux <= 1 ? (etat.morceaux ? 'un seul morceau' : 'plus rien')
+      : '<span class="ile">' + det.join(', ') + (etat.iles ? ' (' + fr(etat.ilesPct * 100, 1) + ' % de la tranche)' : '') + '</span>');
+    if (etat.creux) t += ' · ' + etat.creux + (etat.creux > 1 ? ' creux fermés' : ' creux fermé');
+    if (n && !fini) t += ' · à ' + (D / 60) + ' min, ce croc tomberait vers <b>' + mmss(.5 + (n - 1) * (D - .5) / BITES) + '</b>';
+    $('stats').innerHTML = t;
+    $('annuler').disabled = !crocs.length; $('refaire').disabled = !futurs.length;
+    const tot = crocs.length + futurs.length; $('rev').max = tot; $('rev').value = crocs.length; $('revV').textContent = crocs.length + ' sur ' + tot;
+    for (const id of ['mord', 'finit', 'bouchee', 'propose']) $(id).disabled = etat.mange >= .999;
+  }
+  function infos() {
+    const c = candidat();
+    $('croquer').disabled = !c || etat.mange >= .999;
+    if (!c) { $('infoVise').textContent = crocs.length ? '' : 'Touche la tranche pour viser ton premier croc.'; return; }
+    const g = R.grille(), part = R.compte(c) / g.cells0;
+    $('infoVise').innerHTML = (vise.prop ? 'Le rat mordrait ici : ' : 'Ce croc : ') + 'il enlèverait <b>' + fr(part * 100, 1) + ' %</b> de la tranche' +
+      ' (l’appli : ' + fr(100 / TOTAL, 1) + ' % en moyenne, moins au début, plus à la fin)';
+  }
+  $('duree').addEventListener('change', stats);
+
+  // ================= garder, envoyer, reprendre =================
+  const COLONNES = ['qui : m = Fabien, p = proposé par le rat et accepté, r = le rat, f = dernière bouchée',
+    'x (0 à 1, largeur de la tranche)', 'y (0 à A, en largeurs)', 'angle d’où vient le croc (°, 0 = depuis la droite, 90 = depuis le bas)',
+    'taille (1 = le croc de l’appli en début de partie)', 'ronds', 'écart', 'L premier rond', 'L dernier rond', 'biais (°)', 'avancée', 'recul',
+    'vagues profondeur', 'vagues largeur', 'vagues irrégularité', 'graine', 'mangé après (%)', 'îles après', 'miettes après (moins de 0,1 %)'];
+  function versTexte(liste = crocs) {
+    const g = R.grille();
+    return {
+      atelier: 'morsures', version: 1, nom: $('nom').value.trim() || 'Sans nom', notes: $('notes').value.trim(),
+      date: new Date().toISOString(),
+      tranche: { A: arr(g.A, 5), crocAppli: arr(REF(), 6), crocsAppli: BITES, ecran: scene.clientWidth + '×' + scene.clientHeight },
+      colonnes: COLONNES,
+      crocs: liste.map(c => {
+        if (c.fin) return ['f', null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 100, 0, 0];
+        const f = c.forme, n = f.lobes;
+        return [c.q || 'm', arr(c.x, 5), arr(c.y, 5), arr(Math.atan2(c.ny, c.nx) / DEG, 3), arr(c.R / REF(), 4), n, arr(f.ecart, 4),
+          arr(f.L[0], 4), arr(f.L[n - 1], 4), arr(f.tilt / DEG, 2), arr(f.advance, 4), arr(f.shallow, 4),
+          arr(f.vague.depth, 3), arr(f.vague.width, 3), arr(f.vague.irr, 3), f.graine,
+          c.apres ? arr(c.apres.mange * 100, 2) : null, c.apres ? c.apres.iles : null, c.apres ? c.apres.miettes : null];
+      })
+    };
+  }
+  function depuisTexte(o) {
+    if (!o || o.atelier !== 'morsures' || !Array.isArray(o.crocs)) throw new Error('pas un texte de l’atelier');
+    const g = R.grille(), k = o.tranche && o.tranche.A ? g.A / o.tranche.A : 1, ref = REF();
+    return o.crocs.map(l => {
+      if (l[0] === 'f') return { q: 'f', fin: true };
+      const n = l[5], L = []; for (let i = 0; i < n; i++) L.push(n === 1 ? l[7] : l[7] + (l[8] - l[7]) * i / (n - 1));
+      const a = l[3] * DEG;
+      return { q: l[0], x: l[1], y: l[2] * k, nx: Math.cos(a), ny: Math.sin(a), R: l[4] * ref, push: .05,
+        forme: { lobes: n, L, ecart: l[6], tilt: l[9] * DEG, advance: l[10], shallow: l[11], vague: { depth: l[12], width: l[13], irr: l[14] }, graine: l[15] } };
+    });
+  }
+  function texteCompact(o) {
+    // une ligne par croc : plus lisible une fois collé dans la conversation
+    const tete = Object.assign({}, o, { crocs: '§' }), s = JSON.stringify(tete, null, 1);
+    return s.replace('"§"', '[\n' + o.crocs.map(l => '  ' + JSON.stringify(l)).join(',\n') + '\n ]');
+  }
+  function chargerTexte(o) {
+    $('nom').value = o.nom && o.nom !== 'Sans nom' ? o.nom : ''; $('notes').value = o.notes || '';
+    crocs = depuisTexte(o); futurs = []; vise = null; rejouer();
+  }
+  let sauveT = null;
+  function sauverCourante() {
+    clearTimeout(sauveT);
+    sauveT = setTimeout(() => { ecrire('courante', versTexte(crocs.concat(futurs.slice().reverse()))); ecrire('vue', crocs.length); $('exportTexte').value = texteCompact(versTexte()); }, 250);
+  }
+  function lesParties() { return lire('parties', []); }
+  function sauverPartie(o, suffixe = '') {
+    const p = lesParties(); o = Object.assign({}, o, { nom: o.nom + suffixe });
+    const i = suffixe ? -1 : p.findIndex(x => x.nom === o.nom);
+    if (i >= 0) p[i] = o; else p.unshift(o);
+    ecrire('parties', p.slice(0, 60)); listerParties();
+  }
+  function listerParties() {
+    const ul = $('parties'); ul.innerHTML = '';
+    const p = lesParties();
+    if (!p.length) { const li = document.createElement('li'); li.innerHTML = '<small>Aucune partie enregistrée pour l’instant.</small>'; ul.append(li); return; }
+    p.forEach((o, i) => {
+      const li = document.createElement('li'), s = document.createElement('span');
+      s.textContent = o.nom; const sm = document.createElement('small');
+      sm.textContent = o.crocs.length + ' crocs · ' + new Date(o.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      const ch = document.createElement('button'); ch.className = 'btn2'; ch.textContent = 'Charger';
+      ch.onclick = () => { chargerTexte(o); ongletVers('croc'); };
+      const sup = document.createElement('button'); sup.className = 'btn2'; sup.textContent = '×'; sup.title = 'Supprimer';
+      sup.onclick = () => {
+        if (sup.dataset.arme) { const q = lesParties(); q.splice(i, 1); ecrire('parties', q); listerParties(); return; }
+        sup.dataset.arme = '1'; sup.textContent = 'Sûr ?'; sup.classList.add('warn');
+        setTimeout(() => { delete sup.dataset.arme; sup.textContent = '×'; sup.classList.remove('warn'); }, 3000);
+      };
+      li.append(s, sm, ch, sup); ul.append(li);
+    });
+  }
+  $('enregistrer').addEventListener('click', () => {
+    if (!$('nom').value.trim()) $('nom').value = 'Partie du ' + new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+    sauverPartie(versTexte(crocs.concat(futurs.slice().reverse())));
+    $('enregistrer').textContent = 'Enregistrée ✓'; setTimeout(() => { $('enregistrer').textContent = 'Enregistrer'; }, 1500);
+  });
+  $('nouvelle').addEventListener('click', () => {
+    if (crocs.length + futurs.length) {
+      if (!$('nom').value.trim()) $('nom').value = 'Partie du ' + new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+      sauverPartie(versTexte(crocs.concat(futurs.slice().reverse())));
+    }
+    $('nom').value = ''; $('notes').value = ''; crocs = []; futurs = []; vise = null; rejouer();
+  });
+  $('nom').addEventListener('input', sauverCourante);
+  $('notes').addEventListener('input', sauverCourante);
+  $('copier').addEventListener('click', async () => {
+    const s = texteCompact(versTexte(crocs.concat(futurs.slice().reverse())));
+    $('exportTexte').value = s;
+    let ok = false;
+    try { await navigator.clipboard.writeText(s); ok = true; } catch (e) {
+      try { $('exportTexte').focus(); $('exportTexte').select(); ok = document.execCommand('copy'); } catch (_) {}
+    }
+    $('copieInfo').textContent = ok ? 'Copié ✓ (' + crocs.length + ' crocs). Colle-le dans la conversation.' : 'Je n’ai pas pu copier tout seul : sélectionne le texte en bas et copie-le.';
+  });
+  function telecharger(blob, nom) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nom;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  const nomFichier = () => ($('nom').value.trim() || 'morsures').replace(/[^\p{L}\p{N} _-]+/gu, '').trim().replace(/\s+/g, '-') || 'morsures';
+  $('telecharger').addEventListener('click', () => telecharger(new Blob([texteCompact(versTexte(crocs.concat(futurs.slice().reverse())))], { type: 'application/json' }), nomFichier() + '.json'));
+  $('image').addEventListener('click', () => {
+    const c = document.createElement('canvas'); c.width = view.width; c.height = view.height;
+    const g = c.getContext('2d'); g.drawImage(view, 0, 0); g.drawImage(dessus, 0, 0);
+    c.toBlob(b => b && telecharger(b, nomFichier() + '.png'), 'image/png');
+  });
+  $('importer').addEventListener('click', () => {
+    try { chargerTexte(JSON.parse($('importTexte').value)); $('importTexte').value = ''; ongletVers('croc'); }
+    catch (e) { $('importTexte').value = 'Je n’arrive pas à lire ce texte (' + e.message + ').\n\n' + $('importTexte').value; }
+  });
+  $('importFichier').addEventListener('change', async () => {
+    const f = $('importFichier').files[0]; if (!f) return;
+    try { chargerTexte(JSON.parse(await f.text())); ongletVers('croc'); } catch (e) { $('importTexte').value = 'Je n’arrive pas à lire ce fichier (' + e.message + ').'; }
+    $('importFichier').value = '';
+  });
+
+  // ================= calque photo =================
+  // le calque : posé sur la tranche, puis agrandi et décalé à la main (réglages gardés d'une fois sur l'autre)
+  const CALQUE = { calqueL: 100, calqueH: 100, calqueX: 0, calqueY: 0 };
+  function placerCalque() {
+    for (const id in CALQUE) $(id + 'V').textContent = $(id).value + (id === 'calqueL' || id === 'calqueH' ? ' %' : '');
+    const cad = R.cadre(), img = $('calque'); if (!cad || img.hidden) return;
+    const k = scene.clientWidth / view.width, w = cad.w * k, h = cad.h * k;
+    const W = w * $('calqueL').value / 100, H = h * $('calqueH').value / 100;
+    const cx = cad.x * k + w / 2 + w * $('calqueX').value / 100, cy = cad.y * k + h / 2 + h * $('calqueY').value / 100;
+    Object.assign(img.style, { left: cx - W / 2 + 'px', top: cy - H / 2 + 'px', width: W + 'px', height: H + 'px' });
+  }
+  (() => { const o = lire('calque', null); if (o) for (const id in CALQUE) if (o[id] != null) $(id).value = o[id]; })();
+  for (const id in CALQUE) $(id).addEventListener('input', () => {
+    const o = {}; for (const k in CALQUE) o[k] = +$(k).value; ecrire('calque', o); placerCalque();
+  });
+  $('calqueZero').addEventListener('click', () => { for (const id in CALQUE) $(id).value = CALQUE[id]; ecrire('calque', CALQUE); placerCalque(); });
+  placerCalque();
+  $('calqueFichier').addEventListener('change', () => {
+    const f = $('calqueFichier').files[0]; if (!f) return;
+    const img = $('calque'); if (img.src) URL.revokeObjectURL(img.src);
+    img.src = URL.createObjectURL(f); img.hidden = false; placerCalque();
+  });
+  $('calqueOter').addEventListener('click', () => { const img = $('calque'); img.hidden = true; img.removeAttribute('src'); $('calqueFichier').value = ''; });
+  $('calqueOp').addEventListener('input', () => { $('calque').style.opacity = +$('calqueOp').value / 100; $('calqueOpV').textContent = $('calqueOp').value + ' %'; });
+  $('calqueOpV').textContent = '50 %';
+
+  // ================= onglets =================
+  function ongletVers(nom) {
+    for (const b of document.querySelectorAll('[data-onglet]')) b.setAttribute('aria-selected', String(b.dataset.onglet === nom));
+    for (const s of ['croc', 'voir', 'garder']) $('o-' + s).hidden = s !== nom;
+    if (nom === 'croc') dessinerApercu();
+    if (nom === 'garder') { listerParties(); $('exportTexte').value = texteCompact(versTexte(crocs.concat(futurs.slice().reverse()))); }
+  }
+  for (const b of document.querySelectorAll('[data-onglet]')) b.addEventListener('click', () => ongletVers(b.dataset.onglet));
+
+  // ================= mise en place =================
+  // l'appli réserve de la place pour ses barres tant qu'elles ne sont pas vraiment « hidden »
+  function cacher() { for (const id of ['idleBar', 'runBar', 'endBar', 'header', 'banner', 'turn']) $(id).hidden = true; }
+  cacher();
+  // la partie en cours, reprise là où tu l'avais laissée
+  (() => {
+    const o = lire('courante', null);
+    if (!o) return;
+    try {
+      const tout = depuisTexte(o), v = Math.min(lire('vue', tout.length), tout.length);
+      $('nom').value = o.nom && o.nom !== 'Sans nom' ? o.nom : ''; $('notes').value = o.notes || '';
+      crocs = tout.slice(0, v); futurs = tout.slice(v).reverse();
+    } catch (e) {}
+  })();
+  // la toile doit être à la résolution réelle de sa boîte ; si l'appli refait sa tranche
+  // (nouvelle taille), on rejoue tous les crocs dessus
+  let recadreT = null;
+  function recadre() { cacher(); R.ajuste(); clearTimeout(recadreT); recadreT = setTimeout(() => { rejouer(); placerCalque(); dessinerApercu(); }, 260); }
+  new ResizeObserver(() => { clearTimeout(scene._t); scene._t = setTimeout(recadre, 60); }).observe(scene);
+  setTimeout(recadre, 80);
+  // la barre d'espace dans un curseur ne doit pas lancer de partie (au cas où)
+  window.addEventListener('keydown', e => { if (e.code === 'Space' && e.target.tagName !== 'TEXTAREA' && e.target.type !== 'text') e.stopPropagation(); }, true);
+  window.Atelier = { etat: () => etat, crocs: () => crocs, futurs: () => futurs, texte: () => versTexte(), viser: (x, y) => { vise = { x, y }; peindre(); infos(); }, croquer, annuler, analyse };
+})();
+</script>
+</body>
+</html>

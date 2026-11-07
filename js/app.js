@@ -245,7 +245,7 @@
   }
 
   // ---------- display: full screen in play, shrunk above the controls otherwise ----------
-  let dimmed = false, resTop = 0, resBot = 0, wantTop = 0, wantBot = 0;
+  let dimmed = false, resTop = 0, resBot = 0, wantTop = 0, wantBot = 0, cadreVu = null;
   function measureReserve() {
     wantTop = wantBot = 0;
     if (state !== 'idle' && state !== 'ended') return;
@@ -266,6 +266,7 @@
     vctx.imageSmoothingEnabled = true; vctx.imageSmoothingQuality = 'high';
     vctx.globalAlpha = dimmed ? .45 : 1;
     vctx.drawImage(comp, (w - dw) / 2, top + (ah - dh) / 2, dw, dh);
+    cadreVu = { x: (w - dw) / 2, y: top + (ah - dh) / 2, w: dw, h: dh, vw: w, vh: h };
     if (introStart !== null) drawIntro(frozen !== null ? frozen : (performance.now() - introStart) / 1000, (w - dw) / 2, top + (ah - dh) / 2, dw, dh);
     vctx.globalAlpha = 1;
   }
@@ -285,30 +286,49 @@
 
   // ---------- bites ----------
   const WAVE = { depth: .08, width: .37, irr: .15 };
-  function shapeTemplate() {
-    // the rat's bite, as on the show: two big round marks fused side by side, a small notch where
-    // they meet, the rim only gently rippled. Most bites go straight in; now and then (subtly)
-    // the rat bites a little askew, or not quite as deep.
-    const out = [], askew = Math.random() < .35;
+  // un hasard qu'on peut rejouer : la même graine redonne le même bord ondulé
+  function alea(graine) {
+    let s = (graine >>> 0) || 1;
+    return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+  }
+  // the rat's bite, as on the show: two big round marks fused side by side, a small notch where
+  // they meet, the rim only gently rippled. Most bites go straight in; now and then (subtly)
+  // the rat bites a little askew, or not quite as deep.
+  // tirerForme() tire les quelques nombres qui décrivent un croc, shapeTemplate() en fait les ronds.
+  // Tout le hasard du bord ondulé vient de la graine : un croc enregistré dans l'Atelier des
+  // morsures (outils/atelier-morsures.html) se rejoue donc à l'identique.
+  function tirerForme() {
+    const askew = Math.random() < .35;
     const tilt = askew ? (Math.random() < .5 ? -1 : 1) * rnd(.18, .45) : rnd(-.12, .12);
     const shallow = askew && Math.random() < .6 ? rnd(.08, .25) : 0;   // shifts the bite out of the cheese
     // on the show the teeth often push further in, like two fingers reaching into the slice
     const advance = !shallow && Math.random() < .65 ? rnd(.2, .55) : 0;
-    const L0 = rnd(.82, .9), L1 = L0 * rnd(.9, 1.1), sp = (L0 + L1) * rnd(.56, .62);
-    const ct = Math.cos(tilt), st = Math.sin(tilt);
-    for (const [p, L] of [[-sp / 2, L0], [sp / 2, L1]]) {
-      const along = p * ct, depth = p * st + shallow - advance;
+    const L0 = rnd(.82, .9);
+    return { lobes: 2, L: [L0, L0 * rnd(.9, 1.1)], ecart: rnd(.56, .62), tilt, shallow, advance,
+      vague: { depth: WAVE.depth, width: WAVE.width, irr: WAVE.irr }, graine: (Math.random() * 4294967296) >>> 0 };
+  }
+  function shapeTemplate(p = tirerForme()) {
+    const out = [], hasard = alea(p.graine), n = Math.max(1, Math.round(p.lobes || 2));
+    const Ls = []; for (let i = 0; i < n; i++) Ls.push(p.L[Math.min(i, p.L.length - 1)]);
+    // les ronds côte à côte : chacun à `ecart` × (les deux rayons) de son voisin, le tout centré
+    const pos = [0]; for (let i = 1; i < n; i++) pos.push(pos[i - 1] + (Ls[i - 1] + Ls[i]) * p.ecart);
+    const mid = (pos[0] + pos[n - 1]) / 2, V = p.vague || WAVE;
+    const ct = Math.cos(p.tilt), st = Math.sin(p.tilt);
+    for (let i = 0; i < n; i++) {
+      const L = Ls[i], q = pos[i] - mid;
+      const along = q * ct, depth = q * st + p.shallow - p.advance;
       // rim waves, as set by Fabien in the Atelier des vagues: depth 8 %, width 37 %, irregularity 15 %
       // (each wave is a circle whose cap, of chord `s`, rises `d` above the main circle)
-      const d = WAVE.depth * L, s = WAVE.width * L;
+      const d = Math.max(0, V.depth) * L, s = Math.max(.04, V.width) * L;
       out.push({ u: along, v: depth, r: L - d });
       // the tooth goes straight in: keep its full width all the way out to the edge,
       // so no thin strip of cheese is left beside it
-      for (let y = depth + L * .2; y < depth + advance + shallow + L * 1.1; y += L * .2) out.push({ u: along, v: y, r: L - d });
-      const k = Math.max(6, Math.round(TAU * L / s)), ph = rnd(0, TAU);
-      for (let i = 0; i < k; i++) {
-        const di = d * (1 + (Math.random() - .5) * 1.4 * WAVE.irr), si = s * (1 + (Math.random() - .5) * 1.2 * WAVE.irr);
-        const rb = (si * si / 4 + di * di) / (2 * di), a = ph + (i + (Math.random() - .5) * .6 * WAVE.irr) / k * TAU;
+      for (let y = depth + L * .2; y < depth + p.advance + p.shallow + L * 1.1; y += L * .2) out.push({ u: along, v: y, r: L - d });
+      if (d < 1e-4) continue;                              // bord lisse : pas de vagues
+      const k = Math.max(6, Math.round(TAU * L / s)), ph = hasard() * TAU;
+      for (let j = 0; j < k; j++) {
+        const di = d * (1 + (hasard() - .5) * 1.4 * V.irr), si = s * (1 + (hasard() - .5) * 1.2 * V.irr);
+        const rb = (si * si / 4 + di * di) / (2 * di), a = ph + (j + (hasard() - .5) * .6 * V.irr) / k * TAU;
         out.push({ u: along + Math.cos(a) * (L - rb), v: depth + Math.sin(a) * (L - rb), r: rb });
       }
     }
@@ -454,6 +474,24 @@
     grid.fill(0); cells = 0;
   }
 
+  // bite size is the one measured on the show (about 1.7 % of the slice per bite, centred on the edge),
+  // scaled to the cheese's area; pacing may only nudge it, so every bite looks like the TV one
+  const PUSH = .05, baseR = () => .077 * Math.sqrt(A / .75);
+  function tailleCroc(tpl, e, k, total) {
+    const target = cells0 * (1 - (k + 1) / total), needed = cells - target;
+    const R0 = baseR(), late = k > total * .9, RMIN = R0 * .8, RMAX = R0 * (late ? 1.8 : 1.25);
+    let R = RMIN;
+    if (needed > 0) {
+      let lo = RMIN, hi = RMAX;
+      if (countRemoval(realize(tpl, e.x, e.y, e.nx, e.ny, hi, PUSH)) <= needed) R = hi;
+      else {
+        for (let it = 0; it < 11; it++) { const mid = (lo + hi) / 2; if (countRemoval(realize(tpl, e.x, e.y, e.nx, e.ny, mid, PUSH)) >= needed) hi = mid; else lo = mid; }
+        R = hi;
+      }
+    }
+    return R;
+  }
+  // renvoie ce qui a été croqué, pour que l'Atelier des morsures puisse l'enregistrer
   function bite(k, total) {
     if (k === total - 1) {        // last bite: swallow whatever is left
       let sx = 0, sy = 0, n = 0;
@@ -464,24 +502,12 @@
         applyBite(realize(shapeTemplate(), cx, cy, 1, 0, md / .6 + .02, 0));
       }
       clearAll();
-      return;
+      return { fin: true };
     }
-    const target = cells0 * (1 - (k + 1) / total), needed = cells - target;
-    const e = pickEdge(); if (!e) return;
-    // bite size is the one measured on the show (about 1.7 % of the slice per bite, centred on the edge),
-    // scaled to the cheese's area; pacing may only nudge it, so every bite looks like the TV one
-    const R0 = .077 * Math.sqrt(A / .75), late = k > total * .9;
-    const tpl = shapeTemplate(), PUSH = .05, RMIN = R0 * .8, RMAX = R0 * (late ? 1.8 : 1.25);
-    let R = RMIN;
-    if (needed > 0) {
-      let lo = RMIN, hi = RMAX;
-      if (countRemoval(realize(tpl, e.x, e.y, e.nx, e.ny, hi, PUSH)) <= needed) R = hi;
-      else {
-        for (let it = 0; it < 11; it++) { const mid = (lo + hi) / 2; if (countRemoval(realize(tpl, e.x, e.y, e.nx, e.ny, mid, PUSH)) >= needed) hi = mid; else lo = mid; }
-        R = hi;
-      }
-    }
+    const e = pickEdge(); if (!e) return null;
+    const p = tirerForme(), tpl = shapeTemplate(p), R = tailleCroc(tpl, e, k, total);
     applyBite(realize(tpl, e.x, e.y, e.nx, e.ny, R, PUSH));
+    return { x: e.x, y: e.y, nx: e.nx, ny: e.ny, R, push: PUSH, forme: p };
   }
 
   // ---------- sound ----------
@@ -573,7 +599,7 @@
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && state === 'running') keepAwake(); });
 
   // ---------- game flow ----------
-  let state = 'idle', elapsed = 0, last = 0, times = [], next = 0, duration = durMin * 60;
+  let state = 'idle', elapsed = 0, last = 0, times = [], next = 0, duration = durMin * 60, enAtelier = false;
 
   // The bite count is always the one of the 15-minute show (a bite every 10–15 s), so every bite
   // keeps the size seen on TV; a longer timer just spaces the same bites further apart.
@@ -797,7 +823,7 @@
     document.addEventListener(g, e => e.preventDefault(), { passive: false });
   }
   document.addEventListener('keydown', e => {
-    if (e.code !== 'Space' || e.target.tagName === 'BUTTON') return;
+    if (e.code !== 'Space' || e.target.tagName === 'BUTTON' || enAtelier) return;
     e.preventDefault();
     if (state === 'idle') start(); else if (state === 'running') pause(); else if (state === 'paused') resume();
   });
@@ -812,6 +838,40 @@
     trous: () => nTrous,
     actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE, epaisseur: EPAISSEUR }),
     ajuste() { fit(); },                                      // recaler la toile sur sa boîte
+    // ---- pour l'Atelier des morsures (outils/atelier-morsures.html) ----
+    // un croc s'y décrit par { x, y, nx, ny, R, push, forme } : x, y le point du bord visé (en
+    // largeurs de tranche), nx, ny la normale vers l'extérieur, R le rayon, forme celle de tirerForme()
+    atelier() { enAtelier = true; },
+    forme: () => tirerForme(),
+    ronds: c => realize(shapeTemplate(c.forme), c.x, c.y, c.nx, c.ny, c.R, c.push == null ? PUSH : c.push),
+    croquer(c) {
+      const avant = cells;
+      if (c.fin) { clearAll(); return avant; }
+      applyBite(realize(shapeTemplate(c.forme), c.x, c.y, c.nx, c.ny, c.R, c.push == null ? PUSH : c.push));
+      derniers.push({ x: c.x, y: c.y });                     // le rat s'en souviendra s'il prend la suite
+      return avant - cells;
+    },
+    mordre: (k, total = BITES + 1) => bite(k, total),         // le rat mord, comme pendant une partie
+    proposer(k, total = BITES + 1) {                          // où il mordrait, sans mordre
+      const f0 = foyers.map(o => ({ x: o.x, y: o.y })), d0 = derniers.length;
+      const e = pickEdge();
+      foyers = f0; derniers.length = d0;
+      if (!e) return null;
+      const p = tirerForme();
+      return { x: e.x, y: e.y, nx: e.nx, ny: e.ny, R: tailleCroc(shapeTemplate(p), e, k, total), push: PUSH, forme: p };
+    },
+    efface() {                                                // la tranche entière, mêmes trous
+      const m = mask.getContext('2d');
+      m.globalCompositeOperation = 'source-over'; m.fillStyle = '#fff'; m.fillRect(0, 0, SW, SH);
+      grid.fill(1); cells = cells0; foyers = []; derniers = [];
+    },
+    redessine() { compose(); draw(); },
+    grille: () => ({ grid, GW, GH, A, cells, cells0 }),
+    masque: () => mask,
+    cadre: () => cadreVu,
+    r0: () => baseR(),
+    compte: c => countRemoval(realize(shapeTemplate(c.forme), c.x, c.y, c.nx, c.ny, c.R, c.push == null ? PUSH : c.push)),
+    son(big) { ensureAudio(); crunch(big); },
     freezeIntro(t) { if (!lidTex) lidTex = makeLid(); frozen = t; introStart = 0; draw(); } };
 
   resetCheese(); render();
