@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Atelier des fromages — Rap Rat</title>
+<!-- Atelier des fromages : la pâte, sa couleur et son état de surface. Rien ici ne touche à la
+     forme des trous ni aux morsures, qui sont déjà tranchées (voir CLAUDE.md) : on ne règle que
+     la matière. La tranche est dessinée par le vrai code de l'appli (js/app.js). -->
+<link rel="stylesheet" href="../css/style.css">
+<style>
+:root{--line:rgba(244,201,106,.16)}
+html,body{height:auto;overflow:auto;background:var(--bg);user-select:auto;-webkit-user-select:auto}
+body{margin:0;padding:18px 16px 60px;font:15px/1.5 var(--ui);color:var(--ink)}
+.wrap{max-width:1000px;margin:0 auto}
+h1{font-family:var(--display);color:var(--cheese);font-size:26px;margin:0 0 2px}
+p.lede{color:var(--muted);margin:0 0 18px;font-size:13.5px;max-width:70ch}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+h2{font:600 13px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.scene{position:relative;width:100%;aspect-ratio:956/440;border-radius:10px;overflow:hidden;background:#000}
+.scene .stage{position:absolute!important;inset:0!important}
+.scene .bar,.scene .banner,.scene header,.scene .turn{display:none!important}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.row+.row{margin-top:10px}
+label.sld{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted);flex:1 1 210px}
+label.sld input{width:100%;accent-color:var(--cheese)}
+.val{color:var(--cream);font-variant-numeric:tabular-nums}
+.btn2{font:500 14px/1 var(--ui);color:var(--ink);background:var(--panel-hi);border:1px solid var(--line);
+  border-radius:999px;padding:0 15px;min-height:40px;cursor:pointer}
+.btn2:hover{background:#3a2818}
+.btn2.primary{background:var(--cheese);color:var(--on-cheese);border-color:transparent;font-weight:700}
+.btn2[aria-pressed="true"]{background:var(--cheese);color:var(--on-cheese);border-color:transparent}
+.info{font-size:12.5px;color:var(--muted);margin-top:10px}
+.info b{color:var(--cream);font-variant-numeric:tabular-nums}
+input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;border:1px solid var(--line);
+  border-radius:8px;padding:7px 8px;width:9ch;font-variant-numeric:tabular-nums}
+.styles{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px}
+.styles button{text-align:left;padding:9px 11px;border-radius:10px;min-height:0;line-height:1.3}
+.styles b{display:block;font:600 13px var(--ui);color:var(--cream)}
+.styles span{font-size:11.5px;color:var(--muted)}
+.styles button[aria-pressed="true"] b,.styles button[aria-pressed="true"] span{color:var(--on-cheese)}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start}
+.duo figure{margin:0}
+.duo img{width:100%;display:block;border-radius:8px;border:1px solid var(--line);background:#000;aspect-ratio:956/440;object-fit:cover}
+.duo figcaption{font-size:11.5px;color:var(--muted);text-align:center;margin-top:3px}
+.calque{position:absolute;inset:0;pointer-events:none;background-size:cover;background-position:center;opacity:0}
+textarea{width:100%;min-height:150px;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);
+  background:#0d0906;border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical}
+@media (max-width:620px){.duo{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Atelier des fromages</h1>
+  <p class="lede">La tranche d’aujourd’hui est trop propre à côté des captures. Ici on ne touche qu’à <em>la matière</em> : la couleur, les marbrures, et ce que la cassette ajoute par-dessus. La forme des trous et les morsures ne bougent pas, elles sont déjà tranchées. Choisis un style tout fait, affine aux réglages, compare avec ta photo, et envoie-moi le résultat.</p>
+
+  <section>
+    <h2>La tranche</h2>
+    <div class="scene" id="scene">
+      <div class="stage" id="stage"><canvas id="view"></canvas></div>
+      <div class="calque" id="calque"></div>
+      <div class="banner" id="banner" hidden></div>
+      <header id="header"><span class="mark">Rap Rat</span></header>
+      <div class="bar" id="idleBar">
+        <div class="stepper"><button id="durMinus" type="button">−</button><output id="durOut"></output><button id="durPlus" type="button">+</button></div>
+        <button class="btn" id="soundBtn" type="button"></button>
+        <button class="btn" id="startBtn" type="button"></button>
+      </div>
+      <div class="bar" id="runBar" hidden><button class="btn" id="pauseBtn" type="button"></button><button class="btn" id="restartBtn" type="button"></button><button class="btn" id="fsBtn" type="button" hidden></button></div>
+      <div class="bar" id="endBar" hidden><button class="btn" id="againBtn" type="button"></button></div>
+      <div class="turn" id="turn"></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label style="font-size:12px;color:var(--muted)">graine <input type="number" id="graine" value="7"></label>
+      <button class="btn2" id="autre">Autre tranche</button>
+      <button class="btn2" id="croque">Quelques morsures</button>
+      <button class="btn2" id="neuve">Tranche entière</button>
+      <span class="info" style="margin:0" id="etat"></span>
+    </div>
+    <div class="info">La graine fige la tranche : mêmes trous, mêmes marbrures. Deux styles se comparent donc honnêtement, sur exactement le même fromage.</div>
+  </section>
+
+  <section>
+    <h2>Styles proposés</h2>
+    <div class="styles" id="styles"></div>
+    <div class="info">Pars d’un de ceux-là, puis affine en dessous. À mon avis, celui qui s’approche le plus des gros plans est <b>Capture d’écran</b> ; le plus sage est <b>Marbré</b>, qui ne change que l’uniformité de la pâte.</div>
+  </section>
+
+  <section>
+    <h2>La pâte</h2>
+    <div class="row">
+      <label class="sld">teinte <span class="val" id="teinteV"></span><input type="range" id="teinte" min="-40" max="40" step="1"></label>
+      <label class="sld">saturation <span class="val" id="chaleurV"></span><input type="range" id="chaleur" min="0" max="200" step="2"></label>
+      <label class="sld">clarté <span class="val" id="clairV"></span><input type="range" id="clair" min="60" max="140" step="1"></label>
+    </div>
+    <div class="row">
+      <label class="sld">marbrures <span class="val" id="marbruresV"></span><input type="range" id="marbrures" min="0" max="400" step="5"></label>
+      <label class="sld">leur taille <span class="val" id="tailleV"></span><input type="range" id="taille" min="40" max="250" step="5"></label>
+      <label class="sld">combien <span class="val" id="nombreV"></span><input type="range" id="nombre" min="30" max="400" step="10"></label>
+    </div>
+    <div class="row">
+      <label class="sld">plaques brun-rouge <span class="val" id="tachesV"></span><input type="range" id="taches" min="0" max="100" step="2"></label>
+      <label class="sld">bords qui plongent <span class="val" id="vignetteV"></span><input type="range" id="vignette" min="0" max="100" step="2"></label>
+    </div>
+    <div class="info">Les marbrures sont les grandes plages claires et sombres de la surface. Sur les gros plans, la pâte en est pleine ; chez nous elle est presque unie. C’est sans doute le réglage qui fait le plus de différence.</div>
+  </section>
+
+  <section>
+    <h2>Ce que la cassette ajoute</h2>
+    <div class="row">
+      <label class="sld">image adoucie <span class="val" id="flouV"></span><input type="range" id="flou" min="0" max="100" step="2"></label>
+      <label class="sld">couleur qui bave <span class="val" id="baveV"></span><input type="range" id="bave" min="0" max="100" step="2"></label>
+    </div>
+    <div class="row">
+      <label class="sld">grain <span class="val" id="grainV"></span><input type="range" id="grain" min="0" max="100" step="2"></label>
+      <label class="sld">lignes de balayage <span class="val" id="lignesV"></span><input type="range" id="lignes" min="0" max="100" step="2"></label>
+    </div>
+    <div class="info">Attention : tu avais tranché que les bords des trous devaient rester <b>nets, sans flou</b>. « Image adoucie » va contre cette décision, c’est pour ça qu’elle est à zéro par défaut. À toi de voir si la douceur de la bande te plaît mieux que la netteté.</div>
+  </section>
+
+  <section>
+    <h2>Comparer</h2>
+    <div class="row">
+      <button class="btn2" id="garder">Garder à gauche</button>
+      <label style="font-size:12px;color:var(--muted)">ta photo <input type="file" id="photo" accept="image/*" style="max-width:190px"></label>
+      <label class="sld" style="flex:1 1 180px">photo par-dessus <span class="val" id="opaV">0 %</span><input type="range" id="opa" min="0" max="100" step="2" value="0"></label>
+    </div>
+    <div class="duo" style="margin-top:10px">
+      <figure><img id="gauche" alt=""><figcaption id="gaucheN">rien de gardé</figcaption></figure>
+      <figure><img id="droite" alt=""><figcaption>le style en cours</figcaption></figure>
+    </div>
+    <div class="info">« Garder à gauche » fige l’image du moment. Change ensuite de style : tu vois les deux côte à côte. Et ta photo peut se superposer directement sur la tranche, en haut, pour comparer la couleur au plus juste.</div>
+  </section>
+
+  <section>
+    <h2>M’envoyer ton choix</h2>
+    <div class="row">
+      <button class="btn2 primary" id="copier">Copier pour Claude</button>
+      <button class="btn2" id="png">Enregistrer l’image</button>
+      <span class="info" style="margin:0" id="copieEtat"></span>
+    </div>
+    <textarea id="sortie" readonly spellcheck="false"></textarea>
+  </section>
+</div>
+
+<audio id="music" loop preload="none" playsinline></audio>
+<script src="../js/app.js"></script>
+<script>
+(() => {
+  const R = window.RapRat, $ = id => document.getElementById(id);
+  R.atelier();
+
+  // L'appli reserve de la place pour ses barres tant qu'elles ne sont pas vraiment
+  // "hidden" : les cacher en CSS ne suffit pas, la tranche se dessinerait minuscule.
+  for (const id of ['idleBar', 'runBar', 'endBar', 'header', 'banner', 'turn']) $(id).hidden = true;
+
+  // Les styles proposés. Chacun ne dit que ce qu'il change ; le reste vient du défaut de l'appli.
+  const STYLES = [
+    ['Comme maintenant', 'la tranche de la v35, lisse et propre', {}],
+    ['Marbré', 'mêmes couleurs, mais la pâte n’est plus unie', { marbrures: 2.4, taille: 1.35, nombre: 2 }],
+    ['Capture d’écran', 'mon essai pour coller aux gros plans', { marbrures: 2.1, taille: 1.3, nombre: 1.8, taches: .55, vignette: .45, bave: .22, grain: .12 }],
+    ['Vieille bande', 'ce que la VHS fait à l’image', { flou: .3, bave: .55, lignes: .35, grain: .4 }],
+    ['Pâte chaude', 'plus sombre, plus rouge, bords qui plongent', { teinte: -8, chaleur: 1.18, clair: .92, taches: .7, vignette: .7 }],
+    ['Beurre', 'pâle et jaune, comme le couvercle de la trappe', { teinte: 7, chaleur: .88, clair: 1.16, marbrures: 1.4 }],
+    ['Cuir', 'très marbré, très sombre sur les bords', { chaleur: 1.1, clair: .86, marbrures: 3.2, taille: .8, nombre: 2.6, taches: 1, vignette: .85 }],
+    ['Cathodique', 'tout à fond, pour voir jusqu’où ça va', { marbrures: 2.6, nombre: 2.2, taches: .7, vignette: .6, flou: .45, bave: .8, lignes: .6, grain: .55 }]
+  ];
+
+  // les réglages : [id, facteur entre le curseur et la valeur, comment l'afficher]
+  const REG = [
+    ['teinte', 1, v => (v > 0 ? '+' : '') + v.toFixed(0) + '°'],
+    ['chaleur', .01, v => Math.round(v * 100) + ' %'],
+    ['clair', .01, v => Math.round(v * 100) + ' %'],
+    ['marbrures', .01, v => v.toFixed(2)],
+    ['taille', .01, v => v.toFixed(2)],
+    ['nombre', .01, v => v.toFixed(2)],
+    ['taches', .01, v => Math.round(v * 100) + ' %'],
+    ['vignette', .01, v => Math.round(v * 100) + ' %'],
+    ['flou', .01, v => Math.round(v * 100) + ' %'],
+    ['bave', .01, v => Math.round(v * 100) + ' %'],
+    ['grain', .01, v => Math.round(v * 100) + ' %'],
+    ['lignes', .01, v => Math.round(v * 100) + ' %']
+  ];
+
+  const DEF = R.styleParDefaut();
+  let style = Object.assign({}, DEF), nomStyle = 'Comme maintenant', crocs = 0;
+
+  const lire = (k, d) => { try { const v = localStorage.getItem('raprat.fromages.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
+  const ecrire = (k, v) => { try { localStorage.setItem('raprat.fromages.' + k, JSON.stringify(v)); } catch (e) {} };
+
+  const majEtiquettes = () => { for (const [id, f, fmt] of REG) $(id + 'V').textContent = fmt(Number($(id).value) * f); };
+  const versCurseurs = () => { for (const [id, f] of REG) $(id).value = Math.round(style[id] / f); majEtiquettes(); };
+  const depuisCurseurs = () => { for (const [id, f] of REG) style[id] = Number($(id).value) * f; };
+
+  function peindre() {
+    style.graine = Number($('graine').value) || 0;
+    R.styleSet(style);
+    R.neuf();                                   // une tranche entière, repeinte avec ce style
+    if (crocs) R.bites(crocs, 0);
+    ecrire('style', style); ecrire('nom', nomStyle);
+    $('etat').textContent = R.trous() + ' trous' + (crocs ? ' · ' + crocs + ' morsures' : '') + ' · ' + nomStyle;
+    majSortie();
+    requestAnimationFrame(() => { try { $('droite').src = R.toile().toDataURL('image/png'); } catch (e) {} });
+  }
+
+  // ---- les styles tout faits ----
+  const boite = $('styles');
+  STYLES.forEach(([nom, quoi, chg], i) => {
+    const b = document.createElement('button');
+    b.className = 'btn2'; b.type = 'button'; b.setAttribute('aria-pressed', i === 0 ? 'true' : 'false');
+    b.innerHTML = '<b></b><span></span>';
+    b.querySelector('b').textContent = nom;
+    b.querySelector('span').textContent = quoi;
+    b.onclick = () => {
+      style = Object.assign({}, DEF, chg); nomStyle = nom;
+      for (const x of boite.children) x.setAttribute('aria-pressed', 'false');
+      b.setAttribute('aria-pressed', 'true');
+      versCurseurs(); peindre();
+    };
+    boite.appendChild(b);
+  });
+
+  // ---- les curseurs ----
+  for (const [id] of REG) {
+    $(id).addEventListener('change', () => {
+      depuisCurseurs();
+      if (!/ \(réglé\)$/.test(nomStyle)) nomStyle += ' (réglé)';
+      for (const x of boite.children) x.setAttribute('aria-pressed', 'false');
+      peindre();
+    });
+    $(id).addEventListener('input', majEtiquettes);
+  }
+
+  $('graine').addEventListener('change', peindre);
+  $('autre').onclick = () => { $('graine').value = Math.floor(Math.random() * 99999) + 1; crocs = 0; peindre(); };
+  $('neuve').onclick = () => { crocs = 0; peindre(); };
+  $('croque').onclick = () => { crocs = crocs ? Math.min(crocs + 12, 60) : 12; peindre(); };
+
+  // ---- comparer ----
+  $('garder').onclick = () => {
+    try { $('gauche').src = R.toile().toDataURL('image/png'); } catch (e) {}
+    $('gaucheN').textContent = nomStyle;
+  };
+  $('photo').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    $('calque').style.backgroundImage = 'url("' + URL.createObjectURL(f) + '")';
+    if (Number($('opa').value) === 0) { $('opa').value = 55; majOpa(); }
+  });
+  const majOpa = () => { const v = Number($('opa').value); $('calque').style.opacity = v / 100; $('opaV').textContent = v + ' %'; };
+  $('opa').addEventListener('input', majOpa);
+
+  // ---- m'envoyer le résultat ----
+  function majSortie() {
+    const l = ['Atelier des fromages — Rap Rat', 'style : ' + nomStyle, 'graine : ' + (style.graine || 'au hasard'), '',
+      'Les réglages, dans l’ordre des curseurs :'];
+    for (const [id, f, fmt] of REG) l.push('  ' + id + ' = ' + Number(style[id]).toFixed(3) + '   (' + fmt(Number(style[id])) + ')');
+    l.push('', 'Par défaut dans l’appli : ' + REG.map(([id]) => id + '=' + DEF[id]).join(', '));
+    l.push('', 'Notes de Fabien : ');
+    $('sortie').value = l.join('\n');
+  }
+  $('copier').onclick = async () => {
+    const t = $('sortie');
+    try { await navigator.clipboard.writeText(t.value); $('copieEtat').textContent = 'Copié ✓'; }
+    catch (e) {
+      t.removeAttribute('readonly'); t.select(); t.setSelectionRange(0, 99999);
+      const ok = document.execCommand && document.execCommand('copy');
+      t.setAttribute('readonly', '');
+      $('copieEtat').textContent = ok ? 'Copié ✓' : 'Sélectionne le texte et copie-le à la main.';
+    }
+    setTimeout(() => { $('copieEtat').textContent = ''; }, 4000);
+  };
+  $('png').onclick = () => {
+    const a = document.createElement('a');
+    a.download = 'fromage-' + nomStyle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.png';
+    try { a.href = R.toile().toDataURL('image/png'); a.click(); } catch (e) {}
+  };
+
+  // ---- au lancement : on reprend le dernier style gardé dans le téléphone ----
+  const garde = lire('style', null);
+  if (garde) { style = Object.assign({}, DEF, garde); nomStyle = lire('nom', 'réglé à la main'); }
+  versCurseurs(); majOpa();
+  R.ajuste(); peindre();
+  new ResizeObserver(() => { R.ajuste(); }).observe($('scene'));
+})();
+</script>
+</body>
+</html>

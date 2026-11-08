@@ -496,3 +496,35 @@ Pistes, de la meilleure à la pire :
 5. **Suno** en dernier recours : un *Cover* rejoue tout et perd justement les riffs que Fabien
    aime ; un *Extend* peut prolonger un passage propre. On ne peut pas lui donner de consigne sur
    la façon de lire l'audio fourni (ce canal n'existe pas), et l'upload plafonne à 8 minutes.
+
+## Atelier des fromages (v36)
+
+Fabien trouve la tranche **trop propre** à côté des captures : sur les gros plans la pâte est
+marbrée par larges plages, elle plonge dans le brun sur les bords, et la bande adoucit tout.
+L'atelier (`outils/atelier-fromages.html`) ne touche qu'à la matière : la forme des trous et les
+morsures restent telles qu'elles ont été tranchées.
+
+- **Huit styles tout faits** : Comme maintenant, Marbré, Capture d'écran, Vieille bande, Pâte
+  chaude, Beurre, Cuir, Cathodique. Chacun ne déclare que ce qu'il change, le reste vient du
+  défaut de l'appli.
+- **Les réglages** : teinte, saturation, clarté, marbrures (force, taille, nombre), plaques
+  brun-rouge, bords qui plongent ; puis ce que la cassette ajoute : image adoucie, couleur qui
+  bave horizontalement, grain, lignes de balayage.
+- **La graine fige la tranche** : mêmes trous, mêmes marbrures, donc deux styles se comparent sur
+  exactement le même fromage. `paintTexture` et `makeHole` tirent désormais leur hasard
+  d'`alea(graine)` quand une graine est donnée.
+- **Comparer** : « Garder à gauche » fige l'image du moment, et une photo de Fabien peut se
+  superposer directement sur la tranche (curseur d'opacité).
+- « Copier pour Claude » rend les douze valeurs, plus les défauts de l'appli.
+
+Dans `js/app.js` : `STYLE0` / `STYLE`, `teinter()` pour la couleur de base, `finirImage()` pour ce
+qui vient de la cassette (toujours en dernier, après les trous), et les crochets
+`RapRat.style()`, `styleParDefaut()`, `styleSet()`, `repeins()`, `toile()`.
+
+L'appli elle-même ne change pas d'aspect : les valeurs par défaut sont la tranche de la v35. Le
+flou est à zéro par défaut, parce que Fabien avait tranché que les bords des trous restent nets.
+Vérifié dans le navigateur de l'ordinateur ; pas encore sur l'iPhone.
+
+Piège retrouvé au passage, déjà noté dans l'Atelier des foyers : l'appli réserve de la place pour
+ses barres tant qu'elles ne sont pas vraiment `hidden`. Les cacher en CSS ne suffit pas, la
+tranche se dessine minuscule.

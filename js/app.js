@@ -12,6 +12,43 @@
   const tex = mk(), mask = mk(), inv = mk(), comp = mk(), face = mk();
   // EPAISSEUR : la hauteur de la paroi, en part de la hauteur de l'écran (réglable dans l'atelier)
   let EPAISSEUR = .022, nTrous = 0;
+
+  // ---------- le style de la pâte (piloté par l'Atelier des fromages) ----------
+  // Les valeurs par défaut sont la tranche telle qu'elle est depuis la v32 : lisse et propre.
+  // Fabien la trouve trop propre par rapport aux captures, où la pâte est marbrée, sombre sur
+  // les bords, et adoucie par la bande. Ces réglages servent à s'en approcher.
+  const STYLE0 = {
+    teinte: 0,        // -40 à 40, degrés de décalage de la couleur
+    chaleur: 1,       // 0 à 2, saturation
+    clair: 1,         // .6 à 1.4, clarté d'ensemble
+    marbrures: 1,     // 0 à 4, force des grandes plages claires et sombres
+    taille: 1,        // .4 à 2.5, leur taille
+    nombre: 1,        // .3 à 4, combien
+    taches: 0,        // 0 à 1, plaques brun-rouge en plus
+    vignette: 0,      // 0 à 1, les bords qui plongent dans le brun
+    grain: 0,         // 0 à 1, grain de la bande
+    lignes: 0,        // 0 à 1, lignes de balayage
+    flou: 0,          // 0 à 1, l'image adoucie
+    bave: 0,          // 0 à 1, la couleur qui bave horizontalement
+    graine: 0         // 0 = au hasard ; sinon la même tranche revient à l'identique
+  };
+  let STYLE = Object.assign({}, STYLE0);
+
+  // la couleur de base, décalée en teinte, en saturation et en clarté
+  function teinter(hex, S) {
+    let r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    if (S.teinte) {
+      const a = S.teinte * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
+      const nr = r * (.213 + co * .787 - si * .213) + g * (.715 - co * .715 - si * .715) + b * (.072 - co * .072 + si * .928);
+      const ng = r * (.213 - co * .213 + si * .143) + g * (.715 + co * .285 + si * .140) + b * (.072 - co * .072 - si * .283);
+      const nb = r * (.213 - co * .213 - si * .787) + g * (.715 - co * .715 + si * .715) + b * (.072 + co * .928 + si * .072);
+      r = nr; g = ng; b = nb;
+    }
+    const l = .299 * r + .587 * g + .114 * b;
+    r = l + (r - l) * S.chaleur; g = l + (g - l) * S.chaleur; b = l + (b - l) * S.chaleur;
+    const q = v => Math.max(0, Math.min(255, Math.round(v * S.clair)));
+    return `rgb(${q(r)},${q(g)},${q(b)})`;
+  }
   let SW = 1024, SH = 1024, U = 1, A = 1, GH = GW, grid = new Uint8Array(GW * GW), cells0 = 1, cells = 1;
 
   // ---------- settings (per-viewer convenience) ----------
@@ -43,21 +80,21 @@
   // A hole is a smooth, glossy cavity through the slice, seen by an eye above the middle of the cheese:
   // the far opening (dark) slides toward the centre, and the outer wall shows, catching the light.
   // Holes near the middle look almost all dark. No hole is a perfect circle.
-  function makeHole(x, y, r) {
+  function makeHole(x, y, r, RA = Math.random, rr = rnd) {
     const small = r < 6 * U;
     const cx = SW / 2, cy = SH / 2, half = Math.hypot(SW, SH) / 2;
     const d = Math.hypot(x - cx, y - cy) / half;
     return {
       x, y, r, small,
-      dir: Math.atan2(cy - y, cx - x) + rnd(-.08, .08),        // the exit leans toward the centre
-      off: Math.min(1, d * (small ? .7 : 1.05)) * rnd(.9, 1.1),
-      size: rnd(.8, .95),
+      dir: Math.atan2(cy - y, cx - x) + rr(-.08, .08),        // the exit leans toward the centre
+      off: Math.min(1, d * (small ? .7 : 1.05)) * rr(.9, 1.1),
+      size: rr(.8, .95),
       sy: 1, rot: 0,
       wob: [],                                                   // a cheese hole is a burst bubble: a perfect circle
       // le halo clair autour du trou : sur l'émission, les gros trous sont des cratères dont le
       // pourtour se soulève et accroche la lumière ; le bord du trou, lui, reste net
-      halo: small ? rnd(.14, .28) : rnd(.34, .56), haloR: small ? rnd(1.25, 1.5) : rnd(1.45, 1.85),
-      warm: rnd(0, 1), gloss: rnd(.25, .55), spark: !small && Math.random() < .45, sparkA: rnd(-.6, .6)
+      halo: small ? rr(.14, .28) : rr(.34, .56), haloR: small ? rr(1.25, 1.5) : rr(1.45, 1.85),
+      warm: rr(0, 1), gloss: rr(.25, .55), spark: !small && RA() < .45, sparkA: rr(-.6, .6)
     };
   }
   // every part of a hole (glow, wall, far opening, edge) follows the same irregular outline
@@ -133,33 +170,53 @@
     c.restore();
   }
 
+  // La pâte. Avec une graine, la même tranche revient à l'identique : c'est ce qui permet de
+  // comparer deux styles sur exactement le même fromage, mêmes trous, mêmes marbrures.
   function paintTexture() {
+    const S = STYLE;
+    const RA = S.graine ? alea(S.graine) : Math.random;
+    const rr = (a, b) => a + RA() * (b - a);
     const c = tex.getContext('2d');
+    c.filter = 'none'; c.globalAlpha = 1;
     c.globalCompositeOperation = 'source-over';
     const big = Math.max(SW, SH);
-    const cx = SW * rnd(.45, .55), cy = SH * rnd(.44, .54);
+    const cx = SW * rr(.45, .55), cy = SH * rr(.44, .54);
     const g = c.createRadialGradient(cx, cy, big * .02, SW * .5, SH * .5, big * .7);
-    g.addColorStop(0, '#e8ad44'); g.addColorStop(.35, '#dc9234'); g.addColorStop(.7, '#cd7a2b'); g.addColorStop(1, '#bb6524');
+    for (const [t, col] of [[0, '#e8ad44'], [.35, '#dc9234'], [.7, '#cd7a2b'], [1, '#bb6524']]) g.addColorStop(t, teinter(col, S));
     c.fillStyle = g; c.fillRect(0, 0, SW, SH);
-    // La surface, relevée sur l'émission : lisse, avec de larges ondulations douces, comme une
-    // pâte moulée qui accroche la lumière par grandes plages. Plus de petites taches ni de grain.
-    for (let i = 0; i < 18 * Math.max(A, 1 / A); i++) {
-      const x = Math.random() * SW, y = Math.random() * SH, r = rnd(180, 460) * U;
-      const light = Math.random() < .5;
+    // Les grandes ondulations de la surface. Sur les gros plans elles sont bien plus marquées
+    // que sur notre tranche : la pâte est marbrée par larges plages, pas uniforme.
+    const nM = Math.round(18 * Math.max(A, 1 / A) * S.nombre);
+    for (let i = 0; i < nM; i++) {
+      const x = RA() * SW, y = RA() * SH, r = rr(180, 460) * U * S.taille;
+      const light = RA() < .5;
       const m = c.createRadialGradient(x, y, 0, x, y, r);
-      m.addColorStop(0, light ? 'rgba(248,196,92,.13)' : 'rgba(150,62,12,.09)');
+      m.addColorStop(0, light ? `rgba(248,196,92,${(.13 * S.marbrures).toFixed(3)})` : `rgba(150,62,12,${(.09 * S.marbrures).toFixed(3)})`);
       m.addColorStop(1, 'rgba(0,0,0,0)');
       c.fillStyle = m; c.fillRect(x - r, y - r, 2 * r, 2 * r);
     }
-    // un tramage d'un seul niveau, invisible, juste pour que les grands dégradés ne fassent pas
-    // d'escaliers sur l'écran
-    const img = c.getImageData(0, 0, SW, SH), d = img.data;
-    for (let i = 0; i < d.length; i += 4) { const n = Math.random() - .5; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
-    c.putImageData(img, 0, 0);
+    // Des plaques brun-rouge, comme les zones sombres des gros plans.
+    if (S.taches > 0) {
+      const nT = Math.round(10 * Math.max(A, 1 / A) * S.taches);
+      for (let i = 0; i < nT; i++) {
+        const x = RA() * SW, y = RA() * SH, r = rr(90, 300) * U * S.taille;
+        const m = c.createRadialGradient(x, y, 0, x, y, r);
+        m.addColorStop(0, `rgba(126,44,6,${(.22 * S.taches).toFixed(3)})`);
+        m.addColorStop(.6, `rgba(150,62,12,${(.10 * S.taches).toFixed(3)})`);
+        m.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = m; c.fillRect(x - r, y - r, 2 * r, 2 * r);
+      }
+    }
+    // Les bords qui plongent dans le brun.
+    if (S.vignette > 0) {
+      const v = c.createRadialGradient(SW / 2, SH / 2, big * .25, SW / 2, SH / 2, big * .72);
+      v.addColorStop(0, 'rgba(90,30,2,0)');
+      v.addColorStop(1, `rgba(90,30,2,${(.55 * S.vignette).toFixed(3)})`);
+      c.fillStyle = v; c.fillRect(0, 0, SW, SH);
+    }
 
-    // Les trous, relevés sur l'émission : moins nombreux et plus gros qu'avant (surtout, presque
-    // plus de trous moyens), groupés vers le milieu, rares près des bords. Aucun ne touche le
-    // bord de la tranche : Fabien n'en veut pas (voir CLAUDE.md).
+    // Les trous : moins nombreux et plus gros qu'avant, groupés vers le milieu, rares près des
+    // bords. Aucun ne touche le bord de la tranche : Fabien n'en veut pas (voir CLAUDE.md).
     const holes = [];
     const specs = [[10, 22, 34], [5, 15, 21], [10, 8, 12], [7, 3.5, 6]];
     for (const [n0, a, b] of specs) {
@@ -167,22 +224,57 @@
       let placed = 0, tries = 0;
       while (placed < n && tries < 9000) {
         tries++;
-        const r = rnd(a, b) * U, m = r * 1.6 + 8 * U;
-        const x = m + Math.random() * (SW - 2 * m), y = m + Math.random() * (SH - 2 * m);
+        const r = rr(a, b) * U, m = r * 1.6 + 8 * U;
+        const x = m + RA() * (SW - 2 * m), y = m + RA() * (SH - 2 * m);
         const nx = (x - SW / 2) / (SW / 2), ny = (y - SH / 2) / (SH / 2);
-        if (Math.random() > Math.exp(-(nx * nx + ny * ny) / (2 * .6 * .6))) continue;   // vers le milieu
-        if (holes.every(h => Math.hypot(h.x - x, h.y - y) > h.r + r + Math.max(10 * U, (h.r + r) * .45))) { holes.push(makeHole(x, y, r)); placed++; }
+        if (RA() > Math.exp(-(nx * nx + ny * ny) / (2 * .6 * .6))) continue;   // vers le milieu
+        if (holes.every(h => Math.hypot(h.x - x, h.y - y) > h.r + r + Math.max(10 * U, (h.r + r) * .45))) { holes.push(makeHole(x, y, r, RA, rr)); placed++; }
       }
     }
-    // holes go on their own layer, softened a touch like the TV picture
-    const layer = document.createElement('canvas'); layer.width = SW; layer.height = SH;
+    const layer = mk(); layer.width = SW; layer.height = SH;
     const lc = layer.getContext('2d');
     for (const h of holes) drawHalo(lc, h);
     for (const h of holes) drawHole(lc, h);
     c.drawImage(layer, 0, 0);
     layer.width = layer.height = 0;   // free the scratch layer
     nTrous = holes.length;
+
+    finirImage(c, S);
     return holes;
+  }
+
+  // Ce que la cassette ajoute par-dessus l'image : la couleur qui bave, l'image adoucie,
+  // les lignes de balayage, le grain. Toujours en dernier, après les trous.
+  function finirImage(c, S) {
+    const copie = () => { const t = mk(); t.width = SW; t.height = SH; t.getContext('2d').drawImage(tex, 0, 0); return t; };
+    if (S.bave > 0) {
+      const d = Math.max(1, S.bave * .018 * SW), t = copie();
+      c.clearRect(0, 0, SW, SH);
+      c.globalAlpha = 1; c.drawImage(t, 0, 0);
+      c.globalAlpha = .28;
+      for (const k of [-1, 1, -.5, .5]) c.drawImage(t, k * d, 0);
+      c.globalAlpha = 1;
+      t.width = t.height = 0;
+    }
+    if (S.flou > 0) {
+      const t = copie();
+      c.clearRect(0, 0, SW, SH);
+      c.filter = `blur(${(S.flou * .006 * Math.min(SW, SH)).toFixed(2)}px)`;
+      c.drawImage(t, 0, 0);
+      c.filter = 'none';
+      t.width = t.height = 0;
+    }
+    if (S.lignes > 0) {
+      const pas = Math.max(1, Math.round(SH / 480));
+      c.fillStyle = `rgba(0,0,0,${(.16 * S.lignes).toFixed(3)})`;
+      for (let y = 0; y < SH; y += pas * 2) c.fillRect(0, y, SW, pas);
+    }
+    // un tramage d'un seul niveau pour que les grands dégradés ne fassent pas d'escaliers sur
+    // l'écran, et le grain de la bande par-dessus si on en veut
+    const amp = .5 + S.grain * 26;
+    const img = c.getImageData(0, 0, SW, SH), d2 = img.data;
+    for (let i = 0; i < d2.length; i += 4) { const n = (Math.random() - .5) * amp; d2[i] += n; d2[i + 1] += n; d2[i + 2] += n; }
+    c.putImageData(img, 0, 0);
   }
 
   function resetCheese() {
@@ -901,6 +993,12 @@
     compte: c => countRemoval(realize(shapeTemplate(c.forme), c.x, c.y, c.nx, c.ny, c.R, c.push == null ? PUSH : c.push)),
     son(big) { ensureAudio(); crunch(big); },
     choixForme(fn) { choixForme = typeof fn === 'function' ? fn : null; },   // les formes que le rat a le droit d'utiliser
+    // ---- pour l'Atelier des fromages (outils/atelier-fromages.html) ----
+    style: () => Object.assign({}, STYLE),
+    styleParDefaut: () => Object.assign({}, STYLE0),
+    styleSet(o) { Object.assign(STYLE, o); },
+    repeins() { paintTexture(); compose(); draw(); },     // même masque : les morsures restent
+    toile: () => view,
     freezeIntro(t) { if (!lidTex) lidTex = makeLid(); frozen = t; introStart = 0; draw(); } };
 
   resetCheese(); render();
