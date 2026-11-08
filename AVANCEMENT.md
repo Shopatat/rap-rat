@@ -410,9 +410,16 @@ réglages (c'était `body` qui défilait).
 ## La cassette ne jouait qu'une seule partie (relevé par Fabien le 08/11/2026)
 
 Fabien a comparé les trois parties de 15 minutes de la cassette : les morsures sont les mêmes,
-dans le même ordre, tout est pareil. C'est logique — une VHS ne tire rien au hasard, il n'y a pas
-d'ordinateur dans une cassette. Les gens du jeu ont donc animé **une seule partie** et l'ont
-remise trois fois.
+dans le même ordre. C'est logique — une VHS ne tire rien au hasard, il n'y a pas d'ordinateur dans
+une cassette. Les gens du jeu ont donc animé **une seule partie** et l'ont remise trois fois.
+
+Précisé le 08/11/2026 : **seule l'image est réutilisée.** Les trois parties ont chacune sa musique,
+trois morceaux différents, soit environ quarante-cinq minutes écrites pour le jeu. Fabien pense
+aussi, et ça se tient, que les animations du rat sont les mêmes dans toutes les langues : c'est un
+animatronique, sa mâchoire s'ouvre et se ferme sans articuler de syllabes, donc n'importe quelle
+langue colle dessus, et on ne retourne pas un plateau de marionnette pour un doublage. Donc **tout
+le visuel serait identique partout** ; seuls la voix et la musique changent. Pas entièrement
+revérifié.
 
 Conséquence : les règles que j'ai écrites dans `pickEdge` (`FOYERS`, `RESTE`, `PRES`, `REGROUPE`)
 n'ont jamais existé chez eux. Il n'y avait pas de rat qui décide, il y avait un animateur qui
@@ -432,10 +439,19 @@ Ce qu'on appelait « l'émission » est un jeu de société australien de 1992 :
 un an plus tôt : **Atmosfear** (sorti sous le nom *Nightmare*), le jeu VHS d'horreur. Il existe
 aussi une version italienne (*Il gioco video*) et une espagnole (*El juego de tablero con video*).
 
-Les versions PAL et NTSC n'ont ni les mêmes voix, ni le même texte, ni la même bande-son. Fabien
-préfère nettement la française/PAL : plus longue (il l'estime à cinq minutes au moins), sans boucle
-perceptible, funk avec des guitares électriques de temps en temps. L'américaine tourne plus vite
-en rond.
+Les versions PAL et NTSC n'ont pas les mêmes voix ni le même texte. En revanche **la musique est la
+même** : corrigé le 08/11/2026 après écoute par Fabien. Ce qu'il prenait pour « la musique
+américaine » était celle d'un autre jeu de la cassette — la personne qui a partagé la version
+française n'a mis en ligne que le jeu 1, et les extraits américains du thème viennent du jeu 3.
+Les musiques sont funk, avec des guitares électriques de temps en temps, sans boucle perceptible,
+et celle du jeu 1 tourne moins vite en rond que celle du jeu 3. Une légère différence de tonalité
+entre deux copies vient de la vitesse (conversion de norme, ou dérive de la numérisation) :
+mesurable et rattrapable en rééchantillonnant.
+
+Ça ouvre la méthode de nettoyage la plus propre : **la même musique sous des doublages
+différents**. On prend à chaque instant la version où le rat se tait. Et comme l'image est
+identique partout, elle sert de repère pour caler les copies au photogramme près, ce qui règle du
+même coup la dérive de vitesse.
 
 **Le compositeur n'est écrit nulle part en ligne** : la page « Soundtracks » d'IMDb est vide,
 Wikipédia ne parle que de bruitages. La piste la plus solide vient d'un recoupement :
