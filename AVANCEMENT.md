@@ -406,3 +406,77 @@ Dans l'appli : `shapeTemplate` sait faire un contour (`p.contour`, en rayons de 
 l'atelier choisir les formes du rat ; le jeu, lui, tire toujours les siennes (`tirerForme`).
 Corrigé au passage : la tranche ne restait pas collée en haut quand on fait défiler les
 réglages (c'était `body` qui défilait).
+
+## La cassette ne jouait qu'une seule partie (relevé par Fabien le 08/11/2026)
+
+Fabien a comparé les trois parties de 15 minutes de la cassette : les morsures sont les mêmes,
+dans le même ordre, tout est pareil. C'est logique — une VHS ne tire rien au hasard, il n'y a pas
+d'ordinateur dans une cassette. Les gens du jeu ont donc animé **une seule partie** et l'ont
+remise trois fois.
+
+Conséquence : les règles que j'ai écrites dans `pickEdge` (`FOYERS`, `RESTE`, `PRES`, `REGROUPE`)
+n'ont jamais existé chez eux. Il n'y avait pas de rat qui décide, il y avait un animateur qui
+enlevait les bouchées une par une à la main. L'Atelier des morsures n'est donc pas un pis-aller en
+attendant que je règle le rat : c'est la méthode d'origine.
+
+Reste à trancher avec Fabien, plus tard : l'appli rejoue-t-elle **une séquence fixe** (fidèle à la
+cassette) ou garde-t-elle **un rat qui improvise** (chaque partie différente) ? Rien n'est décidé.
+Une séquence fixe marcherait quand même sur tous les écrans, puisque les positions sont en
+largeurs de tranche, et une durée plus longue espacerait simplement les crocs.
+
+## Le jeu, et qui a fait la musique (cherché le 08/11/2026)
+
+Ce qu'on appelait « l'émission » est un jeu de société australien de 1992 : **Rap Rat**, conçu par
+**A Couple 'A Cowboys** (Brett Clements et Phillip Tanner, Sydney), édité en PAL par
+**J. W. Spear & Sons** et en français par **Habourdin International**. Même boîte, même éditeur,
+un an plus tôt : **Atmosfear** (sorti sous le nom *Nightmare*), le jeu VHS d'horreur. Il existe
+aussi une version italienne (*Il gioco video*) et une espagnole (*El juego de tablero con video*).
+
+Les versions PAL et NTSC n'ont ni les mêmes voix, ni le même texte, ni la même bande-son. Fabien
+préfère nettement la française/PAL : plus longue (il l'estime à cinq minutes au moins), sans boucle
+perceptible, funk avec des guitares électriques de temps en temps. L'américaine tourne plus vite
+en rond.
+
+**Le compositeur n'est écrit nulle part en ligne** : la page « Soundtracks » d'IMDb est vide,
+Wikipédia ne parle que de bruitages. La piste la plus solide vient d'un recoupement :
+
+- IMDb donne deux sociétés de production pour Rap Rat : A Couple 'A Cowboys et
+  **Twilight Productions**.
+- La bande-son d'*Atmosfear: The Third Dimension* (CD, EMG Publishing, 1995) est créditée
+  **Murray Burns et Colin Bayley**, sous le nom **Twilight Music Productions** (VGMdb, MobyGames).
+- Discogs décrit Colin Bayley comme un musicien néo-zélandais « in the group Twilight Productions ».
+- Burns et Bayley étaient tous deux dans **Mi-Sex** (le groupe de « Computer Games ») et écrivaient
+  ensemble la musique de la série *Beyond 2000* depuis le milieu des années 80.
+
+Donc la musique de Rap Rat est très probablement de **Murray Burns et Colin Bayley**. Ce n'est pas
+un crédit lu sur la cassette, c'est une déduction : Twilight est bien sur Rap Rat, et Twilight est
+bien eux, mais aucune source ne les relie directement à Rap Rat. Le générique de fin de la
+cassette française reste la seule preuve possible, et personne ne l'a transcrit.
+
+Bon à savoir : pour Atmosfear, une version **propre** de la musique (sans les interruptions du
+Gatekeeper) a bel et bien été éditée en CD en 1995. Le précédent existe donc. Murray Burns joue
+toujours avec Mi-Sex et donne des interviews radio ; Brett Clements a un site (brettclements.net).
+Ce sont des gens à qui on peut écrire.
+
+### Récupérer la musique sans la voix du rat
+
+Le problème n'est pas que la voix masque la musique : au mixage, la musique a été **réellement
+baissée** sous la voix (du ducking). Aucun séparateur ne peut rendre un niveau qui n'a jamais été
+enregistré. Les cloches qu'on entend parfois sont des sons d'événements du jeu ; les séparateurs
+les rangent avec la batterie, donc elles restent dans la musique.
+
+Pistes, de la meilleure à la pire :
+
+1. **Écrire aux compositeurs** et demander à acheter le master. Meilleur résultat possible, et
+   c'est l'idée de Fabien.
+2. **Croiser les versions européennes** (française, italienne, espagnole) : si elles partagent la
+   même musique sous des voix différentes, on prend à chaque instant celle qui se tait. À
+   vérifier, personne n'a comparé.
+3. **Inverser le ducking** : Moises rend deux pistes (musique et voix) ; l'enveloppe de la voix
+   donne la courbe de gain à appliquer à l'envers sur la musique. Faisable ici en Node sur des
+   WAV, sans rien installer.
+4. **Séparateurs modernes** (BS-RoFormer, Mel-Band RoFormer, via MVSEP ou UVR5), meilleurs que
+   Moises, pour rapiécer les trous restants.
+5. **Suno** en dernier recours : un *Cover* rejoue tout et perd justement les riffs que Fabien
+   aime ; un *Extend* peut prolonger un passage propre. On ne peut pas lui donner de consigne sur
+   la façon de lire l'audio fourni (ce canal n'existe pas), et l'upload plafonne à 8 minutes.
