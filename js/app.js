@@ -37,6 +37,12 @@
     menus: 1,         // 0 à 4, combien de tout petits en plus
     groupe: 1,        // .4 à 2.5, serrés vers le milieu (petit) ou étalés (grand)
     relief: 1,        // 0 à 2.5, le halo clair en cratère autour du trou
+    // La perspective des trous. 1 = l'oeil est au-dessus du milieu du fromage, chaque trou penche
+    // vers le centre et les trous du milieu se voient de face (c'est ce qu'on avait choisi).
+    // 0 = l'oeil est loin, tous les trous penchent dans la même direction, même ceux du milieu
+    // (c'est ce que montrent les gros plans que Fabien a envoyés le 09/11/2026).
+    perspective: 1,   // 0 à 1
+    angleTrous: 220,  // degrés, la direction quand la perspective est parallèle (220 = vers le haut à gauche)
     // Le noir autour de la tranche. Fabien : inutile tant que le fromage occupe tout l'écran,
     // mais dès qu'il en manque — surtout quand il en manque beaucoup — la tranche doit devenir un
     // morceau posé sur une table noire, dont on voit le contour et l'épaisseur tout autour.
@@ -100,10 +106,15 @@
     const small = r < 6 * U;
     const cx = SW / 2, cy = SH / 2, half = Math.hypot(SW, SH) / 2;
     const d = Math.hypot(x - cx, y - cy) / half;
+    // la sortie sombre glisse soit vers le centre (perspective 1), soit toujours dans la même
+    // direction (perspective 0), soit entre les deux
+    const P = STYLE.perspective, aR = Math.atan2(cy - y, cx - x), aP = (STYLE.angleTrous || 0) * Math.PI / 180;
+    const ux = Math.cos(aR) * P + Math.cos(aP) * (1 - P), uy = Math.sin(aR) * P + Math.sin(aP) * (1 - P);
+    const offR = Math.min(1, d * (small ? .7 : 1.05)), offP = small ? .55 : .8;
     return {
       x, y, r, small,
-      dir: Math.atan2(cy - y, cx - x) + rr(-.08, .08),        // the exit leans toward the centre
-      off: Math.min(1, d * (small ? .7 : 1.05)) * rr(.9, 1.1),
+      dir: Math.atan2(uy, ux) + rr(-.08, .08),
+      off: (offR * P + offP * (1 - P)) * rr(.9, 1.1),
       size: rr(.8, .95),
       sy: 1, rot: 0,
       wob: [],                                                   // a cheese hole is a burst bubble: a perfect circle

@@ -115,13 +115,15 @@ textarea{width:100%;min-height:150px;font:12px/1.45 ui-monospace,SFMono-Regular,
     <div class="row">
       <label class="sld">serrés vers le milieu <span class="val" id="groupeV"></span><input type="range" id="groupe" min="40" max="250" step="5"></label>
       <label class="sld">relief du cratère <span class="val" id="reliefV"></span><input type="range" id="relief" min="0" max="250" step="5"></label>
+      <label class="sld">perspective <span class="val" id="perspectiveV"></span><input type="range" id="perspective" min="0" max="100" step="2"></label>
+      <label class="sld">direction des trous <span class="val" id="angleTrousV"></span><input type="range" id="angleTrous" min="0" max="355" step="5"></label>
       <label class="sld">noir autour, tranche entière <span class="val" id="margeV"></span><input type="range" id="marge" min="0" max="120" step="2"></label>
     </div>
     <div class="row">
       <label class="sld">noir autour, à la fin <span class="val" id="margeFinV"></span><input type="range" id="margeFin" min="0" max="200" step="2"></label>
       <label class="sld">quand il arrive <span class="val" id="margeCourbeV"></span><input type="range" id="margeCourbe" min="50" max="300" step="5"></label>
     </div>
-    <div class="info"><b>Le noir autour</b> s'ouvre à mesure que la tranche se fait manger : tranche entière elle peut toucher les bords de l'écran, et plus il en manque, plus elle recule et devient un morceau posé sur une table noire, dont on voit le contour et l'épaisseur. « Quand il arrive » règle le moment : petit, le noir vient tôt ; grand, seulement vers la fin. Sers-toi de « Quelques morsures » pour juger. Sur tes captures, les trous sont <b>nombreux et de toutes les tailles</b>, avec beaucoup de tout petits entre les gros, et chacun se lit comme un vrai cratère. « Serrés vers le milieu » à 100 % est le réglage actuel ; plus haut, ils s’étalent jusqu’aux bords.</div>
+    <div class="info"><b>La perspective</b> dit d'où on regarde. « Depuis le milieu » est le choix d'origine : chaque trou penche vers le centre du fromage, et ceux du milieu se voient de face. « Parallèle » veut dire que l'oeil est loin : tous les trous penchent de la même façon, y compris ceux du milieu. Sur tes gros plans c'est plutôt parallèle, creux sombre en haut à gauche, paroi éclairée en bas à droite — mais c'est toi qui tranches, on avait choisi l'autre ensemble.<br><br><b>Le noir autour</b> s'ouvre à mesure que la tranche se fait manger : tranche entière elle peut toucher les bords de l'écran, et plus il en manque, plus elle recule et devient un morceau posé sur une table noire, dont on voit le contour et l'épaisseur. « Quand il arrive » règle le moment : petit, le noir vient tôt ; grand, seulement vers la fin. Sers-toi de « Quelques morsures » pour juger. Sur tes captures, les trous sont <b>nombreux et de toutes les tailles</b>, avec beaucoup de tout petits entre les gros, et chacun se lit comme un vrai cratère. « Serrés vers le milieu » à 100 % est le réglage actuel ; plus haut, ils s’étalent jusqu’aux bords.</div>
   </section>
 
   <section>
@@ -182,7 +184,7 @@ textarea{width:100%;min-height:150px;font:12px/1.45 ui-monospace,SFMono-Regular,
     ['Pâte chaude', 'plus sombre, plus rouge, bords qui plongent', { teinte: -8, chaleur: 1.18, clair: .92, taches: .7, vignette: .7 }],
     ['Beurre', 'pâle et jaune, comme le couvercle de la trappe', { teinte: 7, chaleur: .88, clair: 1.16, marbrures: 1.4 }],
     ['Cuir', 'très marbré, très sombre sur les bords', { chaleur: 1.1, clair: .86, marbrures: 3.2, taille: .8, nombre: 2.6, taches: 1, vignette: .85 }],
-    ['Comme la vidéo', 'un morceau posé sur du noir', { marge: 0, margeFin: .085, margeCourbe: 1.6, teinte: -3, chaleur: 1.14, clair: 1.05, marbrures: .9, taille: 1.6, nombre: 1, taches: .15, vignette: .28, bave: .16, trousN: 1.5, calibre: .8, menus: 2.6, groupe: 1.5, relief: 1.3 }],
+    ['Comme la vidéo', 'un morceau posé sur du noir', { marge: 0, margeFin: .085, margeCourbe: 1.6, perspective: .1, angleTrous: 220, teinte: -3, chaleur: 1.14, clair: 1.05, marbrures: .9, taille: 1.6, nombre: 1, taches: .15, vignette: .28, bave: .16, trousN: 1.5, calibre: .8, menus: 2.6, groupe: 1.5, relief: 1.3 }],
     ['Cathodique', 'tout à fond, pour voir jusqu’où ça va', { marbrures: 2.6, nombre: 2.2, taches: .7, vignette: .6, flou: .45, bave: .8, lignes: .6, grain: .55 }]
   ];
 
@@ -207,7 +209,9 @@ textarea{width:100%;min-height:150px;font:12px/1.45 ui-monospace,SFMono-Regular,
     ['relief', .01, v => Math.round(v * 100) + ' %'],
     ['marge', .001, v => (v * 100).toFixed(1) + ' %'],
     ['margeFin', .001, v => (v * 100).toFixed(1) + ' %'],
-    ['margeCourbe', .01, v => v.toFixed(2) + (v < 1.1 ? ' (tôt)' : v > 2 ? ' (tard)' : '')]
+    ['margeCourbe', .01, v => v.toFixed(2) + (v < 1.1 ? ' (tôt)' : v > 2 ? ' (tard)' : '')],
+    ['perspective', .01, v => v > .9 ? 'depuis le milieu' : v < .1 ? 'parallèle' : Math.round(v * 100) + ' % vers le milieu'],
+    ['angleTrous', 1, v => Math.round(v) + '°']
   ];
 
   const DEF = R.styleParDefaut();

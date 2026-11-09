@@ -555,3 +555,22 @@ en cratère). « Comme la vidéo » monte à environ 190 trous contre 70.
 
 Rien de tout ça ne touche à la **forme** des trous ni aux morsures. Vérifié dans le navigateur de
 l'ordinateur, l'appli garde bien l'aspect de la v35 par défaut ; pas encore vu sur l'iPhone.
+
+## La perspective des trous : depuis le milieu, ou parallèle ? (v39)
+
+Fabien a envoyé deux gros plans de fin de partie le 09/11/2026 : « on peut la voir ici la
+perspective ». Et ce qu'ils montrent ne correspond pas à ce qu'on avait codé.
+
+Dans l'appli, l'oeil est au-dessus du **milieu du fromage** : chaque trou penche vers le centre,
+et les trous du milieu se voient presque de face (c'est écrit dans CLAUDE.md, on l'avait choisi
+ensemble). Sur les captures, **tous les trous penchent de la même façon** — creux sombre en haut
+à gauche, paroi éclairée en bas à droite — y compris ceux du milieu. C'est ce que donne un oeil
+loin du sujet, donc une projection parallèle.
+
+Je n'ai rien tranché, j'ai rendu la chose réglable : `perspective` (1 = depuis le milieu, le
+choix d'origine ; 0 = parallèle) et `angleTrous` (la direction quand c'est parallèle, 220° =
+vers le haut à gauche). Le mélange se fait sur le vecteur de direction et sur `off`, donc à 1 on
+retrouve exactement l'ancien comportement.
+
+**Par défaut `perspective` reste à 1** : l'appli ne change pas. Le style « Comme la vidéo » la met
+à 0,1. À Fabien de juger, les captures sous les yeux.
