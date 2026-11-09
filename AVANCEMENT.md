@@ -796,3 +796,31 @@ liseré clair 14 % au-dessus d'elle. Nous étions donc déjà plus épais que la
 l'épaissir encore nous en éloigne — mais Fabien juge sur l'écran de son iPhone, où le relief
 tient la tranche ; c'est lui qui décide. Vérifié que la fin de partie ne s'en trouve pas
 délavée : le dernier morceau garde sa pâte au milieu.
+
+## Atelier de la perspective (v46)
+
+Fabien, le 09/11/2026 : « il faudrait que tu puisses le faire orienter la perspective avec un
+bout de fromage pour que je puisse la choisir moi-même ». Les deux réglages existaient déjà
+(`perspective` et `angleTrous`, perdus au milieu des curseurs de l'Atelier des fromages) ;
+ce qui manquait, c'était de pouvoir les choisir à la main.
+
+`outils/atelier-perspective.html` : une galette épaisse qu'on tourne au doigt. Là où le doigt
+se pose, c'est là qu'est l'œil. Au milieu, l'œil est à la verticale : `perspective` = 1, les
+trous du milieu se voient de face. En s'éloignant, la galette s'écrase, on voit sa tranche, et
+`perspective` descend vers 0 pendant que `angleTrous` prend la direction du doigt. En dessous,
+la vraie tranche de l'appli se repeint quand on lâche (elle met un instant, d'où l'attente).
+Trois raccourcis : « Depuis le milieu » (le défaut), « Comme tes gros plans » (0,1 / 220°),
+« Tout à fait de côté ».
+
+La galette est un schéma dessiné dans la page, pas le vrai rendu — c'est la tranche du dessous
+qui tranche. Sa géométrie, pour qui y retouche : un point (u, v) de la face du dessus, à la
+profondeur w, se projette en `C + dirA*(u*cos θ + w*sin θ) + dirB*v`, où `dirA` est la
+direction de l'œil à l'écran et θ son inclinaison. Il en découle que **le fond sombre d'un
+trou glisse du côté de l'œil** et que la paroi éclairée se voit du côté opposé : c'est bien ce
+que fait `makeHole` dans `js/app.js`, et ça confirme son commentaire d'origine (« l'œil est
+au-dessus du milieu » pour `perspective` = 1). Deux bornes pour que ça reste lisible : la
+galette ne s'incline pas au-delà de 60°, et le fond d'un trou ne glisse jamais de plus de
+0,95 fois son rayon — sinon il sort de l'ouverture et le trou devient une tache claire.
+
+La perspective elle-même n'est pas tranchée : le défaut de l'appli reste `perspective: 1`,
+en attendant que Fabien choisisse.

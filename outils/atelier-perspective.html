@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Atelier de la perspective — Rap Rat</title>
+<!-- Atelier de la perspective : d'où on regarde la tranche. Deux réglages seulement
+     (perspective et angleTrous, dans js/app.js), mais réglés au doigt sur un bout de fromage
+     qu'on tourne, au lieu de deux curseurs abstraits. Le bout de fromage en haut est un
+     schéma dessiné ici ; la tranche en dessous est le vrai rendu de l'appli. -->
+<link rel="stylesheet" href="../css/style.css">
+<style>
+:root{--line:rgba(244,201,106,.16)}
+html,body{height:auto;overflow:auto;background:var(--bg);user-select:auto;-webkit-user-select:auto}
+body{margin:0;padding:18px 16px 60px;font:15px/1.5 var(--ui);color:var(--ink)}
+.wrap{max-width:1000px;margin:0 auto}
+h1{font-family:var(--display);color:var(--cheese);font-size:26px;margin:0 0 2px}
+p.lede{color:var(--muted);margin:0 0 18px;font-size:13.5px;max-width:70ch}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+h2{font:600 13px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.scene{position:relative;width:100%;aspect-ratio:956/440;border-radius:10px;overflow:hidden;background:#000}
+.scene .stage{position:absolute!important;inset:0!important}
+.scene .bar,.scene .banner,.scene header,.scene .turn{display:none!important}
+/* Le doigt qui traîne sur la galette ne doit pas faire défiler la page (touch-action:none),
+   d'où les marges de chaque côté : elles restent là pour faire défiler au pouce. */
+#bout{display:block;width:86%;max-width:520px;margin:0 auto;aspect-ratio:1/1;border-radius:14px;
+  background:#0a0705;border:1px solid var(--line);touch-action:none;cursor:grab}
+#bout.prise{cursor:grabbing}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.row+.row{margin-top:10px}
+label.sld{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted);flex:1 1 210px}
+label.sld input{width:100%;accent-color:var(--cheese)}
+.val{color:var(--cream);font-variant-numeric:tabular-nums}
+.btn2{font:500 14px/1 var(--ui);color:var(--ink);background:var(--panel-hi);border:1px solid var(--line);
+  border-radius:999px;padding:0 15px;min-height:40px;cursor:pointer}
+.btn2:hover{background:#3a2818}
+.btn2.primary{background:var(--cheese);color:var(--on-cheese);border-color:transparent;font-weight:700}
+.btn2[aria-pressed="true"]{background:var(--cheese);color:var(--on-cheese);border-color:transparent}
+.info{font-size:12.5px;color:var(--muted);margin-top:10px}
+.info b{color:var(--cream);font-variant-numeric:tabular-nums}
+.lecture{text-align:center;font-size:13px;color:var(--cream);font-variant-numeric:tabular-nums;margin-top:10px}
+.lecture em{color:var(--muted);font-style:normal}
+input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;border:1px solid var(--line);
+  border-radius:8px;padding:7px 8px;width:9ch;font-variant-numeric:tabular-nums}
+textarea{width:100%;min-height:120px;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);
+  background:#0d0906;border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Atelier de la perspective</h1>
+  <p class="lede">D’où est-ce qu’on regarde le fromage ? Pose ton doigt sur le bout de fromage, là où tu veux mettre ton œil, et promène-le : le bout se tourne sous ton doigt et les trous se mettent à pencher. Au milieu, tu regardes bien au-dessus du fromage. Vers le bord, ton œil s’éloigne et tous les trous finissent par pencher du même côté. La vraie tranche, en dessous, se repeint dès que tu lâches.</p>
+
+  <section>
+    <h2>Le bout de fromage</h2>
+    <canvas id="bout"></canvas>
+    <p class="lecture" id="lecture"></p>
+    <div class="row" style="margin-top:12px;justify-content:center">
+      <button class="btn2" data-reg="milieu">Depuis le milieu</button>
+      <button class="btn2" data-reg="gros-plans">Comme tes gros plans</button>
+      <button class="btn2" data-reg="cote">Tout à fait de côté</button>
+    </div>
+    <div class="info">« Depuis le milieu » est le choix d’origine : l’œil est pile au-dessus du centre, les trous du milieu se voient de face et les autres penchent vers le centre. « Comme tes gros plans » est ce que montrent les captures que tu m’avais envoyées : l’œil est loin, en haut à gauche, creux sombre en haut à gauche et paroi éclairée en bas à droite. Entre les deux, tout est permis.</div>
+  </section>
+
+  <section>
+    <h2>La vraie tranche</h2>
+    <div class="scene" id="scene">
+      <div class="stage" id="stage"><canvas id="view"></canvas></div>
+      <div class="banner" id="banner" hidden></div>
+      <header id="header"><span class="mark">Rap Rat</span></header>
+      <div class="bar" id="idleBar">
+        <div class="stepper"><button id="durMinus" type="button">−</button><output id="durOut"></output><button id="durPlus" type="button">+</button></div>
+        <button class="btn" id="soundBtn" type="button"></button>
+        <button class="btn" id="startBtn" type="button"></button>
+      </div>
+      <div class="bar" id="runBar" hidden><button class="btn" id="pauseBtn" type="button"></button><button class="btn" id="restartBtn" type="button"></button><button class="btn" id="fsBtn" type="button" hidden></button></div>
+      <div class="bar" id="endBar" hidden><button class="btn" id="againBtn" type="button"></button></div>
+      <div class="turn" id="turn"></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label style="font-size:12px;color:var(--muted)">graine <input type="number" id="graine" value="7"></label>
+      <button class="btn2" id="autre">Autre tranche</button>
+      <button class="btn2" id="croque">Quelques morsures</button>
+      <button class="btn2" id="neuve">Tranche entière</button>
+      <span class="info" style="margin:0" id="etat"></span>
+    </div>
+    <div class="info">La graine fige la tranche : mêmes trous, même pâte. Deux perspectives se comparent donc sur exactement le même fromage. La tranche met un instant à se repeindre, c’est pour ça qu’elle attend que tu lâches le doigt.</div>
+  </section>
+
+  <section>
+    <h2>Au doigt près</h2>
+    <div class="row">
+      <label class="sld">perspective <span class="val" id="perspectiveV"></span><input type="range" id="perspective" min="0" max="100" step="1"></label>
+      <label class="sld">direction des trous <span class="val" id="angleTrousV"></span><input type="range" id="angleTrous" min="0" max="355" step="5"></label>
+    </div>
+    <div class="info">Les deux mêmes réglages que le bout de fromage, si tu veux poser un chiffre rond. <b>Perspective</b> à 100 % : l’œil est au-dessus du milieu. À 0 % : l’œil est à l’infini, tous les trous penchent pareil et la <b>direction</b> dit de quel côté.</div>
+  </section>
+
+  <section>
+    <h2>M’envoyer ton choix</h2>
+    <div class="row">
+      <button class="btn2 primary" id="copier">Copier pour Claude</button>
+      <button class="btn2" id="png">Enregistrer l’image</button>
+      <span class="info" style="margin:0" id="copieEtat"></span>
+    </div>
+    <textarea id="sortie" readonly spellcheck="false"></textarea>
+  </section>
+</div>
+
+<audio id="music" loop preload="none" playsinline></audio>
+<script src="../js/app.js"></script>
+<script>
+(() => {
+  const R = window.RapRat, $ = id => document.getElementById(id), TAU = Math.PI * 2;
+  R.atelier();
+  for (const id of ['idleBar', 'runBar', 'endBar', 'header', 'banner', 'turn']) $(id).hidden = true;
+
+  const DEF = R.styleParDefaut();
+  let style = Object.assign({}, DEF), crocs = 0, nom = 'réglé au doigt';
+
+  const lire = (k, d) => { try { const v = localStorage.getItem('raprat.perspective.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
+  const ecrire = (k, v) => { try { localStorage.setItem('raprat.perspective.' + k, JSON.stringify(v)); } catch (e) {} };
+
+  // ---------------------------------------------------------------- l'œil
+  // Où est l'œil, en parts du rayon du bout de fromage : (0,0) = pile au-dessus du milieu,
+  // 1 = assez loin pour que tous les trous penchent du même côté.
+  let ex = 0, ey = 0, angle = (DEF.angleTrous || 220) * Math.PI / 180;
+
+  function depuisOeil() {
+    const t = Math.min(1, Math.hypot(ex, ey));
+    if (t > .03) angle = Math.atan2(ey, ex);
+    style.perspective = 1 - t;
+    style.angleTrous = (angle * 180 / Math.PI + 360) % 360;
+  }
+  function versOeil() {
+    const t = 1 - style.perspective;
+    angle = (style.angleTrous || 0) * Math.PI / 180;
+    ex = Math.cos(angle) * t; ey = Math.sin(angle) * t;
+  }
+
+  // ------------------------------------------------------- le bout de fromage
+  // Un schéma, pas le vrai rendu : une galette épaisse, vue depuis l'œil. L'œil est à la
+  // verticale au milieu quand on ne touche à rien ; plus on l'éloigne, plus la galette
+  // s'écrase, plus on voit sa tranche, et plus les trous laissent voir leur paroi.
+  // La physique est celle de l'appli : le fond sombre d'un trou glisse du côté de l'œil.
+  const bout = $('bout'), bc = bout.getContext('2d');
+  const PATE = '#ff9d10', BORD = '#c85401';      // la palette de l'appli (STYLE0 dans js/app.js)
+
+  // les trous du bout de fromage, tirés une fois pour toutes : ils ne doivent pas sautiller
+  // pendant qu'on tourne la galette
+  const TROUS = (() => {
+    let s = 20260911;
+    const al = () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
+    const l = [];
+    for (let i = 0; i < 17 && l.length < 17; i++) {
+      for (let essai = 0; essai < 40; essai++) {
+        const a = al() * TAU, d = Math.sqrt(al()) * .78;
+        const u = Math.cos(a) * d, v = Math.sin(a) * d;
+        const r = (.045 + Math.pow(al(), 1.7) * .145);
+        if (Math.hypot(u, v) + r > .86) continue;
+        if (l.some(h => Math.hypot(h.u - u, h.v - v) < h.r + r + .035)) continue;
+        l.push({ u, v, r, travers: al() < Math.min(1, Math.max(0, (r - .07) / .09)), creux: .5 + al() * .4 });
+        break;
+      }
+    }
+    return l;
+  })();
+
+  function peindreBout() {
+    const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+    const css = bout.getBoundingClientRect();
+    const W = Math.max(1, Math.round(css.width * dpr)), H = Math.max(1, Math.round(css.height * dpr));
+    if (bout.width !== W || bout.height !== H) { bout.width = W; bout.height = H; }
+    const t = Math.min(1, Math.hypot(ex, ey));
+    const th = t * 1.05;                              // l'inclinaison de l'œil, jusqu'à 60°
+    const k = Math.cos(th), s = Math.sin(th);
+    const ax = Math.cos(angle), ay = Math.sin(angle); // le côté de l'œil, à l'écran
+    const bx = -ay, by = ax;
+    const cx = W / 2, cy = H / 2, Rg = Math.min(W, H) * .33, E = Rg * .17;
+
+    // (u, v, w) : u le long de l'axe de l'œil, v en travers, w la profondeur sous la face du dessus
+    const px = (u, v, w) => cx + ax * (u * k + w * s) + bx * v;
+    const py = (u, v, w) => cy + ay * (u * k + w * s) + by * v;
+    const rond = (u, v, r, w, fermer) => {
+      for (let i = 0; i <= 48; i++) {
+        const a = i / 48 * TAU, uu = u + Math.cos(a) * r, vv = v + Math.sin(a) * r;
+        const X = px(uu, vv, w), Y = py(uu, vv, w);
+        if (i === 0) bc.moveTo(X, Y); else bc.lineTo(X, Y);
+      }
+      if (fermer !== false) bc.closePath();
+    };
+
+    bc.setTransform(1, 0, 0, 1, 0, 0);
+    bc.clearRect(0, 0, W, H);
+
+    // la tranche de la galette : la silhouette, c'est la réunion de la face du dessus et de
+    // celle du dessous, décalée du côté de l'œil. Ce qui dépasse, c'est l'épaisseur.
+    const gp = bc.createLinearGradient(px(-Rg, 0, 0), py(-Rg, 0, 0), px(Rg, 0, E), py(Rg, 0, E));
+    gp.addColorStop(0, '#5c1c02'); gp.addColorStop(.45, '#8e3a05'); gp.addColorStop(1, '#4a1601');
+    bc.beginPath(); rond(0, 0, Rg, 0); rond(0, 0, Rg, E); bc.fillStyle = gp; bc.fill();
+
+    // la face du dessus
+    bc.save();
+    bc.beginPath(); rond(0, 0, Rg, 0); bc.clip();
+    const g = bc.createRadialGradient(cx - Rg * .22 * k, cy - Rg * .22, Rg * .08, cx, cy, Rg * 1.15);
+    g.addColorStop(0, PATE); g.addColorStop(1, BORD);
+    bc.fillStyle = g; bc.fillRect(0, 0, W, H);
+
+    // les trous : on voit la paroi du tunnel, et son fond glissé du côté de l'œil
+    for (const T of TROUS) {
+      const h = { u: T.u * Rg, v: T.v * Rg, r: T.r * Rg, travers: T.travers, creux: T.creux };
+      const prof0 = h.travers ? E : E * h.creux;
+      // Le fond ne glisse jamais tout à fait hors de l'ouverture : passé un certain angle on
+      // ne verrait plus que la paroi, et le trou deviendrait une tache claire. L'appli fait
+      // pareil (`off` dans makeHole), sinon le trou ne se lit plus comme un trou.
+      const prof = s > .001 ? Math.min(prof0, h.r * .95 / s) : prof0;
+      bc.save();
+      bc.beginPath(); rond(h.u, h.v, h.r, 0); bc.clip();
+      // la paroi, éclairée d'en haut à gauche comme dans l'appli, et qui plonge vers le fond
+      const p1x = px(h.u, h.v, 0) - h.r * .8, p1y = py(h.u, h.v, 0) - h.r * .8;
+      const p2x = px(h.u, h.v, prof) + h.r * .8, p2y = py(h.u, h.v, prof) + h.r * .8;
+      const gw = bc.createLinearGradient(p1x, p1y, p2x, p2y);
+      gw.addColorStop(0, '#ffcf63'); gw.addColorStop(.5, '#d07a10'); gw.addColorStop(1, '#5e2402');
+      bc.fillStyle = gw; bc.fillRect(0, 0, W, H);
+      // le fond : noir s'il traverse, sinon un brun d'autant plus sombre qu'il est creux
+      bc.beginPath(); rond(h.u, h.v, h.r * (h.travers ? .88 : .96), prof);
+      bc.fillStyle = h.travers ? '#000' : 'rgb(' + (150 - 145 * h.creux | 0) + ',' + (76 - 73 * h.creux | 0) + ',' + (20 - 20 * h.creux | 0) + ')';
+      bc.fill();
+      bc.restore();
+      // le cratère : le pourtour du trou se soulève et accroche la lumière
+      bc.save();
+      bc.beginPath(); rond(h.u, h.v, h.r * 1.5, 0); rond(h.u, h.v, h.r, 0); bc.clip('evenodd');
+      bc.beginPath(); rond(h.u - Rg * .012, h.v - Rg * .012, h.r * 1.5, 0);
+      bc.fillStyle = 'rgba(255,214,110,.17)'; bc.fill();
+      bc.restore();
+    }
+    bc.restore();
+
+    // le liseré clair sur le bord de la face du dessus
+    bc.save();
+    bc.beginPath(); rond(0, 0, Rg, 0); bc.clip();
+    bc.beginPath(); rond(0, 0, Rg, 0);
+    bc.lineWidth = Rg * .035; bc.strokeStyle = 'rgba(255,228,146,.75)'; bc.stroke();
+    bc.restore();
+
+    // l'œil : là où le doigt l'a posé
+    const ox = cx + ex * Rg * 1.52, oy = cy + ey * Rg * 1.52;
+    bc.beginPath(); bc.moveTo(cx, cy); bc.lineTo(ox, oy);
+    bc.strokeStyle = 'rgba(244,201,106,.30)'; bc.lineWidth = Math.max(1, Rg * .012);
+    bc.setLineDash([Rg * .05, Rg * .05]); bc.stroke(); bc.setLineDash([]);
+    bc.beginPath(); bc.arc(ox, oy, Rg * .085, 0, TAU);
+    bc.fillStyle = '#1a0f07'; bc.fill();
+    bc.strokeStyle = '#f4c96a'; bc.lineWidth = Math.max(1, Rg * .018); bc.stroke();
+    bc.beginPath(); bc.arc(ox, oy, Rg * .032, 0, TAU); bc.fillStyle = '#f4c96a'; bc.fill();
+  }
+
+  // ------------------------------------------------------------ les lectures
+  const motPerspective = v => v > .96 ? 'l’œil est au-dessus du milieu'
+    : v < .04 ? 'l’œil est à l’infini' : Math.round(v * 100) + ' % vers le milieu';
+  const motAngle = a => {
+    const noms = ['à droite', 'en bas à droite', 'en bas', 'en bas à gauche', 'à gauche', 'en haut à gauche', 'en haut', 'en haut à droite'];
+    return Math.round(a) + '° — ' + noms[Math.round(((a % 360) + 360) % 360 / 45) % 8];
+  };
+  function majLecture() {
+    $('lecture').innerHTML = motPerspective(style.perspective) +
+      (style.perspective > .96 ? '' : ' <em>·</em> ' + motAngle(style.angleTrous));
+    $('perspectiveV').textContent = motPerspective(style.perspective);
+    $('angleTrousV').textContent = motAngle(style.angleTrous);
+    $('perspective').value = Math.round(style.perspective * 100);
+    $('angleTrous').value = Math.round(style.angleTrous / 5) * 5;
+  }
+
+  // -------------------------------------------------------- la vraie tranche
+  function peindre() {
+    style.graine = Number($('graine').value) || 0;
+    R.styleSet(style);
+    R.neuf();
+    if (crocs) R.bites(crocs, 0);
+    ecrire('oeil', { ex, ey, angle });
+    $('etat').textContent = R.trous() + ' trous' + (crocs ? ' · ' + crocs + ' morsures' : '');
+    majSortie();
+  }
+  let attente = null;
+  const peindreBientot = () => { clearTimeout(attente); attente = setTimeout(peindre, 90); };
+
+  // ------------------------------------------------------------- le doigt
+  function posePointeur(e) {
+    const r = bout.getBoundingClientRect();
+    const Rg = Math.min(r.width, r.height) * .33;
+    ex = (e.clientX - r.left - r.width / 2) / (Rg * 1.52);
+    ey = (e.clientY - r.top - r.height / 2) / (Rg * 1.52);
+    const t = Math.hypot(ex, ey);
+    if (t > 1) { ex /= t; ey /= t; }               // l'œil ne va pas plus loin que l'infini
+    depuisOeil(); majLecture(); peindreBout();
+  }
+  bout.addEventListener('pointerdown', e => {
+    bout.setPointerCapture(e.pointerId); bout.classList.add('prise');
+    e.preventDefault(); posePointeur(e);
+  });
+  bout.addEventListener('pointermove', e => { if (bout.hasPointerCapture(e.pointerId)) { e.preventDefault(); posePointeur(e); } });
+  const lache = e => { if (!bout.classList.contains('prise')) return;
+    bout.classList.remove('prise'); peindreBientot(); };
+  bout.addEventListener('pointerup', lache);
+  bout.addEventListener('pointercancel', lache);
+
+  // --------------------------------------------------------- les raccourcis
+  const REGLAGES = {
+    'milieu': { perspective: 1, angleTrous: 220 },
+    'gros-plans': { perspective: .1, angleTrous: 220 },
+    'cote': { perspective: 0, angleTrous: 220 }
+  };
+  for (const b of document.querySelectorAll('[data-reg]')) b.onclick = () => {
+    Object.assign(style, REGLAGES[b.dataset.reg]);
+    nom = b.textContent.trim();
+    versOeil(); majLecture(); peindreBout(); peindre();
+  };
+
+  // ---------------------------------------------------------- les curseurs
+  for (const id of ['perspective', 'angleTrous']) {
+    const f = id === 'perspective' ? .01 : 1;
+    $(id).addEventListener('input', () => {
+      style[id] = Number($(id).value) * f;
+      nom = 'réglé au doigt';
+      versOeil(); majLecture(); peindreBout();
+    });
+    $(id).addEventListener('change', peindreBientot);
+  }
+
+  $('graine').addEventListener('change', peindre);
+  $('autre').onclick = () => { $('graine').value = Math.floor(Math.random() * 99999) + 1; crocs = 0; peindre(); };
+  $('neuve').onclick = () => { crocs = 0; peindre(); };
+  $('croque').onclick = () => { crocs = crocs ? Math.min(crocs + 12, 60) : 12; peindre(); };
+
+  // ------------------------------------------------------ m'envoyer le choix
+  function majSortie() {
+    $('sortie').value = [
+      'Atelier de la perspective — Rap Rat',
+      'réglage : ' + nom,
+      'graine : ' + (style.graine || 'au hasard'),
+      '',
+      '  perspective = ' + style.perspective.toFixed(2) + '   (' + motPerspective(style.perspective) + ')',
+      '  angleTrous  = ' + Math.round(style.angleTrous) + '   (' + motAngle(style.angleTrous) + ')',
+      '',
+      'Par défaut dans l’appli : perspective=' + DEF.perspective + ', angleTrous=' + DEF.angleTrous,
+      '',
+      'Notes de Fabien : '
+    ].join('\n');
+  }
+  $('copier').onclick = async () => {
+    const t = $('sortie');
+    try { await navigator.clipboard.writeText(t.value); $('copieEtat').textContent = 'Copié ✓'; }
+    catch (e) {
+      t.removeAttribute('readonly'); t.select(); t.setSelectionRange(0, 99999);
+      const ok = document.execCommand && document.execCommand('copy');
+      t.setAttribute('readonly', '');
+      $('copieEtat').textContent = ok ? 'Copié ✓' : 'Sélectionne le texte et copie-le à la main.';
+    }
+    setTimeout(() => { $('copieEtat').textContent = ''; }, 4000);
+  };
+  $('png').onclick = () => {
+    const a = document.createElement('a');
+    a.download = 'perspective-' + Math.round(style.perspective * 100) + '-' + Math.round(style.angleTrous) + '.png';
+    try { a.href = R.toile().toDataURL('image/png'); a.click(); } catch (e) {}
+  };
+
+  // ----------------------------------------------------------- au lancement
+  const garde = lire('oeil', null);
+  if (garde) { ex = garde.ex; ey = garde.ey; angle = garde.angle; depuisOeil(); }
+  else versOeil();
+  majLecture(); peindreBout();
+  R.ajuste(); peindre();
+  new ResizeObserver(() => { R.ajuste(); peindreBout(); }).observe($('scene'));
+  window.addEventListener('resize', peindreBout);
+})();
+</script>
+</body>
+</html>
