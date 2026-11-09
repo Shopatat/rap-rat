@@ -115,6 +115,7 @@ textarea{width:100%;min-height:150px;font:12px/1.45 ui-monospace,SFMono-Regular,
     <div class="row">
       <label class="sld">serrés vers le milieu <span class="val" id="groupeV"></span><input type="range" id="groupe" min="40" max="250" step="5"></label>
       <label class="sld">relief du cratère <span class="val" id="reliefV"></span><input type="range" id="relief" min="0" max="250" step="5"></label>
+      <label class="sld">trous qui traversent <span class="val" id="traversantsV"></span><input type="range" id="traversants" min="0" max="100" step="1"></label>
       <label class="sld">perspective <span class="val" id="perspectiveV"></span><input type="range" id="perspective" min="0" max="100" step="2"></label>
       <label class="sld">direction des trous <span class="val" id="angleTrousV"></span><input type="range" id="angleTrous" min="0" max="355" step="5"></label>
       <label class="sld">noir autour, tranche entière <span class="val" id="margeV"></span><input type="range" id="marge" min="0" max="120" step="2"></label>
@@ -123,7 +124,7 @@ textarea{width:100%;min-height:150px;font:12px/1.45 ui-monospace,SFMono-Regular,
       <label class="sld">noir autour, à la fin <span class="val" id="margeFinV"></span><input type="range" id="margeFin" min="0" max="200" step="2"></label>
       <label class="sld">quand il arrive <span class="val" id="margeCourbeV"></span><input type="range" id="margeCourbe" min="50" max="300" step="5"></label>
     </div>
-    <div class="info"><b>La perspective</b> dit d'où on regarde. « Depuis le milieu » est le choix d'origine : chaque trou penche vers le centre du fromage, et ceux du milieu se voient de face. « Parallèle » veut dire que l'oeil est loin : tous les trous penchent de la même façon, y compris ceux du milieu. Sur tes gros plans c'est plutôt parallèle, creux sombre en haut à gauche, paroi éclairée en bas à droite — mais c'est toi qui tranches, on avait choisi l'autre ensemble.<br><br><b>Le noir autour</b> s'ouvre à mesure que la tranche se fait manger : tranche entière elle peut toucher les bords de l'écran, et plus il en manque, plus elle recule et devient un morceau posé sur une table noire, dont on voit le contour et l'épaisseur. « Quand il arrive » règle le moment : petit, le noir vient tôt ; grand, seulement vers la fin. Sers-toi de « Quelques morsures » pour juger. Sur tes captures, les trous sont <b>nombreux et de toutes les tailles</b>, avec beaucoup de tout petits entre les gros, et chacun se lit comme un vrai cratère. « Serrés vers le milieu » à 100 % est le réglage actuel ; plus haut, ils s’étalent jusqu’aux bords.</div>
+    <div class="info"><b>La perspective</b> dit d'où on regarde. « Depuis le milieu » est le choix d'origine : chaque trou penche vers le centre du fromage, et ceux du milieu se voient de face. « Parallèle » veut dire que l'oeil est loin : tous les trous penchent de la même façon, y compris ceux du milieu. Sur tes gros plans c'est plutôt parallèle, creux sombre en haut à gauche, paroi éclairée en bas à droite — mais c'est toi qui tranches, on avait choisi l'autre ensemble.<br><br><b>Les trous qui traversent</b> : sur `references/progression/01.jpg`, la tranche entière avant la première morsure, la plupart des trous ne traversent pas le fromage — on voit leur fond brun, et seuls quelques-uns, les gros surtout, s'ouvrent sur le noir. À 45 % (le réglage actuel) un gros trou sur deux environ débouche, et presque aucun des petits. À « tous », on retrouve la v40.<br><br><b>Le noir autour</b> s'ouvre à mesure que la tranche se fait manger : tranche entière elle peut toucher les bords de l'écran, et plus il en manque, plus elle recule et devient un morceau posé sur une table noire, dont on voit le contour et l'épaisseur. « Quand il arrive » règle le moment : petit, le noir vient tôt ; grand, seulement vers la fin. Sers-toi de « Quelques morsures » pour juger. Sur tes captures, les trous sont <b>nombreux et de toutes les tailles</b>, avec beaucoup de tout petits entre les gros, et chacun se lit comme un vrai cratère. « Serrés vers le milieu » à 100 % est le réglage actuel ; plus haut, ils s’étalent jusqu’aux bords.</div>
   </section>
 
   <section>
@@ -178,7 +179,8 @@ textarea{width:100%;min-height:150px;font:12px/1.45 ui-monospace,SFMono-Regular,
   // Les styles proposés. Chacun ne dit que ce qu'il change ; le reste vient du défaut de l'appli.
   const STYLES = [
     ['Comme l’appli', 'ce que donne une vraie partie aujourd’hui', {}],
-    ['La v35', 'la pâte d’avant ton choix de couleur', { teinte: 0, chaleur: 1, clair: 1, marbrures: 1, taille: 1, nombre: 1, taches: 0, vignette: 0 }],
+    ['La v35', 'la pâte d’avant ton choix de couleur', { teinte: 0, chaleur: 1, clair: 1, marbrures: 1, taille: 1, nombre: 1, taches: 0, vignette: 0, traversants: 1 }],
+    ['Trous qui traversent', 'comme avant : tous débouchent sur le noir', { traversants: 1 }],
     ['Marbré', 'mêmes couleurs, mais la pâte n’est plus unie', { marbrures: 2.4, taille: 1.35, nombre: 2 }],
     ['Capture d’écran', 'mon essai pour coller aux gros plans', { marbrures: 2.1, taille: 1.3, nombre: 1.8, taches: .55, vignette: .45, bave: .22, grain: .12 }],
     ['Vieille bande', 'ce que la VHS fait à l’image', { flou: .3, bave: .55, lignes: .35, grain: .4 }],
@@ -208,6 +210,7 @@ textarea{width:100%;min-height:150px;font:12px/1.45 ui-monospace,SFMono-Regular,
     ['menus', .01, v => Math.round(v * 100) + ' %'],
     ['groupe', .01, v => Math.round(v * 100) + ' %'],
     ['relief', .01, v => Math.round(v * 100) + ' %'],
+    ['traversants', .01, v => v < .02 ? 'aucun' : v > .98 ? 'tous' : Math.round(v * 100) + ' %'],
     ['marge', .001, v => (v * 100).toFixed(1) + ' %'],
     ['margeFin', .001, v => (v * 100).toFixed(1) + ' %'],
     ['margeCourbe', .01, v => v.toFixed(2) + (v < 1.1 ? ' (tôt)' : v > 2 ? ' (tard)' : '')],

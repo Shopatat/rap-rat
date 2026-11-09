@@ -39,6 +39,13 @@
     menus: 1,         // 0 à 4, combien de tout petits en plus
     groupe: 1,        // .4 à 2.5, serrés vers le milieu (petit) ou étalés (grand)
     relief: 1,        // 0 à 2.5, le halo clair en cratère autour du trou
+    // Tous les trous ne traversent pas la tranche de part en part (relevé par Fabien le
+    // 09/11/2026 sur `references/progression/01.jpg`, la tranche entière avant la première
+    // morsure) : la plupart sont des poches borgnes dont on voit le fond brun, et seule une
+    // minorité — les gros surtout — s'ouvre sur le noir. Un gros trou a d'autant plus de
+    // chances de déboucher qu'il est gros, comme une bulle assez grosse pour percer les deux
+    // faces de la tranche.
+    traversants: .35, // 0 à 1 : 0 = aucun ne traverse, 1 = tous (ce que faisait la v40)
     // La perspective des trous. 1 = l'oeil est au-dessus du milieu du fromage, chaque trou penche
     // vers le centre et les trous du milieu se voient de face (c'est ce qu'on avait choisi).
     // 0 = l'oeil est loin, tous les trous penchent dans la même direction, même ceux du milieu
@@ -113,11 +120,17 @@
     const P = STYLE.perspective, aR = Math.atan2(cy - y, cx - x), aP = (STYLE.angleTrous || 0) * Math.PI / 180;
     const ux = Math.cos(aR) * P + Math.cos(aP) * (1 - P), uy = Math.sin(aR) * P + Math.sin(aP) * (1 - P);
     const offR = Math.min(1, d * (small ? .7 : 1.05)), offP = small ? .55 : .8;
+    // traverse-t-il ? Plus le trou est gros, plus c'est probable. Une poche borgne est moins
+    // profonde : son fond se décale moins vers le centre et reste presque aussi large que
+    // l'ouverture, au lieu de la lucarne étroite et très décalée d'un trou qui traverse.
+    const gros = Math.min(1, r / (16 * U));
+    const travers = RA() < STYLE.traversants * (.25 + .75 * gros);
+    const creux = travers ? 1 : rr(.10, .55);                  // 0 = à peine creusé, 1 = traverse
     return {
-      x, y, r, small,
+      x, y, r, small, travers, creux,
       dir: Math.atan2(uy, ux) + rr(-.08, .08),
-      off: (offR * P + offP * (1 - P)) * rr(.9, 1.1),
-      size: rr(.8, .95),
+      off: (offR * P + offP * (1 - P)) * rr(.9, 1.1) * (travers ? 1 : .35 + .5 * creux),
+      size: travers ? rr(.8, .95) : rr(.86, .98),
       sy: 1, rot: 0,
       wob: [],                                                   // a cheese hole is a burst bubble: a perfect circle
       // le halo clair autour du trou : sur l'émission, les gros trous sont des cratères dont le
@@ -126,6 +139,12 @@
       haloR: 1 + ((small ? rr(1.25, 1.5) : rr(1.45, 1.85)) - 1) * STYLE.relief,
       warm: rr(0, 1), gloss: rr(.25, .55), spark: !small && RA() < .45, sparkA: rr(-.6, .6)
     };
+  }
+  // Le fond du trou : noir s'il traverse la tranche, sinon un brun d'autant plus sombre que la
+  // poche est creuse. Sur les captures, c'est ce brun qu'on voit au fond de la plupart des trous.
+  function fondTrou(h) {
+    const k = h.creux == null ? 1 : h.creux;
+    return `rgb(${150 - 145 * k | 0},${76 - 73 * k | 0},${20 - 20 * k | 0})`;
   }
   // every part of a hole (glow, wall, far opening, edge) follows the same irregular outline
   function holePath(c, h, k, ox = 0, oy = 0, fresh = true) {
@@ -153,7 +172,7 @@
     c.save();
     holePath(c, h, 1); c.clip();
     if (h.small) {
-      c.fillStyle = '#1a0b02'; c.fillRect(-r, -r, 2 * r, 2 * r);
+      c.fillStyle = fondTrou(h); c.fillRect(-r, -r, 2 * r, 2 * r);
       const g = c.createRadialGradient(-dx * r * .4, -dy * r * .4, 0, 0, 0, r);
       g.addColorStop(0, 'rgba(150,80,22,.8)'); g.addColorStop(1, 'rgba(150,80,22,0)');
       c.fillStyle = g; c.fillRect(-r, -r, 2 * r, 2 * r);
@@ -176,7 +195,7 @@
       const ex = dx * r * h.off, ey = dy * r * h.off;
       c.save();
       c.shadowColor = 'rgba(20,8,1,.85)'; c.shadowBlur = r * .14;
-      c.fillStyle = 'rgb(5,2,0)'; holePath(c, h, h.size, ex, ey); c.fill();
+      c.fillStyle = fondTrou(h); holePath(c, h, h.size, ex, ey); c.fill();
       c.restore();
       // shadow cast by the rim on the centre side
       const sh = c.createRadialGradient(-dx * r * .3, -dy * r * .3, r * .8, -dx * r * .3, -dy * r * .3, r * 1.3);

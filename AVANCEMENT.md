@@ -594,3 +594,31 @@ arrière et comparer.
 
 Vérifié dans le navigateur de l'ordinateur : l'appli ouvre bien sur la nouvelle couleur, avec le
 même nombre de trous qu'avant et aucune marge. Pas encore vu sur l'iPhone.
+
+## Tous les trous ne traversent pas (v41)
+
+Fabien, le 09/11/2026 : « si tu regardes bien la photo où il y a pas encore de morsure présente,
+les trous de fromage ne traversent pas tous le fromage de part en part ». Vérifié sur
+`references/progression/01.jpg` (la tranche entière, avant la première morsure) et sur
+`references/relief/02-trappe-ouverte.jpg` : il a raison. La plupart des trous montrent un
+**fond brun**, clairement de la pâte vue au fond d'une poche ; seuls quelques-uns sont vraiment
+noirs, et ce sont surtout les gros. Sur le couvercle jaune de la trappe, dans la capture de la
+trappe ouverte, aucun trou n'est noir : ils sont tous bruns.
+
+Jusqu'à la v40 chez nous, **tous** les trous débouchaient sur du noir pur (`rgb(5,2,0)`), ce qui
+donnait une tranche criblée de part en part, plus dure et plus plate que la vraie.
+
+Ce qui a changé :
+
+- `STYLE.traversants` (0 à 1, **35 %** par défaut) : la part des trous qui traversent. La chance
+  dépend de la taille — `traversants * (.25 + .75 * gros)` — donc un gros trou débouche souvent,
+  un minuscule presque jamais, comme une bulle assez grosse pour percer les deux faces de la
+  tranche.
+- Un trou borgne reçoit un `creux` entre 0,10 et 0,55 ; `fondTrou()` mélange du brun
+  `rgb(150,76,20)` vers le noir selon ce creux. Il est aussi **moins décalé** vers le centre et
+  son fond reste **presque aussi large** que l'ouverture : une poche peu profonde, pas un tunnel.
+- Dans l'Atelier des fromages : le curseur « trous qui traversent », et un style
+  « Trous qui traversent » qui remet 100 %, c'est-à-dire exactement la v40.
+
+Le reste des trous (combien, quelle taille, la perspective) n'a pas bougé : Fabien ne l'a pas
+tranché, ça reste à sa valeur neutre et réglable dans l'atelier.
