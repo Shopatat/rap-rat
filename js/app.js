@@ -567,8 +567,19 @@
 
   // Pick a spot on the cheese's edge. Spots far from the middle are much more likely,
   // so the rat works from the outside in and the last morsel ends up near the centre.
-  function pickEdge() {
+  // `viserIles` : sur les tout derniers crocs, le rat finit d'abord ce qui s'est détaché, pour
+  // que la dernière bouchée soit seule au milieu comme sur la cassette. Une île peut donc
+  // vivre un moment pendant la partie — Fabien en veut une ou deux — mais pas survivre à la fin.
+  function pickEdge(viserIles) {
     const edge = [], base = []; let total = 0;
+    let horsGros = null;
+    if (viserIles) {
+      const parts = morceaux();
+      if (parts.length > 1) {
+        horsGros = new Uint8Array(grid.length);
+        for (let t = 1; t < parts.length; t++) for (const q of parts[t]) horsGros[q] = 1;
+      }
+    }
     const mx = .5, my = A / 2;
     // où en est la tranche : le milieu de ce qu'il reste, et s'il en reste peu
     let n = 0;
@@ -623,6 +634,7 @@
           if (dmin < Infinity) w *= 1 - ETALE * Math.exp(-dmin / (PRES * PRES));
           if (w < 1e-6) w = 1e-6;
         }
+        if (horsGros && horsGros[idx]) w *= 40;
         edge.push(idx); base.push(w); total += w;
       }
     }
@@ -645,11 +657,6 @@
     let pick = Math.random() * total, k = 0;
     while (k < edge.length - 1 && (pick -= wts[k]) > 0) k++;
     const idx = edge[k], i = idx % GW, j = (idx / GW) | 0;
-    // le foyer ne suit la morsure qu'en partie : il s'élargit sur place au lieu de courir le long du bord
-    if (fi >= 0) { foyers[fi].x += ((i + .5) / GW - foyers[fi].x) * .3; foyers[fi].y += ((j + .5) / GW - foyers[fi].y) * .3; }
-    else { foyers.push({ x: (i + .5) / GW, y: (j + .5) / GW }); if (foyers.length > FOYERS) foyers.shift(); }
-    // la mémoire du rat : tous les endroits déjà croqués, qu'il évitera tant qu'il peut
-    derniers.push({ x: (i + .5) / GW, y: (j + .5) / GW });
     let nx = 0, ny = 0;
     for (let dj = -5; dj <= 5; dj++) for (let di = -5; di <= 5; di++) {
       const a = i + di, b = j + dj;
@@ -660,7 +667,104 @@
     const l = Math.hypot(nx, ny);
     if (l > 1e-6) { nx = nx / l + rx * .45; ny = ny / l + ry * .45; } else { nx = rx; ny = ry; }
     const l2 = Math.hypot(nx, ny) || 1;
-    return { x: px, y: py, nx: nx / l2, ny: ny / l2 };
+    return { x: px, y: py, nx: nx / l2, ny: ny / l2, i, j, fi, fin, dE: Math.hypot(px - mx, py - my), ile: !!(horsGros && horsGros[idx]) };
+  }
+
+  // Le rat ne retient l'endroit qu'une fois la morsure décidée : on peut donc appeler
+  // `pickEdge` plusieurs fois de suite pour comparer des endroits sans fausser sa mémoire.
+  function retenir(e) {
+    // le foyer ne suit la morsure qu'en partie : il s'élargit sur place au lieu de courir le long du bord
+    if (e.fi >= 0 && foyers[e.fi]) { foyers[e.fi].x += ((e.i + .5) / GW - foyers[e.fi].x) * .3; foyers[e.fi].y += ((e.j + .5) / GW - foyers[e.fi].y) * .3; }
+    else { foyers.push({ x: (e.i + .5) / GW, y: (e.j + .5) / GW }); if (foyers.length > FOYERS) foyers.shift(); }
+    // la mémoire du rat : tous les endroits déjà croqués, qu'il évitera tant qu'il peut
+    derniers.push({ x: (e.i + .5) / GW, y: (e.j + .5) / GW });
+  }
+
+  // les morceaux séparés qu'il reste de la tranche, du plus gros au plus petit
+  function morceaux() {
+    const vu = new Uint8Array(grid.length), pile = new Int32Array(grid.length), parts = [];
+    for (let d = 0; d < grid.length; d++) {
+      if (vu[d] || !grid[d]) continue;
+      let sp = 0; pile[sp++] = d; vu[d] = 1; const part = [];
+      while (sp) {
+        const q = pile[--sp]; part.push(q);
+        const qx = q % GW, qy = (q / GW) | 0;
+        if (qx > 0 && !vu[q - 1] && grid[q - 1]) { vu[q - 1] = 1; pile[sp++] = q - 1; }
+        if (qx < GW - 1 && !vu[q + 1] && grid[q + 1]) { vu[q + 1] = 1; pile[sp++] = q + 1; }
+        if (qy > 0 && !vu[q - GW] && grid[q - GW]) { vu[q - GW] = 1; pile[sp++] = q - GW; }
+        if (qy < GH - 1 && !vu[q + GW] && grid[q + GW]) { vu[q + GW] = 1; pile[sp++] = q + GW; }
+      }
+      parts.push(part);
+    }
+    parts.sort((a, b) => b.length - a.length);
+    return parts;
+  }
+
+  // Les miettes. Relevé par Fabien le 09/11/2026 sur des fins de partie chez nous : il restait
+  // « des petites particules qui traînent de-ci de-là », alors que sur la cassette le dernier
+  // morceau est seul au milieu, tout au plus avec une île bien dessinée. Ce qui se détache et
+  // qui est plus petit qu'une miette part donc avec la morsure qui l'a détaché. On ne touche
+  // jamais au plus gros morceau, ni aux îles d'une taille respectable.
+  // On cherche les miettes sur l'image elle-même, pas sur la grille de comptage : la grille ne
+  // voit la tranche qu'au travers d'un carreau de six pixels, si bien qu'un éclat plus fin
+  // qu'un carreau existait à l'écran sans que le jeu le sache — jamais compté, jamais visé,
+  // jamais mangé. C'était la vraie cause des particules qui traînaient jusqu'à la fin.
+  // On travaille sur une copie réduite de la silhouette : à la résolution de l'écran la toile
+  // peut faire cinq millions de pixels, et surtout un éclat d'un ou deux pixels à cette
+  // finesse-là ne se voit de toute façon pas. Cette copie-ci est à l'échelle de ce qui se voit.
+  let mini = null, miniLab = null, miniPile = null;
+  function mangerMiettes(m) {
+    const MW = Math.min(SW, 640), MH = Math.max(1, Math.round(MW * SH / SW)), N = MW * MH;
+    if (!mini || mini.width !== MW || mini.height !== MH) {
+      mini = mk(); mini.width = MW; mini.height = MH;
+      miniLab = new Int32Array(N); miniPile = new Int32Array(N);
+    }
+    const mc = mini.getContext('2d');
+    mc.clearRect(0, 0, MW, MH); mc.drawImage(mask, 0, 0, MW, MH);
+    const d = mc.getImageData(0, 0, MW, MH).data;
+    const lab = miniLab, pile = miniPile, tailles = [];
+    lab.fill(-1);
+    let gros = -1, grosN = 0;
+    for (let dep = 0; dep < N; dep++) {
+      if (lab[dep] >= 0 || d[dep * 4 + 3] <= 80) continue;
+      const id = tailles.length; let sp = 0; pile[sp++] = dep; lab[dep] = id; let n = 0;
+      while (sp) {
+        const q = pile[--sp]; n++;
+        const qx = q % MW;
+        if (qx > 0 && lab[q - 1] < 0 && d[(q - 1) * 4 + 3] > 80) { lab[q - 1] = id; pile[sp++] = q - 1; }
+        if (qx < MW - 1 && lab[q + 1] < 0 && d[(q + 1) * 4 + 3] > 80) { lab[q + 1] = id; pile[sp++] = q + 1; }
+        if (q >= MW && lab[q - MW] < 0 && d[(q - MW) * 4 + 3] > 80) { lab[q - MW] = id; pile[sp++] = q - MW; }
+        if (q < N - MW && lab[q + MW] < 0 && d[(q + MW) * 4 + 3] > 80) { lab[q + MW] = id; pile[sp++] = q + MW; }
+      }
+      tailles.push(n);
+      if (n > grosN) { grosN = n; gros = id; }
+    }
+    if (tailles.length < 2) return;
+    const seuil = MIETTE * N;
+    const miette = new Uint8Array(tailles.length); let eff = false;
+    for (let k = 0; k < tailles.length; k++)
+      if (k !== gros && tailles[k] < seuil) { miette[k] = 1; eff = true; }
+    if (!eff) return;
+    // on efface les miettes de la vraie silhouette, carreau de copie par carreau de copie
+    const ex = SW / MW, ey = SH / MH;
+    m.globalCompositeOperation = 'destination-out';
+    m.fillStyle = '#000';
+    m.beginPath();
+    for (let i = 0; i < N; i++) {
+      const k = lab[i];
+      if (k < 0 || !miette[k]) continue;
+      m.rect((i % MW) * ex - .5, ((i / MW) | 0) * ey - .5, ex + 1, ey + 1);
+    }
+    m.fill();
+    m.globalCompositeOperation = 'source-over';
+    // la grille suit : un carreau ne compte plus si son milieu était sur une miette
+    for (let idx = 0; idx < grid.length; idx++) {
+      if (!grid[idx]) continue;
+      const cx = Math.min(MW - 1, ((idx % GW) + .5) * SW / GW / ex | 0);
+      const cy = Math.min(MH - 1, (((idx / GW) | 0) + .5) * SW / GW / ey | 0);
+      const k = lab[cy * MW + cx];
+      if (k >= 0 && miette[k]) { grid[idx] = 0; cells--; }
+    }
   }
 
   function applyBite(circles) {
@@ -676,6 +780,7 @@
     }
     m.globalCompositeOperation = 'source-over';
     forCellsIn(circles, idx => { grid[idx] = 0; cells--; });
+    mangerMiettes(m);
   }
 
   function clearAll() {
@@ -686,10 +791,17 @@
   // bite size is the one measured on the show (about 1.7 % of the slice per bite, centred on the edge),
   // scaled to the cheese's area; pacing may only nudge it, so every bite looks like the TV one
   const PUSH = .05, baseR = () => .077 * Math.sqrt(A / .75);
+  // Ce qu'il doit rester avant la dernière bouchée, relevé sur `references/fin/` : un bon
+  // vingtième de la tranche, une étoile dentelée au milieu. Avant, le partage était égal
+  // jusqu'au bout et le dernier morceau n'était qu'une miette de plus.
+  const DERNIER = .045;
+  // au-dessous de quoi un bout détaché n'est plus une île mais une miette, et part avec le croc
+  let MIETTE = .004;
   // l'Atelier des morsures peut donner au rat les formes cochées par Fabien ; le jeu, lui, tire les siennes
   let choixForme = null;
   function tailleCroc(tpl, e, k, total) {
-    const target = cells0 * (1 - (k + 1) / total), needed = cells - target;
+    const target = cells0 * (DERNIER + (1 - DERNIER) * (1 - (k + 1) / (total - 1)));
+    const needed = cells - target;
     const R0 = baseR(), late = k > total * .9, RMIN = R0 * .8, RMAX = R0 * (late ? 1.8 : 1.25);
     let R = RMIN;
     if (needed > 0) {
@@ -705,18 +817,46 @@
   // renvoie ce qui a été croqué, pour que l'Atelier des morsures puisse l'enregistrer
   function bite(k, total) {
     if (k === total - 1) {        // last bite: swallow whatever is left
-      let sx = 0, sy = 0, n = 0;
-      for (let idx = 0; idx < grid.length; idx++) if (grid[idx]) { sx += idx % GW; sy += (idx / GW) | 0; n++; }
-      if (n) {
-        const cx = (sx / n + .5) / GW, cy = (sy / n + .5) / GW; let md = 0;
-        for (let idx = 0; idx < grid.length; idx++) if (grid[idx]) md = Math.max(md, Math.hypot((idx % GW + .5) / GW - cx, (((idx / GW) | 0) + .5) / GW - cy));
+      const parts = morceaux();
+      if (parts.length) {
+        const P = parts[0];                           // le morceau du milieu, pas ce qui traîne
+        let sx = 0, sy = 0;
+        for (const q of P) { sx += q % GW; sy += (q / GW) | 0; }
+        const cx = (sx / P.length + .5) / GW, cy = (sy / P.length + .5) / GW; let md = 0;
+        for (const q of P) md = Math.max(md, Math.hypot((q % GW + .5) / GW - cx, (((q / GW) | 0) + .5) / GW - cy));
         applyBite(realize(shapeTemplate(), cx, cy, 1, 0, md / .6 + .02, 0));
       }
       clearAll();
       return { fin: true };
     }
-    const e = pickEdge(); if (!e) return null;
-    const p = (choixForme || tirerForme)(), tpl = shapeTemplate(p), R = tailleCroc(tpl, e, k, total);
+    // Où mordre : le rat essaie quelques endroits et garde celui où il y a vraiment du fromage.
+    // Relevé par Fabien le 09/11/2026 : sans ça, un croc tombait parfois sur une pointe ou une
+    // miette, n'emportait presque rien mais comptait pour une morsure entière, et le croc
+    // d'après devait rattraper tout le retard d'un coup — « un tout petit bout qui disparaît
+    // est considéré comme une grosse morsure ».
+    // Sur la fin, ce n'est plus la quantité qui compte mais la distance : entre plusieurs
+    // endroits, le rat prend le plus éloigné du milieu, pourvu qu'il y ait quand même de quoi
+    // mordre. Le morceau se ramasse alors en étoile autour du trou du rat au lieu de garder de
+    // longs bras — relevé sur `references/fin/`, où il tient dans un rond deux fois plus serré.
+    const part = cells0 / total;
+    let e = null, p = null, tpl = null, loin = -1;    // l'endroit retenu
+    let eM = null, pM = null, tM = null, mieux = -1;  // à défaut, le plus fourni des essais
+    for (let t = 0; t < 12; t++) {
+      const c = pickEdge(k > total - 10); if (!c) break;
+      const pc = (choixForme || tirerForme)(), tc = shapeTemplate(pc);
+      const pris = countRemoval(realize(tc, c.x, c.y, c.nx, c.ny, baseR(), PUSH));
+      if (pris > mieux) { mieux = pris; eM = c; pM = pc; tM = tc; }
+      if (c.ile) { e = c; p = pc; tpl = tc; break; }               // une île à finir avant la fin
+      if (c.fin) {
+        if (pris >= part * .12 && c.dE > loin) { loin = c.dE; e = c; p = pc; tpl = tc; }
+        continue;
+      }
+      if (pris >= part * .6) { e = c; p = pc; tpl = tc; break; }   // assez de fromage ici : il mord
+    }
+    if (!e) { e = eM; p = pM; tpl = tM; }
+    if (!e) return null;
+    retenir(e);
+    const R = tailleCroc(tpl, e, k, total);
     applyBite(realize(tpl, e.x, e.y, e.nx, e.ny, R, PUSH));
     return { x: e.x, y: e.y, nx: e.nx, ny: e.ny, R, push: PUSH, forme: p };
   }
@@ -1044,10 +1184,10 @@
   window.RapRat = { skip(sec) { if (state === 'running' || state === 'paused') elapsed += sec; },
     bites(n, from = 0) { for (let i = 0; i < n; i++) bite(from + i, BITES); compose(); draw(); },
     neuf() { resetCheese(); draw(); },                        // une tranche entière, intacte
-    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; if (o.etale != null) ETALE = o.etale; if (o.epaisseur != null) { EPAISSEUR = o.epaisseur; compose(); draw(); } },
+    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; if (o.etale != null) ETALE = o.etale; if (o.miette != null) MIETTE = o.miette; if (o.epaisseur != null) { EPAISSEUR = o.epaisseur; compose(); draw(); } },
     crocs: () => BITES,
     trous: () => nTrous,
-    actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE, epaisseur: EPAISSEUR }),
+    actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE, miette: MIETTE, epaisseur: EPAISSEUR }),
     ajuste() { fit(); },                                      // recaler la toile sur sa boîte
     // ---- pour l'Atelier des morsures (outils/atelier-morsures.html) ----
     // un croc s'y décrit par { x, y, nx, ny, R, push, forme } : x, y le point du bord visé (en

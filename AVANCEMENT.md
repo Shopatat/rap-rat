@@ -714,3 +714,58 @@ trou de toucher le bord de la tranche) qui décide vraiment jusqu'où les trous 
 
 Pas touché, toujours à leur valeur neutre : la perspective des trous, la marge noire, le
 nombre de trous, et ce que la cassette ajoute (flou, bave, grain, lignes).
+
+## La fin de partie : les miettes et le dernier morceau (v44)
+
+Fabien, le 09/11/2026, deux captures de chez nous à l'appui : « il y a des petites îles un
+peu partout avec des résidus, et en fait c'est naze… le dernier morceau ne ressemble à rien ».
+Et : « parfois un tout petit bout qui disparaît est considéré comme une grosse morsure ».
+
+### Ce que la mesure a dit
+
+Huit parties entières jouées en simulation, en comptant après chaque croc les morceaux
+séparés et ce que le croc a vraiment emporté (en millièmes de la tranche, la part due étant
+de 13,9) :
+
+| | avant | maintenant |
+| --- | --- | --- |
+| morceaux visibles à la fin | 2 à 6 | 1, toujours |
+| crocs qui n'emportent presque rien | 5 à 10 par partie | 0 ou 1 |
+| croc le plus maigre | 0,2 | 3 à 7 |
+| croc le plus gros | 24 à 40 | 19 à 24 |
+| dernier morceau | 1 à 3 % | 4,2 % |
+| sa compacité | 0,08 à 0,26 | 0,42 |
+| son rayon | 30 à 59 % | 26 % |
+| son écart au centre | 21 à 56 % | 7 % |
+
+La cassette (`references/fin/`) donne : un seul morceau, 2 à 5 % de la tranche, compacité
+0,38 à 0,41, rayon 20 à 30 %, écart au centre 10 à 14 %.
+
+### Les trois causes
+
+1. **La grille de comptage est trop grossière pour les miettes.** Le jeu suit la tranche sur
+   une grille de 160 carreaux de large, soit six pixels par carreau. Un éclat plus fin que ça
+   tombe entre deux milieux de carreaux : il est bien dessiné à l'écran, mais le jeu ne le
+   connaît pas — jamais compté, jamais visé, jamais mangé. C'était la vraie cause des
+   particules qui traînaient jusqu'au bout. Les miettes se cherchent maintenant sur l'image
+   elle-même (sur une copie réduite à 640 de large, l'échelle de ce qui se voit), et tout ce
+   qui se détache sous `MIETTE` (0,4 % de la tranche) part avec la morsure qui l'a détaché.
+   Les vraies îles, au-dessus de ce seuil, restent : Fabien en veut une ou deux. Elles sont
+   simplement finies avant la dernière bouchée (`viserIles`, les dix derniers crocs).
+
+2. **Le croc mordait dans le vide.** Il tirait un endroit du bord au hasard et prenait sa
+   taille pour rattraper le retard : tombé sur une pointe, il n'emportait presque rien mais
+   comptait pour une morsure entière, et le croc d'après devait tout rattraper d'un coup.
+   Fabien l'avait bien vu : « ça ne prend pas en compte la quantité de fromage qui disparaît ».
+   Le rat essaie maintenant douze endroits et garde le premier où il y a vraiment de quoi
+   mordre. Sur la fin, c'est la distance au milieu qui prime — c'est comme ça que le morceau
+   se ramasse en étoile au centre — à condition qu'il y ait quand même de quoi mordre.
+
+3. **La dernière bouchée se calait sur la poussière.** Elle visait le centre de gravité de
+   *tout* ce qui restait, miettes comprises, donc à côté du morceau. Elle se cale maintenant
+   sur le morceau du milieu. Et le partage lui garde un bon vingtième de la tranche
+   (`DERNIER`) au lieu d'une part égale : avant, le dernier morceau n'était qu'une miette de
+   plus.
+
+Un croc coûte environ 11 ms de plus (l'analyse de l'image), pour un croc toutes les douze
+secondes.

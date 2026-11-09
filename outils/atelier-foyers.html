@@ -88,6 +88,8 @@ input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;b
         <input type="range" id="t" min="0" max="60" step="1" value="22"></label>
       <label class="sld">mordre partout (éviter ce qu’il vient de croquer) <span class="val" id="eV">0,80</span>
         <input type="range" id="e" min="0" max="99" step="1" value="95"></label>
+      <label class="sld">les miettes qui partent avec le croc <span class="val" id="mV">0,4 %</span>
+        <input type="range" id="m" min="0" max="30" step="1" value="4"></label>
     </div>
     <div class="row">
       <button class="btn2" id="reset">Réglages actuels de l’appli</button>
@@ -127,6 +129,7 @@ input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;b
     $('g').value = Math.round(usine.regroupe * 100);
     $('e').value = Math.round(usine.etale * 100);
     $('t').value = Math.round(usine.epaisseur * 1000);
+    $('m').value = Math.round(usine.miette * 1000);
   }
   auxValeursDeLAppli();
 
@@ -140,7 +143,8 @@ input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;b
   function rejouer() {
     const n = +$('n').value;
     R.reglages({ foyers: +$('f').value, reste: +$('r').value / 100, pres: +$('p').value / 100,
-      regroupe: +$('g').value / 100, etale: +$('e').value / 100, epaisseur: +$('t').value / 1000 });
+      regroupe: +$('g').value / 100, etale: +$('e').value / 100, epaisseur: +$('t').value / 1000,
+      miette: +$('m').value / 1000 });
     semer(+$('graine').value || 1);
     R.neuf();
     if (n > 0) R.bites(Math.min(n, total - 1));   // le dernier croc avale tout : on s'arrête avant
@@ -152,6 +156,8 @@ input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;b
     $('gV').textContent = (+$('g').value / 100).toFixed(2).replace('.', ',');
     $('eV').textContent = (+$('e').value / 100).toFixed(2).replace('.', ',');
     $('tV').textContent = (+$('t').value / 10).toFixed(1).replace('.', ',') + ' %';
+    $('mV').textContent = +$('m').value === 0 ? 'on garde tout'
+      : (+$('m').value / 10).toFixed(1).replace('.', ',') + ' %';
     const r = +$('r').value;
     $('resume').textContent = r === 0 ? 'Le rat mord n’importe où.'
       : r >= 90 ? 'Le rat ne quitte plus ses foyers.'
