@@ -769,3 +769,30 @@ La cassette (`references/fin/`) donne : un seul morceau, 2 à 5 % de la tranche,
 
 Un croc coûte environ 11 ms de plus (l'analyse de l'image), pour un croc toutes les douze
 secondes.
+
+## Une tranche deux fois plus épaisse (v45)
+
+Fabien, le 09/11/2026 : « j'ai l'impression que le fromage devrait être 2x plus épais ».
+`EPAISSEUR` passe de 0,022 à 0,044 (la hauteur de la paroi, en part de la hauteur de la
+tranche). Le curseur de l'Atelier des foyers part de la même valeur.
+
+Ce que la mesure dit, pour mémoire — elle ne va pas dans le même sens, c'est un choix de
+goût assumé. En suivant la clarté depuis le bord vers l'intérieur, par quart de tour, sur
+`references/progression/01.jpg` et `03.jpg` d'un côté et sur notre tranche de l'autre (en
+parts de la hauteur de la tranche, 1 = la pâte loin du bord) :
+
+| distance au bord | 0,25 % | 0,5 % | 1 % | 2 % | 4 % | 8 % |
+| --- | --- | --- | --- | --- | --- | --- |
+| cassette, côté lumière | 0,73 | 0,81 | 0,82 | 0,84 | 0,82 | 0,86 |
+| cassette, côté ombre | 0,75 | 0,84 | 0,88 | 0,86 | 0,85 | 0,87 |
+| nous à 2,2 %, lumière | 0,72 | 1,05 | 1,12 | 0,95 | 0,94 | 0,99 |
+| nous à 2,2 %, ombre | — | — | 0,63 | 0,71 | 0,87 | 0,95 |
+| nous à 4,4 %, lumière | 0,67 | 0,95 | 1,14 | 1,14 | 0,95 | 0,97 |
+| nous à 4,4 %, ombre | — | — | 0,61 | 0,64 | 0,74 | 0,89 |
+
+Autrement dit : le bord de la cassette se fond en moins de 1 % de la hauteur et ne dépasse
+jamais la clarté de la pâte, tandis que le nôtre met 5 à 8 % à revenir à la pâte et porte un
+liseré clair 14 % au-dessus d'elle. Nous étions donc déjà plus épais que la cassette, et
+l'épaissir encore nous en éloigne — mais Fabien juge sur l'écran de son iPhone, où le relief
+tient la tranche ; c'est lui qui décide. Vérifié que la fin de partie ne s'en trouve pas
+délavée : le dernier morceau garde sa pâte au milieu.

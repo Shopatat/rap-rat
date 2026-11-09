@@ -11,7 +11,7 @@
   const stage = $('stage'), view = $('view'), vctx = view.getContext('2d');
   const tex = mk(), mask = mk(), inv = mk(), comp = mk(), face = mk();
   // EPAISSEUR : la hauteur de la paroi, en part de la hauteur de l'écran (réglable dans l'atelier)
-  let EPAISSEUR = .022, nTrous = 0;
+  let EPAISSEUR = .044, nTrous = 0;
 
   // ---------- le style de la pâte (piloté par l'Atelier des fromages) ----------
   // La couleur de la pâte a été choisie par Fabien le 09/11/2026 dans l'Atelier des fromages
