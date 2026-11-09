@@ -574,3 +574,23 @@ retrouve exactement l'ancien comportement.
 
 **Par défaut `perspective` reste à 1** : l'appli ne change pas. Le style « Comme la vidéo » la met
 à 0,1. À Fabien de juger, les captures sous les yeux.
+
+## La couleur est tranchée (v40)
+
+Fabien a renvoyé le style « Comme la vidéo » tel quel, avec une note : « déjà pour la couleur on
+peut essayer ça ». J'ai donc passé **le seul bloc « La pâte »** en valeurs par défaut de l'appli :
+
+    teinte −3°, saturation 114 %, clarté 105 %,
+    marbrures 0,9 de taille 1,6, combien 1,
+    plaques brun-rouge 15 %, bords qui plongent 28 %
+
+Tout le reste garde sa valeur neutre, parce qu'il n'a parlé que de la couleur : les trous
+(nombre, calibre, menus, groupe, relief), la perspective, la marge noire et les effets de bande
+(flou, bave, grain, lignes). Ils restent réglables dans l'atelier, en attente de son avis.
+
+Dans l'Atelier des fromages, le premier bouton s'appelle maintenant « Comme l'appli » (ce que
+donne une vraie partie) et un bouton « La v35 » garde l'ancienne pâte, pour pouvoir revenir en
+arrière et comparer.
+
+Vérifié dans le navigateur de l'ordinateur : l'appli ouvre bien sur la nouvelle couleur, avec le
+même nombre de trous qu'avant et aucune marge. Pas encore vu sur l'iPhone.

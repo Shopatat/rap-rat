@@ -14,18 +14,20 @@
   let EPAISSEUR = .022, nTrous = 0;
 
   // ---------- le style de la pâte (piloté par l'Atelier des fromages) ----------
-  // Les valeurs par défaut sont la tranche telle qu'elle est depuis la v32 : lisse et propre.
-  // Fabien la trouve trop propre par rapport aux captures, où la pâte est marbrée, sombre sur
-  // les bords, et adoucie par la bande. Ces réglages servent à s'en approcher.
+  // La couleur de la pâte a été choisie par Fabien le 09/11/2026 dans l'Atelier des fromages
+  // (style « Comme la vidéo », calé sur ses gros plans) : « déjà pour la couleur on peut essayer
+  // ça ». Avant, tout était à la valeur neutre : la tranche de la v35, lisse et propre.
+  // Le reste (les trous, la perspective, la marge, ce que la cassette ajoute) n'est pas tranché
+  // et garde ses valeurs neutres.
   const STYLE0 = {
-    teinte: 0,        // -40 à 40, degrés de décalage de la couleur
-    chaleur: 1,       // 0 à 2, saturation
-    clair: 1,         // .6 à 1.4, clarté d'ensemble
-    marbrures: 1,     // 0 à 4, force des grandes plages claires et sombres
-    taille: 1,        // .4 à 2.5, leur taille
+    teinte: -3,       // -40 à 40, degrés de décalage de la couleur
+    chaleur: 1.14,    // 0 à 2, saturation
+    clair: 1.05,      // .6 à 1.4, clarté d'ensemble
+    marbrures: .9,    // 0 à 4, force des grandes plages claires et sombres
+    taille: 1.6,      // .4 à 2.5, leur taille
     nombre: 1,        // .3 à 4, combien
-    taches: 0,        // 0 à 1, plaques brun-rouge en plus
-    vignette: 0,      // 0 à 1, les bords qui plongent dans le brun
+    taches: .15,      // 0 à 1, plaques brun-rouge en plus
+    vignette: .28,    // 0 à 1, les bords qui plongent dans le brun
     grain: 0,         // 0 à 1, grain de la bande
     lignes: 0,        // 0 à 1, lignes de balayage
     flou: 0,          // 0 à 1, l'image adoucie

@@ -177,7 +177,8 @@ textarea{width:100%;min-height:150px;font:12px/1.45 ui-monospace,SFMono-Regular,
 
   // Les styles proposés. Chacun ne dit que ce qu'il change ; le reste vient du défaut de l'appli.
   const STYLES = [
-    ['Comme maintenant', 'la tranche de la v35, lisse et propre', {}],
+    ['Comme l’appli', 'ce que donne une vraie partie aujourd’hui', {}],
+    ['La v35', 'la pâte d’avant ton choix de couleur', { teinte: 0, chaleur: 1, clair: 1, marbrures: 1, taille: 1, nombre: 1, taches: 0, vignette: 0 }],
     ['Marbré', 'mêmes couleurs, mais la pâte n’est plus unie', { marbrures: 2.4, taille: 1.35, nombre: 2 }],
     ['Capture d’écran', 'mon essai pour coller aux gros plans', { marbrures: 2.1, taille: 1.3, nombre: 1.8, taches: .55, vignette: .45, bave: .22, grain: .12 }],
     ['Vieille bande', 'ce que la VHS fait à l’image', { flou: .3, bave: .55, lignes: .35, grain: .4 }],
@@ -215,7 +216,7 @@ textarea{width:100%;min-height:150px;font:12px/1.45 ui-monospace,SFMono-Regular,
   ];
 
   const DEF = R.styleParDefaut();
-  let style = Object.assign({}, DEF), nomStyle = 'Comme maintenant', crocs = 0;
+  let style = Object.assign({}, DEF), nomStyle = 'Comme l’appli', crocs = 0;
 
   const lire = (k, d) => { try { const v = localStorage.getItem('raprat.fromages.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
   const ecrire = (k, v) => { try { localStorage.setItem('raprat.fromages.' + k, JSON.stringify(v)); } catch (e) {} };
