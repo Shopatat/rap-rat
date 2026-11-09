@@ -295,14 +295,18 @@
     // et `variete` resserre tout vers une taille moyenne quand on le baisse.
     const holes = [];
     const forme = Math.max(SW, SH) / Math.min(SW, SH), sg = .6 * S.groupe;
-    const rMin = 2.2 * U * S.calibre, rMax = 38 * U * S.calibre;
+    // La gamme, relevée trou par trou sur `references/progression/01.jpg` : le plus gros fait
+    // 44 millièmes de la hauteur de la tranche, la moitié des trous font moins de 15, et même le
+    // quart des plus petits font encore 9. Nos minuscules étaient trop fins et nos gros trop
+    // petits : la tranche avait l'air moins creusée que celle de la vidéo.
+    const rMin = 5.6 * U * S.calibre, rMax = 42.5 * U * S.calibre;
     const gamme = f => rMin + (rMax - rMin) * (.5 + (f - .5) * S.variete);
     const tailles = [];
     // quelques gros cratères qui sortent du lot : sur la capture, ce sont eux qui donnent
     // l'impression de variété, et sans eux la tranche a l'air d'un tamis régulier
-    for (let i = Math.round(4 * forme * S.trousN); i > 0; i--) tailles.push(gamme(rr(.72, 1)) * (1 + .25 * S.variete));
-    for (let i = Math.round(21 * forme * S.trousN); i > 0; i--) tailles.push(gamme(Math.pow(RA(), 1.05)));
-    for (let i = Math.round(9 * forme * S.trousN * S.menus); i > 0; i--) tailles.push(gamme(Math.pow(RA(), 4) * .4));
+    for (let i = Math.round(4 * forme * S.trousN); i > 0; i--) tailles.push(gamme(rr(.72, 1)) * (1 + .2 * S.variete));
+    for (let i = Math.round(21 * forme * S.trousN); i > 0; i--) tailles.push(gamme(Math.pow(RA(), 1.15)));
+    for (let i = Math.round(9 * forme * S.trousN * S.menus); i > 0; i--) tailles.push(gamme(Math.pow(RA(), 2.5) * .35));
     // du plus gros au plus petit : les gros ont besoin de place, les petits se glissent après
     tailles.sort((a, b) => b - a);
     for (const r of tailles) {

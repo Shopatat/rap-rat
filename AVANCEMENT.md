@@ -666,3 +666,51 @@ refaits.
 
 Pas touché, toujours à leur valeur neutre : la perspective des trous, la marge noire, le
 regroupement vers le milieu, et ce que la cassette ajoute (flou, bave, grain, lignes).
+
+## La taille des trous, mesurée trou par trou (v43)
+
+Fabien, le 09/11/2026, après avoir regardé la v42 : « oui tu peux t'en occuper, je viens de
+regarder et effectivement ça manque ». Il parlait des deux écarts que je lui avais signalés :
+la taille des trous et leur étalement vers les bords.
+
+### Ce que la mesure a dit
+
+Chaque trou de `references/progression/01.jpg` a été détecté et mesuré, puis les nôtres de la
+même façon, en condition de partie. Les rayons sont donnés en millièmes de la hauteur de la
+tranche, le radial en part de la demi-tranche (1 = le bord).
+
+| | la cassette | avant | maintenant |
+| --- | --- | --- | --- |
+| trous | 45 | 38 | 45 |
+| aire des trous | 4,6 % | 3,5 % | 4,2 % |
+| le dixième des plus petits | 5,3 | 3,6 | 5,6 |
+| le quart des plus petits | 8,7 | 5,5 | 8,2 |
+| la moitié | 14,7 | 14,5 | 14,5 |
+| les trois quarts | 25,2 | 25,3 | 24,4 |
+| le dixième des plus gros | 31,9 | 32,3 | 33,2 |
+| le plus gros | 44,0 | 35,5 | 40,9 |
+| radial médian | 0,66 | 0,58 | 0,64 |
+| au-delà de 0,7 | 38 % | 39 % | 42 % |
+
+Le milieu de la gamme était déjà juste. Ce qui manquait, c'était les deux bouts : nos
+minuscules étaient deux fois trop fins et notre plus gros cratère un cinquième trop petit.
+Résultat, la tranche avait l'air moins creusée que celle de la vidéo. `rMin` passe de 2,2 à
+5,6, `rMax` de 38 à 42,5, et le tirage penche un peu moins vers les petits. Tous les chiffres
+tombent maintenant dans l'écart-type d'une partie à l'autre (±0,5 sur l'aire, ±2 sur la
+médiane, ±3 sur le plus gros).
+
+### Ce que je m'étais trompé
+
+L'étalement vers les bords était **déjà bon**, contrairement à ce que je lui avais dit la
+veille. Je l'avais mesuré sur l'écran d'accueil, où la tranche est rentrée pour laisser la
+place aux boutons : les trous occupaient donc les deux tiers du cadre, et j'ai lu un
+regroupement vers le milieu qui était en fait la marge des boutons. En partie, plein écran,
+le radial médian était déjà de 0,58 contre 0,66 à la cassette. **Toute mesure de la tranche
+se fait en partie, pas à l'accueil.**
+
+Le curseur « étalement » (`groupe`) n'a donc pas bougé. Poussé à fond il ne change presque
+rien, et c'est normal : c'est la marge de sécurité au bord (`r * 1.6 + 8 * U`, qui empêche un
+trou de toucher le bord de la tranche) qui décide vraiment jusqu'où les trous vont.
+
+Pas touché, toujours à leur valeur neutre : la perspective des trous, la marge noire, le
+nombre de trous, et ce que la cassette ajoute (flou, bave, grain, lignes).
