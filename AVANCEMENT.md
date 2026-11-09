@@ -595,30 +595,74 @@ arrière et comparer.
 Vérifié dans le navigateur de l'ordinateur : l'appli ouvre bien sur la nouvelle couleur, avec le
 même nombre de trous qu'avant et aucune marge. Pas encore vu sur l'iPhone.
 
-## Tous les trous ne traversent pas (v41)
+## Les trous, et la couleur relevée sur la capture (v41 et v42)
 
-Fabien, le 09/11/2026 : « si tu regardes bien la photo où il y a pas encore de morsure présente,
-les trous de fromage ne traversent pas tous le fromage de part en part ». Vérifié sur
-`references/progression/01.jpg` (la tranche entière, avant la première morsure) et sur
-`references/relief/02-trappe-ouverte.jpg` : il a raison. La plupart des trous montrent un
-**fond brun**, clairement de la pâte vue au fond d'une poche ; seuls quelques-uns sont vraiment
-noirs, et ce sont surtout les gros. Sur le couvercle jaune de la trappe, dans la capture de la
-trappe ouverte, aucun trou n'est noir : ils sont tous bruns.
+Quatre remarques de Fabien le 09/11/2026, toutes parties de la même capture :
+`references/progression/01.jpg`, la tranche entière avant la première morsure.
 
-Jusqu'à la v40 chez nous, **tous** les trous débouchaient sur du noir pur (`rgb(5,2,0)`), ce qui
-donnait une tranche criblée de part en part, plus dure et plus plate que la vraie.
+### 1. Tous les trous ne traversent pas
 
-Ce qui a changé :
+« Si tu regardes bien la photo où il y a pas encore de morsure présente, les trous de fromage
+ne traversent pas tous le fromage de part en part. » Vérifié : la plupart montrent un **fond
+brun**, de la pâte vue au fond d'une poche. Sur le couvercle jaune de la trappe
+(`references/relief/02-trappe-ouverte.jpg`), aucun trou n'est noir. Jusqu'à la v40, **tous**
+les nôtres débouchaient sur du noir pur.
 
-- `STYLE.traversants` (0 à 1, **35 %** par défaut) : la part des trous qui traversent. La chance
-  dépend de la taille — `traversants * (.25 + .75 * gros)` — donc un gros trou débouche souvent,
-  un minuscule presque jamais, comme une bulle assez grosse pour percer les deux faces de la
-  tranche.
-- Un trou borgne reçoit un `creux` entre 0,10 et 0,55 ; `fondTrou()` mélange du brun
-  `rgb(150,76,20)` vers le noir selon ce creux. Il est aussi **moins décalé** vers le centre et
-  son fond reste **presque aussi large** que l'ouverture : une poche peu profonde, pas un tunnel.
-- Dans l'Atelier des fromages : le curseur « trous qui traversent », et un style
-  « Trous qui traversent » qui remet 100 %, c'est-à-dire exactement la v40.
+### 2. C'est proportionnel à la taille
 
-Le reste des trous (combien, quelle taille, la perspective) n'a pas bougé : Fabien ne l'a pas
-tranché, ça reste à sa valeur neutre et réglable dans l'atelier.
+« Les petits traversent rarement mais les gros si. » La chance de traverser suit donc la taille
+du trou — `(part - .3) / .45`, où `part` est sa taille dans la gamme — comme une bulle assez
+grosse pour percer les deux faces. La profondeur d'une poche borgne suit la même règle :
+`fondTrou()` mélange du brun `rgb(150,76,20)` vers le noir selon ce creux.
+
+### 3. Certains sont creusés mais on ne voit pas l'autre bout
+
+« Avec l'angle qu'ils ont on ne voit pas l'autre bout. » Un trou sur trois environ parmi les
+borgnes est `profond` : son fond sombre déborde du contour et se fait couper par le bord du
+trou, si bien qu'il ne reste qu'un croissant de paroi éclairée d'un seul côté — au lieu de la
+petite lucarne nette d'un trou qui traverse.
+
+### 4. Il faut de la variété dans les tailles
+
+« C'est pire, ça paraît bizarre par rapport au jeu de société. » Il avait raison sur la cause :
+les trous tombaient dans **quatre calibres serrés** (22–34, 15–21, 8–12, 3,5–6), et ça se
+voyait comme un tamis. Maintenant la taille est tirée sur toute la gamme avec `Math.pow`, qui
+penche vers les petits, plus une poignée de **gros cratères** qui sortent du lot — sans eux la
+tranche reste régulière. `variete` (0 à 1) resserre tout vers une taille moyenne quand on le
+baisse.
+
+### La couleur, mesurée au lieu d'être jugée à l'oeil
+
+« Tu peux d'ailleurs te rapprocher de la couleur et des nuances du fromage de la photo. »
+Relevé au compte-gouttes sur la capture, en écartant les trous et le fond noir :
+
+| | la cassette | nous avant | nous après |
+| --- | --- | --- | --- |
+| moyenne | 204,111,5 | 156,101,12 | 189,111,8 |
+| clarté | 127 | 105 | 122 |
+| écart clair/sombre | 50 | 27 | 44 |
+| rouge / vert | 1,84 | 1,55 | 1,70 |
+
+Trois défauts trouvés en cherchant pourquoi les curseurs n'y arrivaient pas :
+
+- **la saturation ne touchait que le fond.** Les marbrures, les plaques et les bords qui
+  plongent étaient peints par-dessus en dur, donc la pâte restait terne quoi qu'on règle.
+  `teinter()` rend maintenant du rgba et tout passe par lui.
+- **les bords ne plongeaient jamais vraiment.** Le dégradé allait jusqu'à `big * .72`, calculé
+  sur le grand côté : sur un écran large il s'arrêtait avant les coins. Il suit la diagonale
+  maintenant.
+- **le halo autour des trous** était un jaune pâle bleuté (`250,208,118`) ; sur soixante-quinze
+  trous, ça suffisait à remonter le bleu de toute la tranche. Recalé en `252,194,46`.
+
+Ensuite la palette de base elle-même a été recalée (`#ff9d10` au centre, `#c85401` au bord) et
+les réglages sont repartis de valeurs saines autour : teinte 0, saturation 100 %, clarté 112 %,
+marbrures 0,8, plaques 20 %, bords 100 %. Les curseurs **plafonnaient** avant : le rouge ne
+montait pas au-dessus de 175 quoi qu'on fasse, alors que la cassette est à 204.
+
+Ce que ça remplace : le réglage de couleur que Fabien avait choisi le matin même dans
+l'Atelier des fromages (style « Comme la vidéo », teinte −3, saturation 114 %…). Il ne veut
+rien dire avec la nouvelle palette, et les deux styles de l'atelier qui s'y référaient ont été
+refaits.
+
+Pas touché, toujours à leur valeur neutre : la perspective des trous, la marge noire, le
+regroupement vers le milieu, et ce que la cassette ajoute (flou, bave, grain, lignes).

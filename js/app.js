@@ -20,14 +20,14 @@
   // Le reste (les trous, la perspective, la marge, ce que la cassette ajoute) n'est pas tranché
   // et garde ses valeurs neutres.
   const STYLE0 = {
-    teinte: -3,       // -40 à 40, degrés de décalage de la couleur
-    chaleur: 1.14,    // 0 à 2, saturation
-    clair: 1.05,      // .6 à 1.4, clarté d'ensemble
-    marbrures: .9,    // 0 à 4, force des grandes plages claires et sombres
+    teinte: 0,        // -40 à 40, degrés de décalage de la couleur
+    chaleur: 1,       // 0 à 2, saturation
+    clair: 1.12,      // .6 à 1.4, clarté d'ensemble
+    marbrures: .8,    // 0 à 4, force des grandes plages claires et sombres
     taille: 1.6,      // .4 à 2.5, leur taille
     nombre: 1,        // .3 à 4, combien
-    taches: .15,      // 0 à 1, plaques brun-rouge en plus
-    vignette: .28,    // 0 à 1, les bords qui plongent dans le brun
+    taches: .2,       // 0 à 1, plaques brun-rouge en plus
+    vignette: 1,      // 0 à 1.5, les bords qui plongent dans le brun
     grain: 0,         // 0 à 1, grain de la bande
     lignes: 0,        // 0 à 1, lignes de balayage
     flou: 0,          // 0 à 1, l'image adoucie
@@ -36,6 +36,11 @@
     // de tout petits, et chacun se lit comme un vrai cratère creusé dans la pâte
     trousN: 1,        // .3 à 3, combien de trous en tout
     calibre: 1,       // .4 à 2, leur taille
+    // Fabien, 09/11/2026 : « il faut de la variété pour la taille des trous, c'est pire que ça
+    // paraît bizarre par rapport au jeu de société ». Avant, chaque trou tombait dans l'un de
+    // quatre calibres serrés, et ça se voyait. Maintenant la taille est tirée sur toute la
+    // gamme, beaucoup de petits et peu de gros, donc toutes les tailles intermédiaires existent.
+    variete: 1,       // 0 à 1 : 0 = tous de la même taille, 1 = du minuscule au très gros
     menus: 1,         // 0 à 4, combien de tout petits en plus
     groupe: 1,        // .4 à 2.5, serrés vers le milieu (petit) ou étalés (grand)
     relief: 1,        // 0 à 2.5, le halo clair en cratère autour du trou
@@ -45,7 +50,7 @@
     // minorité — les gros surtout — s'ouvre sur le noir. Un gros trou a d'autant plus de
     // chances de déboucher qu'il est gros, comme une bulle assez grosse pour percer les deux
     // faces de la tranche.
-    traversants: .35, // 0 à 1 : 0 = aucun ne traverse, 1 = tous (ce que faisait la v40)
+    traversants: 1,   // 0 à 1 : 0 = aucun ne traverse, 1 = la règle de la taille à plein
     // La perspective des trous. 1 = l'oeil est au-dessus du milieu du fromage, chaque trou penche
     // vers le centre et les trous du milieu se voient de face (c'est ce qu'on avait choisi).
     // 0 = l'oeil est loin, tous les trous penchent dans la même direction, même ceux du milieu
@@ -62,8 +67,10 @@
   };
   let STYLE = Object.assign({}, STYLE0);
 
-  // la couleur de base, décalée en teinte, en saturation et en clarté
-  function teinter(hex, S) {
+  // La couleur, décalée en teinte, en saturation et en clarté. Avec une opacité, elle rend du
+  // rgba : les marbrures, les plaques et les bords qui plongent passent par là eux aussi, sinon
+  // la saturation ne touchait que le fond et la pâte restait terne par-dessus.
+  function teinter(hex, S, a) {
     let r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
     if (S.teinte) {
       const a = S.teinte * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
@@ -75,7 +82,8 @@
     const l = .299 * r + .587 * g + .114 * b;
     r = l + (r - l) * S.chaleur; g = l + (g - l) * S.chaleur; b = l + (b - l) * S.chaleur;
     const q = v => Math.max(0, Math.min(255, Math.round(v * S.clair)));
-    return `rgb(${q(r)},${q(g)},${q(b)})`;
+    return a == null ? `rgb(${q(r)},${q(g)},${q(b)})`
+                     : `rgba(${q(r)},${q(g)},${q(b)},${a.toFixed(3)})`;
   }
   let SW = 1024, SH = 1024, U = 1, A = 1, GH = GW, grid = new Uint8Array(GW * GW), cells0 = 1, cells = 1;
 
@@ -120,17 +128,26 @@
     const P = STYLE.perspective, aR = Math.atan2(cy - y, cx - x), aP = (STYLE.angleTrous || 0) * Math.PI / 180;
     const ux = Math.cos(aR) * P + Math.cos(aP) * (1 - P), uy = Math.sin(aR) * P + Math.sin(aP) * (1 - P);
     const offR = Math.min(1, d * (small ? .7 : 1.05)), offP = small ? .55 : .8;
-    // traverse-t-il ? Plus le trou est gros, plus c'est probable. Une poche borgne est moins
-    // profonde : son fond se décale moins vers le centre et reste presque aussi large que
-    // l'ouverture, au lieu de la lucarne étroite et très décalée d'un trou qui traverse.
-    const gros = Math.min(1, r / (16 * U));
-    const travers = RA() < STYLE.traversants * (.25 + .75 * gros);
-    const creux = travers ? 1 : rr(.10, .55);                  // 0 = à peine creusé, 1 = traverse
+    // Traverse-t-il ? C'est proportionnel à sa taille (Fabien, 09/11/2026 : « les petits
+    // traversent rarement mais les gros si ») : une grosse bulle perce les deux faces de la
+    // tranche, une minuscule reste enfermée dans la pâte. Et la profondeur d'une poche borgne
+    // suit la même règle : plus le trou est gros, plus son fond est loin et sombre.
+    // Une poche est aussi moins profonde qu'un tunnel : son fond se décale moins vers le centre
+    // et reste presque aussi large que l'ouverture, au lieu d'une lucarne étroite et décalée.
+    // Et parmi ceux qui ne traversent pas, certains sont quand même bien creusés : avec l'angle
+    // qu'ils ont on ne voit pas l'autre bout (Fabien, 09/11/2026). Le fond sombre déborde alors
+    // du contour, il se fait couper par le bord du trou, et il ne reste qu'un croissant de paroi
+    // éclairée d'un seul côté — pas la petite lucarne nette d'un trou qui traverse.
+    const part = Math.min(1, r / (34 * U * (STYLE.calibre || 1)));   // sa taille dans la gamme
+    const travers = RA() < Math.max(0, (part - .3) / .45) * STYLE.traversants;
+    const profond = !travers && RA() < .3 + .45 * part;
+    const creux = travers ? 1 : profond ? rr(.6, .85)
+      : Math.min(.6, .10 + part * .7) * rr(.72, 1.12);
     return {
-      x, y, r, small, travers, creux,
+      x, y, r, small, travers, profond, creux,
       dir: Math.atan2(uy, ux) + rr(-.08, .08),
-      off: (offR * P + offP * (1 - P)) * rr(.9, 1.1) * (travers ? 1 : .35 + .5 * creux),
-      size: travers ? rr(.8, .95) : rr(.86, .98),
+      off: (offR * P + offP * (1 - P)) * rr(.9, 1.1) * (travers ? 1 : profond ? .8 : .35 + .5 * creux),
+      size: travers ? rr(.8, .95) : profond ? rr(.98, 1.12) : rr(.86, .98),
       sy: 1, rot: 0,
       wob: [],                                                   // a cheese hole is a burst bubble: a perfect circle
       // le halo clair autour du trou : sur l'émission, les gros trous sont des cratères dont le
@@ -161,8 +178,8 @@
   function drawHalo(c, h) {
     // the glow hugs the hole's own outline (the hole itself is painted over the solid part)
     c.save(); c.translate(h.x, h.y); c.rotate(h.rot); c.scale(1, h.sy);
-    c.shadowColor = `rgba(252,214,124,${h.halo + .15})`; c.shadowBlur = h.r * (h.haloR - 1) * 1.6 * Math.min(1, h.sy);
-    c.fillStyle = 'rgba(250,208,118,.9)'; holePath(c, h, 1); c.fill();
+    c.shadowColor = `rgba(255,198,60,${h.halo + .15})`; c.shadowBlur = h.r * (h.haloR - 1) * 1.6 * Math.min(1, h.sy);
+    c.fillStyle = 'rgba(252,194,46,.9)'; holePath(c, h, 1); c.fill();
     c.restore();
   }
   function drawHole(c, h) {
@@ -211,7 +228,7 @@
     // the cut edge, lit the same way as the wall: on the centre side the surface drops into shadow,
     // so the lip shows as a bright line; on the outer side it rolls softly into the lit wall
     const lip = c.createLinearGradient(dx * r, dy * r, -dx * r, -dy * r);
-    lip.addColorStop(0, 'rgba(255,234,166,.8)'); lip.addColorStop(.55, 'rgba(255,234,166,.25)'); lip.addColorStop(1, 'rgba(255,234,166,0)');
+    lip.addColorStop(0, 'rgba(255,220,116,.8)'); lip.addColorStop(.55, 'rgba(255,220,116,.25)'); lip.addColorStop(1, 'rgba(255,220,116,0)');
     holePath(c, h, 1 + lw / r * .7); c.strokeStyle = lip; c.lineWidth = lw * 1.3; c.stroke();
     const crease = c.createLinearGradient(dx * r, dy * r, -dx * r, -dy * r);
     crease.addColorStop(0, 'rgba(70,28,2,.45)'); crease.addColorStop(.6, 'rgba(110,50,10,.18)'); crease.addColorStop(1, 'rgba(150,76,20,.3)');
@@ -231,7 +248,11 @@
     const big = Math.max(SW, SH);
     const cx = SW * rr(.45, .55), cy = SH * rr(.44, .54);
     const g = c.createRadialGradient(cx, cy, big * .02, SW * .5, SH * .5, big * .7);
-    for (const [t, col] of [[0, '#e8ad44'], [.35, '#dc9234'], [.7, '#cd7a2b'], [1, '#bb6524']]) g.addColorStop(t, teinter(col, S));
+    // Les quatre couleurs de la pâte, relevées au compte-gouttes sur `references/progression/01.jpg`
+    // (Fabien, 09/11/2026 : « tu peux te rapprocher de la couleur et des nuances du fromage de la
+    // photo »). Mesuré sur la capture : moyenne 204,111,5 — un orange franc, presque sans bleu, et
+    // des zones sombres qui gardent leur rouge (180,79,0) au lieu de virer au gris-brun.
+    for (const [t, col] of [[0, '#ff9d10'], [.35, '#fb8a05'], [.7, '#ec7703'], [1, '#c85401']]) g.addColorStop(t, teinter(col, S));
     c.fillStyle = g; c.fillRect(0, 0, SW, SH);
     // Les grandes ondulations de la surface. Sur les gros plans elles sont bien plus marquées
     // que sur notre tranche : la pâte est marbrée par larges plages, pas uniforme.
@@ -240,7 +261,7 @@
       const x = RA() * SW, y = RA() * SH, r = rr(180, 460) * U * S.taille;
       const light = RA() < .5;
       const m = c.createRadialGradient(x, y, 0, x, y, r);
-      m.addColorStop(0, light ? `rgba(248,196,92,${(.13 * S.marbrures).toFixed(3)})` : `rgba(150,62,12,${(.09 * S.marbrures).toFixed(3)})`);
+      m.addColorStop(0, light ? teinter('#fcae10', S, .15 * S.marbrures) : teinter('#8e3604', S, .11 * S.marbrures));
       m.addColorStop(1, 'rgba(0,0,0,0)');
       c.fillStyle = m; c.fillRect(x - r, y - r, 2 * r, 2 * r);
     }
@@ -250,37 +271,48 @@
       for (let i = 0; i < nT; i++) {
         const x = RA() * SW, y = RA() * SH, r = rr(90, 300) * U * S.taille;
         const m = c.createRadialGradient(x, y, 0, x, y, r);
-        m.addColorStop(0, `rgba(126,44,6,${(.22 * S.taches).toFixed(3)})`);
-        m.addColorStop(.6, `rgba(150,62,12,${(.10 * S.taches).toFixed(3)})`);
+        m.addColorStop(0, teinter('#7e2c06', S, .22 * S.taches));
+        m.addColorStop(.6, teinter('#963e0c', S, .10 * S.taches));
         m.addColorStop(1, 'rgba(0,0,0,0)');
         c.fillStyle = m; c.fillRect(x - r, y - r, 2 * r, 2 * r);
       }
     }
     // Les bords qui plongent dans le brun.
     if (S.vignette > 0) {
-      const v = c.createRadialGradient(SW / 2, SH / 2, big * .25, SW / 2, SH / 2, big * .72);
-      v.addColorStop(0, 'rgba(90,30,2,0)');
-      v.addColorStop(1, `rgba(90,30,2,${(.55 * S.vignette).toFixed(3)})`);
+      // le rayon suit la diagonale, pas le grand côté : sinon, sur un écran large,
+      // le dégradé s'arrêtait avant les coins et les bords ne plongeaient jamais vraiment
+      const diag = Math.hypot(SW, SH) / 2;
+      const v = c.createRadialGradient(SW / 2, SH / 2, diag * .3, SW / 2, SH / 2, diag * 1.02);
+      v.addColorStop(0, teinter('#5a1e02', S, 0));
+      v.addColorStop(1, teinter('#5a1e02', S, .55 * S.vignette));
       c.fillStyle = v; c.fillRect(0, 0, SW, SH);
     }
 
-    // Les trous : moins nombreux et plus gros qu'avant, groupés vers le milieu, rares près des
-    // bords. Aucun ne touche le bord de la tranche : Fabien n'en veut pas (voir CLAUDE.md).
+    // Les trous, groupés vers le milieu et rares près des bords. Aucun ne touche le bord de la
+    // tranche : Fabien n'en veut pas (voir CLAUDE.md).
+    // La taille est tirée sur toute la gamme au lieu de quatre calibres serrés : `Math.pow`
+    // penche le tirage vers les petits (beaucoup de petits, peu de gros, comme dans le jeu),
+    // et `variete` resserre tout vers une taille moyenne quand on le baisse.
     const holes = [];
-    const specs = [[10, 22, 34], [5, 15, 21], [10, 8, 12], [7, 3.5, 6]];
     const forme = Math.max(SW, SH) / Math.min(SW, SH), sg = .6 * S.groupe;
-    for (let si = 0; si < specs.length; si++) {
-      const [n0, a, b] = specs[si], menu = si >= 2;          // les deux dernières rangées sont les petits
-      const n = Math.round(n0 * forme * S.trousN * (menu ? S.menus : 1));
-      let placed = 0, tries = 0;
-      while (placed < n && tries < 9000) {
-        tries++;
-        const r = rr(a, b) * U * S.calibre, m = r * 1.6 + 8 * U;
-        if (SW - 2 * m <= 0 || SH - 2 * m <= 0) break;
+    const rMin = 2.2 * U * S.calibre, rMax = 38 * U * S.calibre;
+    const gamme = f => rMin + (rMax - rMin) * (.5 + (f - .5) * S.variete);
+    const tailles = [];
+    // quelques gros cratères qui sortent du lot : sur la capture, ce sont eux qui donnent
+    // l'impression de variété, et sans eux la tranche a l'air d'un tamis régulier
+    for (let i = Math.round(4 * forme * S.trousN); i > 0; i--) tailles.push(gamme(rr(.72, 1)) * (1 + .25 * S.variete));
+    for (let i = Math.round(21 * forme * S.trousN); i > 0; i--) tailles.push(gamme(Math.pow(RA(), 1.05)));
+    for (let i = Math.round(9 * forme * S.trousN * S.menus); i > 0; i--) tailles.push(gamme(Math.pow(RA(), 4) * .4));
+    // du plus gros au plus petit : les gros ont besoin de place, les petits se glissent après
+    tailles.sort((a, b) => b - a);
+    for (const r of tailles) {
+      const m = r * 1.6 + 8 * U;
+      if (SW - 2 * m <= 0 || SH - 2 * m <= 0) continue;
+      for (let t = 0; t < 150; t++) {
         const x = m + RA() * (SW - 2 * m), y = m + RA() * (SH - 2 * m);
         const nx = (x - SW / 2) / (SW / 2), ny = (y - SH / 2) / (SH / 2);
         if (RA() > Math.exp(-(nx * nx + ny * ny) / (2 * sg * sg))) continue;   // vers le milieu
-        if (holes.every(h => Math.hypot(h.x - x, h.y - y) > h.r + r + Math.max(10 * U, (h.r + r) * .45))) { holes.push(makeHole(x, y, r, RA, rr)); placed++; }
+        if (holes.every(h => Math.hypot(h.x - x, h.y - y) > h.r + r + Math.max(10 * U, (h.r + r) * .45))) { holes.push(makeHole(x, y, r, RA, rr)); break; }
       }
     }
     const layer = mk(); layer.width = SW; layer.height = SH;

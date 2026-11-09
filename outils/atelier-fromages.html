@@ -100,7 +100,7 @@ textarea{width:100%;min-height:150px;font:12px/1.45 ui-monospace,SFMono-Regular,
     </div>
     <div class="row">
       <label class="sld">plaques brun-rouge <span class="val" id="tachesV"></span><input type="range" id="taches" min="0" max="100" step="2"></label>
-      <label class="sld">bords qui plongent <span class="val" id="vignetteV"></span><input type="range" id="vignette" min="0" max="100" step="2"></label>
+      <label class="sld">bords qui plongent <span class="val" id="vignetteV"></span><input type="range" id="vignette" min="0" max="150" step="2"></label>
     </div>
     <div class="info">Les marbrures sont les grandes plages claires et sombres de la surface. Sur les gros plans, la pâte en est pleine ; chez nous elle est presque unie. C’est sans doute le réglage qui fait le plus de différence.</div>
   </section>
@@ -110,6 +110,7 @@ textarea{width:100%;min-height:150px;font:12px/1.45 ui-monospace,SFMono-Regular,
     <div class="row">
       <label class="sld">combien <span class="val" id="trousNV"></span><input type="range" id="trousN" min="30" max="300" step="5"></label>
       <label class="sld">leur taille <span class="val" id="calibreV"></span><input type="range" id="calibre" min="40" max="200" step="5"></label>
+      <label class="sld">variété des tailles <span class="val" id="varieteV"></span><input type="range" id="variete" min="0" max="100" step="2"></label>
       <label class="sld">tout petits en plus <span class="val" id="menusV"></span><input type="range" id="menus" min="0" max="400" step="10"></label>
     </div>
     <div class="row">
@@ -124,7 +125,7 @@ textarea{width:100%;min-height:150px;font:12px/1.45 ui-monospace,SFMono-Regular,
       <label class="sld">noir autour, à la fin <span class="val" id="margeFinV"></span><input type="range" id="margeFin" min="0" max="200" step="2"></label>
       <label class="sld">quand il arrive <span class="val" id="margeCourbeV"></span><input type="range" id="margeCourbe" min="50" max="300" step="5"></label>
     </div>
-    <div class="info"><b>La perspective</b> dit d'où on regarde. « Depuis le milieu » est le choix d'origine : chaque trou penche vers le centre du fromage, et ceux du milieu se voient de face. « Parallèle » veut dire que l'oeil est loin : tous les trous penchent de la même façon, y compris ceux du milieu. Sur tes gros plans c'est plutôt parallèle, creux sombre en haut à gauche, paroi éclairée en bas à droite — mais c'est toi qui tranches, on avait choisi l'autre ensemble.<br><br><b>Les trous qui traversent</b> : sur `references/progression/01.jpg`, la tranche entière avant la première morsure, la plupart des trous ne traversent pas le fromage — on voit leur fond brun, et seuls quelques-uns, les gros surtout, s'ouvrent sur le noir. À 45 % (le réglage actuel) un gros trou sur deux environ débouche, et presque aucun des petits. À « tous », on retrouve la v40.<br><br><b>Le noir autour</b> s'ouvre à mesure que la tranche se fait manger : tranche entière elle peut toucher les bords de l'écran, et plus il en manque, plus elle recule et devient un morceau posé sur une table noire, dont on voit le contour et l'épaisseur. « Quand il arrive » règle le moment : petit, le noir vient tôt ; grand, seulement vers la fin. Sers-toi de « Quelques morsures » pour juger. Sur tes captures, les trous sont <b>nombreux et de toutes les tailles</b>, avec beaucoup de tout petits entre les gros, et chacun se lit comme un vrai cratère. « Serrés vers le milieu » à 100 % est le réglage actuel ; plus haut, ils s’étalent jusqu’aux bords.</div>
+    <div class="info"><b>La perspective</b> dit d'où on regarde. « Depuis le milieu » est le choix d'origine : chaque trou penche vers le centre du fromage, et ceux du milieu se voient de face. « Parallèle » veut dire que l'oeil est loin : tous les trous penchent de la même façon, y compris ceux du milieu. Sur tes gros plans c'est plutôt parallèle, creux sombre en haut à gauche, paroi éclairée en bas à droite — mais c'est toi qui tranches, on avait choisi l'autre ensemble.<br><br><b>La variété des tailles</b> : dans le jeu, les trous vont du point minuscule au gros cratère, avec toutes les tailles entre les deux. À 100 % la gamme est entière ; en descendant, ils se ressemblent de plus en plus, et à « tous pareils » ils ont tous la même taille. <b>« Leur taille »</b> agrandit ou rapetisse toute la gamme d'un coup.<br><br><b>Les trous qui traversent</b> : sur la capture de début de partie, la plupart des trous ne traversent pas le fromage — on voit leur fond brun, et seuls les gros s'ouvrent sur le noir. C'est proportionnel à la taille : un gros débouche presque toujours, un minuscule presque jamais, et un trou borgne a un fond d'autant plus sombre qu'il est gros. Le curseur règle la facilité d'ensemble ; à zéro, aucun ne traverse.<br><br><b>Le noir autour</b> s'ouvre à mesure que la tranche se fait manger : tranche entière elle peut toucher les bords de l'écran, et plus il en manque, plus elle recule et devient un morceau posé sur une table noire, dont on voit le contour et l'épaisseur. « Quand il arrive » règle le moment : petit, le noir vient tôt ; grand, seulement vers la fin. Sers-toi de « Quelques morsures » pour juger. Sur tes captures, les trous sont <b>nombreux et de toutes les tailles</b>, avec beaucoup de tout petits entre les gros, et chacun se lit comme un vrai cratère. « Serrés vers le milieu » à 100 % est le réglage actuel ; plus haut, ils s’étalent jusqu’aux bords.</div>
   </section>
 
   <section>
@@ -179,15 +180,14 @@ textarea{width:100%;min-height:150px;font:12px/1.45 ui-monospace,SFMono-Regular,
   // Les styles proposés. Chacun ne dit que ce qu'il change ; le reste vient du défaut de l'appli.
   const STYLES = [
     ['Comme l’appli', 'ce que donne une vraie partie aujourd’hui', {}],
-    ['La v35', 'la pâte d’avant ton choix de couleur', { teinte: 0, chaleur: 1, clair: 1, marbrures: 1, taille: 1, nombre: 1, taches: 0, vignette: 0, traversants: 1 }],
-    ['Trous qui traversent', 'comme avant : tous débouchent sur le noir', { traversants: 1 }],
+    ['Pâte unie', 'sans marbrures ni bords sombres', { marbrures: 0, taches: 0, vignette: 0 }],
     ['Marbré', 'mêmes couleurs, mais la pâte n’est plus unie', { marbrures: 2.4, taille: 1.35, nombre: 2 }],
     ['Capture d’écran', 'mon essai pour coller aux gros plans', { marbrures: 2.1, taille: 1.3, nombre: 1.8, taches: .55, vignette: .45, bave: .22, grain: .12 }],
     ['Vieille bande', 'ce que la VHS fait à l’image', { flou: .3, bave: .55, lignes: .35, grain: .4 }],
     ['Pâte chaude', 'plus sombre, plus rouge, bords qui plongent', { teinte: -8, chaleur: 1.18, clair: .92, taches: .7, vignette: .7 }],
     ['Beurre', 'pâle et jaune, comme le couvercle de la trappe', { teinte: 7, chaleur: .88, clair: 1.16, marbrures: 1.4 }],
     ['Cuir', 'très marbré, très sombre sur les bords', { chaleur: 1.1, clair: .86, marbrures: 3.2, taille: .8, nombre: 2.6, taches: 1, vignette: .85 }],
-    ['Comme la vidéo', 'un morceau posé sur du noir', { marge: 0, margeFin: .085, margeCourbe: 1.6, perspective: .1, angleTrous: 220, teinte: -3, chaleur: 1.14, clair: 1.05, marbrures: .9, taille: 1.6, nombre: 1, taches: .15, vignette: .28, bave: .16, trousN: 1.5, calibre: .8, menus: 2.6, groupe: 1.5, relief: 1.3 }],
+    ['Comme la vidéo', 'un morceau posé sur du noir', { marge: 0, margeFin: .085, margeCourbe: 1.6, perspective: .1, angleTrous: 220, bave: .16, trousN: 1.2, calibre: 1.15, menus: 1.6, groupe: 1.5, relief: 1.3 }],
     ['Cathodique', 'tout à fond, pour voir jusqu’où ça va', { marbrures: 2.6, nombre: 2.2, taches: .7, vignette: .6, flou: .45, bave: .8, lignes: .6, grain: .55 }]
   ];
 
@@ -207,6 +207,7 @@ textarea{width:100%;min-height:150px;font:12px/1.45 ui-monospace,SFMono-Regular,
     ['lignes', .01, v => Math.round(v * 100) + ' %'],
     ['trousN', .01, v => Math.round(v * 100) + ' %'],
     ['calibre', .01, v => Math.round(v * 100) + ' %'],
+    ['variete', .01, v => v < .02 ? 'tous pareils' : Math.round(v * 100) + ' %'],
     ['menus', .01, v => Math.round(v * 100) + ' %'],
     ['groupe', .01, v => Math.round(v * 100) + ' %'],
     ['relief', .01, v => Math.round(v * 100) + ' %'],
