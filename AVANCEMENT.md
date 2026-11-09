@@ -538,9 +538,14 @@ C'est `MARGIN = 0` : la tranche touche les bords de l'écran, donc **son contour
 visible**, et avec lui l'épaisseur qu'on avait relevée sur `references/relief/`. On ne la voyait
 qu'aux endroits déjà mordus. Dès qu'il y a du noir autour, la tranche redevient un objet posé.
 
-`STYLE.marge` (0 à .12) remplace `MARGIN` dans `draw()`. Par défaut 0, donc **l'appli ne change
-pas** tant que Fabien n'a pas tranché. Le curseur est dans l'Atelier des fromages, et le style
-« Comme la vidéo » la met à 5,5 %.
+Précisé par Fabien dans la foulée : **inutile tant que le fromage occupe tout l'écran**, mais dès
+qu'il en manque, surtout quand il en manque beaucoup, oui. La marge n'est donc pas constante,
+elle **s'ouvre à mesure que la tranche se fait manger** : `marge` (tranche entière), `margeFin`
+(tout mangé), `margeCourbe` (tôt ou tard), interpolées dans `draw()` sur `1 - cells / cells0`.
+
+Tout est à 0 par défaut, donc **l'appli ne change pas** tant que Fabien n'a pas tranché. Le style
+« Comme la vidéo » part de 0 et finit à 8,5 %, courbe 1,6. Vérifié : tranche entière elle touche
+les bords, à moitié mangée elle a recouvré son contour et son épaisseur tout autour.
 
 Dans la même passe, les trous sont devenus réglables, parce que Fabien a relevé sur ses captures
 qu'ils sont beaucoup plus nombreux, de toutes les tailles, avec quantité de tout petits entre les

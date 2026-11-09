@@ -37,7 +37,12 @@
     menus: 1,         // 0 à 4, combien de tout petits en plus
     groupe: 1,        // .4 à 2.5, serrés vers le milieu (petit) ou étalés (grand)
     relief: 1,        // 0 à 2.5, le halo clair en cratère autour du trou
-    marge: 0,         // 0 à .12 : du noir autour de la tranche, pour qu'elle devienne un objet
+    // Le noir autour de la tranche. Fabien : inutile tant que le fromage occupe tout l'écran,
+    // mais dès qu'il en manque — surtout quand il en manque beaucoup — la tranche doit devenir un
+    // morceau posé sur une table noire, dont on voit le contour et l'épaisseur tout autour.
+    marge: 0,         // 0 à .12 : la marge au départ, tranche entière
+    margeFin: 0,      // 0 à .20 : la marge quand tout est mangé
+    margeCourbe: 1.6, // .5 à 3 : petit = la marge vient tôt, grand = seulement vers la fin
     graine: 0         // 0 = au hasard ; sinon la même tranche revient à l'identique
   };
   let STYLE = Object.assign({}, STYLE0);
@@ -365,7 +370,10 @@
     const w = view.width, h = view.height;
     vctx.setTransform(1, 0, 0, 1, 0, 0);
     vctx.fillStyle = '#060403'; vctx.fillRect(0, 0, w, h);
-    const m = Math.min(w, h) * (STYLE.marge || MARGIN);
+    // la marge s'ouvre à mesure que la tranche se fait manger
+    const mange = cells0 ? Math.max(0, Math.min(1, 1 - cells / cells0)) : 0;
+    const m0 = STYLE.marge || MARGIN, m1 = STYLE.margeFin == null ? m0 : STYLE.margeFin;
+    const m = Math.min(w, h) * (m0 + (m1 - m0) * Math.pow(mange, STYLE.margeCourbe || 1.6));
     const top = Math.max(m, resTop), bot = Math.max(m, resBot);
     const aw = w - 2 * m, ah = Math.max(10, h - top - bot);
     const s = Math.min(aw / SW, ah / SH);
