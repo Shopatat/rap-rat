@@ -824,3 +824,18 @@ galette ne s'incline pas au-delà de 60°, et le fond d'un trou ne glisse jamais
 
 La perspective elle-même n'est pas tranchée : le défaut de l'appli reste `perspective: 1`,
 en attendant que Fabien choisisse.
+
+### Le bout de fromage rectangulaire (v47)
+
+Fabien, dans la foulée : « plutôt rectangulaire le morceau si tu peux ou carré afin que cela
+ressemble ». La dalle prend donc la forme de la vraie tranche (`RapRat.toile()`, soit celle de
+l'écran) au lieu d'être ronde.
+
+Un rond était rotationnellement symétrique, donc la première projection faisait tourner le
+repère avec l'angle de l'œil sans que ça se voie. Avec un rectangle, ça se voyait tout de
+suite : le morceau pivotait sur lui-même. La projection est maintenant écrite dans le sens de
+l'écran — un point (u, v) de la face du dessus, à la profondeur w, va en
+`C + (u,v) − (1−cos θ)·((u,v)·dirA)·dirA + w·sin θ·dirA`. La dalle reste droite, s'écrase le
+long de l'axe de l'œil, et ce qui est plus profond glisse du côté de l'œil. Sa silhouette est
+l'enveloppe convexe des huit coins (dessus et dessous) : l'union des deux rectangles laissait
+deux encoches dans les coins quand le décalage était en biais.
