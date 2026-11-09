@@ -528,3 +528,25 @@ Vérifié dans le navigateur de l'ordinateur ; pas encore sur l'iPhone.
 Piège retrouvé au passage, déjà noté dans l'Atelier des foyers : l'appli réserve de la place pour
 ses barres tant qu'elles ne sont pas vraiment `hidden`. Les cacher en CSS ne suffit pas, la
 tranche se dessine minuscule.
+
+## Un morceau posé sur du noir, pas une plaque (v37)
+
+Fabien, le 09/11/2026, devant deux captures qu'il a envoyées : « notre version ressemble à une
+plaque de fromage et celle du jeu a un morceau de fromage posé sur une table noire ».
+
+C'est `MARGIN = 0` : la tranche touche les bords de l'écran, donc **son contour n'est jamais
+visible**, et avec lui l'épaisseur qu'on avait relevée sur `references/relief/`. On ne la voyait
+qu'aux endroits déjà mordus. Dès qu'il y a du noir autour, la tranche redevient un objet posé.
+
+`STYLE.marge` (0 à .12) remplace `MARGIN` dans `draw()`. Par défaut 0, donc **l'appli ne change
+pas** tant que Fabien n'a pas tranché. Le curseur est dans l'Atelier des fromages, et le style
+« Comme la vidéo » la met à 5,5 %.
+
+Dans la même passe, les trous sont devenus réglables, parce que Fabien a relevé sur ses captures
+qu'ils sont beaucoup plus nombreux, de toutes les tailles, avec quantité de tout petits entre les
+gros, et que chacun se lit comme un vrai cratère : `trousN` (combien), `calibre` (leur taille),
+`menus` (les tout petits en plus), `groupe` (serrés vers le milieu ou étalés), `relief` (le halo
+en cratère). « Comme la vidéo » monte à environ 190 trous contre 70.
+
+Rien de tout ça ne touche à la **forme** des trous ni aux morsures. Vérifié dans le navigateur de
+l'ordinateur, l'appli garde bien l'aspect de la v35 par défaut ; pas encore vu sur l'iPhone.

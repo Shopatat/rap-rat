@@ -30,6 +30,14 @@
     lignes: 0,        // 0 à 1, lignes de balayage
     flou: 0,          // 0 à 1, l'image adoucie
     bave: 0,          // 0 à 1, la couleur qui bave horizontalement
+    // les trous : sur les captures ils sont nombreux, de toutes les tailles, avec beaucoup
+    // de tout petits, et chacun se lit comme un vrai cratère creusé dans la pâte
+    trousN: 1,        // .3 à 3, combien de trous en tout
+    calibre: 1,       // .4 à 2, leur taille
+    menus: 1,         // 0 à 4, combien de tout petits en plus
+    groupe: 1,        // .4 à 2.5, serrés vers le milieu (petit) ou étalés (grand)
+    relief: 1,        // 0 à 2.5, le halo clair en cratère autour du trou
+    marge: 0,         // 0 à .12 : du noir autour de la tranche, pour qu'elle devienne un objet
     graine: 0         // 0 = au hasard ; sinon la même tranche revient à l'identique
   };
   let STYLE = Object.assign({}, STYLE0);
@@ -60,7 +68,10 @@
   let soundOn = store.get('sound', true);
 
   // ---------- cheese shape follows the screen ----------
-  // 0 : la tranche touche les bords de l'écran, pas de liseré noir autour
+  // 0 : la tranche touche les bords de l'écran, pas de liseré noir autour.
+  // Fabien (09/11/2026) : c'est ce qui fait qu'on lit une plaque de fromage au lieu d'un morceau
+  // posé sur une table noire. Avec une marge, le contour de la tranche se voit tout autour, et
+  // avec lui l'épaisseur. Réglable dans l'Atelier des fromages (STYLE.marge).
   const MARGIN = 0;
   const dprOf = () => Math.min(window.devicePixelRatio || 1, 3);
   function stageAspect() {
@@ -93,7 +104,8 @@
       wob: [],                                                   // a cheese hole is a burst bubble: a perfect circle
       // le halo clair autour du trou : sur l'émission, les gros trous sont des cratères dont le
       // pourtour se soulève et accroche la lumière ; le bord du trou, lui, reste net
-      halo: small ? rr(.14, .28) : rr(.34, .56), haloR: small ? rr(1.25, 1.5) : rr(1.45, 1.85),
+      halo: (small ? rr(.14, .28) : rr(.34, .56)) * STYLE.relief,
+      haloR: 1 + ((small ? rr(1.25, 1.5) : rr(1.45, 1.85)) - 1) * STYLE.relief,
       warm: rr(0, 1), gloss: rr(.25, .55), spark: !small && RA() < .45, sparkA: rr(-.6, .6)
     };
   }
@@ -219,15 +231,18 @@
     // bords. Aucun ne touche le bord de la tranche : Fabien n'en veut pas (voir CLAUDE.md).
     const holes = [];
     const specs = [[10, 22, 34], [5, 15, 21], [10, 8, 12], [7, 3.5, 6]];
-    for (const [n0, a, b] of specs) {
-      const n = Math.round(n0 * (Math.max(SW, SH) / Math.min(SW, SH)));
+    const forme = Math.max(SW, SH) / Math.min(SW, SH), sg = .6 * S.groupe;
+    for (let si = 0; si < specs.length; si++) {
+      const [n0, a, b] = specs[si], menu = si >= 2;          // les deux dernières rangées sont les petits
+      const n = Math.round(n0 * forme * S.trousN * (menu ? S.menus : 1));
       let placed = 0, tries = 0;
       while (placed < n && tries < 9000) {
         tries++;
-        const r = rr(a, b) * U, m = r * 1.6 + 8 * U;
+        const r = rr(a, b) * U * S.calibre, m = r * 1.6 + 8 * U;
+        if (SW - 2 * m <= 0 || SH - 2 * m <= 0) break;
         const x = m + RA() * (SW - 2 * m), y = m + RA() * (SH - 2 * m);
         const nx = (x - SW / 2) / (SW / 2), ny = (y - SH / 2) / (SH / 2);
-        if (RA() > Math.exp(-(nx * nx + ny * ny) / (2 * .6 * .6))) continue;   // vers le milieu
+        if (RA() > Math.exp(-(nx * nx + ny * ny) / (2 * sg * sg))) continue;   // vers le milieu
         if (holes.every(h => Math.hypot(h.x - x, h.y - y) > h.r + r + Math.max(10 * U, (h.r + r) * .45))) { holes.push(makeHole(x, y, r, RA, rr)); placed++; }
       }
     }
@@ -350,7 +365,7 @@
     const w = view.width, h = view.height;
     vctx.setTransform(1, 0, 0, 1, 0, 0);
     vctx.fillStyle = '#060403'; vctx.fillRect(0, 0, w, h);
-    const m = Math.min(w, h) * MARGIN;
+    const m = Math.min(w, h) * (STYLE.marge || MARGIN);
     const top = Math.max(m, resTop), bot = Math.max(m, resBot);
     const aw = w - 2 * m, ah = Math.max(10, h - top - bot);
     const s = Math.min(aw / SW, ah / SH);
