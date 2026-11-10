@@ -19,15 +19,16 @@
   // ça ». Avant, tout était à la valeur neutre : la tranche de la v35, lisse et propre.
   // Le reste (les trous, la perspective, la marge, ce que la cassette ajoute) n'est pas tranché
   // et garde ses valeurs neutres.
+  let PATE = [[0, '#dc9c04'], [.25, '#dc9404'], [.5, '#da8603'], [.72, '#d47403'], [.9, '#cc6402'], [1, '#c05802']];
   const STYLE0 = {
     teinte: 0,        // -40 à 40, degrés de décalage de la couleur
     chaleur: 1,       // 0 à 2, saturation
-    clair: 1.12,      // .6 à 1.4, clarté d'ensemble
-    marbrures: .8,    // 0 à 4, force des grandes plages claires et sombres
+    clair: 1,         // .6 à 1.4, clarté d'ensemble
+    marbrures: .7,    // 0 à 4, force des grandes plages claires et sombres
     taille: 1.6,      // .4 à 2.5, leur taille
     nombre: 1,        // .3 à 4, combien
-    taches: .2,       // 0 à 1, plaques brun-rouge en plus
-    vignette: 1,      // 0 à 1.5, les bords qui plongent dans le brun
+    taches: .1,       // 0 à 1, plaques brun-rouge en plus
+    vignette: .3,     // 0 à 1.5, les bords qui plongent dans le brun
     grain: 0,         // 0 à 1, grain de la bande
     lignes: 0,        // 0 à 1, lignes de balayage
     flou: 0,          // 0 à 1, l'image adoucie
@@ -243,15 +244,22 @@
     const c = tex.getContext('2d');
     c.filter = 'none'; c.globalAlpha = 1;
     c.globalCompositeOperation = 'source-over';
-    const big = Math.max(SW, SH);
     const cx = SW * rr(.45, .55), cy = SH * rr(.44, .54);
-    const g = c.createRadialGradient(cx, cy, big * .02, SW * .5, SH * .5, big * .7);
+
     // Les quatre couleurs de la pâte, relevées au compte-gouttes sur `references/progression/01.jpg`
     // (Fabien, 09/11/2026 : « tu peux te rapprocher de la couleur et des nuances du fromage de la
     // photo »). Mesuré sur la capture : moyenne 204,111,5 — un orange franc, presque sans bleu, et
     // des zones sombres qui gardent leur rouge (180,79,0) au lieu de virer au gris-brun.
-    for (const [t, col] of [[0, '#ff9d10'], [.35, '#fb8a05'], [.7, '#ec7703'], [1, '#c85401']]) g.addColorStop(t, teinter(col, S));
-    c.fillStyle = g; c.fillRect(0, 0, SW, SH);
+    // Recalée le 10/11/2026 sur `references/style/entiere.jpg`, zone par zone avec
+    // `references/style/mesure.js` : 217,153,4 au centre, 216,138,3 à mi-chemin, 210,120,3 vers
+    // le bord, 202,104,2 au ras du bord. Plus claire et bien plus unie que la veille. Le dégradé
+    // suit maintenant la forme de la tranche (une ellipse) : sur la capture les quatre bords
+    // plongent pareil, alors qu'un cercle laissait le haut et le bas d'un écran large tout clairs.
+    c.save(); c.translate(SW / 2, SH / 2); c.scale(SW / 2, SH / 2);
+    const g = c.createRadialGradient(cx / (SW / 2) - 1, cy / (SH / 2) - 1, .02, 0, 0, 1.45);
+    for (const [t, col] of PATE) g.addColorStop(t, teinter(col, S));
+    c.fillStyle = g; c.fillRect(-1, -1, 2, 2);
+    c.restore();
     // Les grandes ondulations de la surface. Sur les gros plans elles sont bien plus marquées
     // que sur notre tranche : la pâte est marbrée par larges plages, pas uniforme.
     const nM = Math.round(18 * Math.max(A, 1 / A) * S.nombre);
@@ -259,8 +267,14 @@
       const x = RA() * SW, y = RA() * SH, r = rr(180, 460) * U * S.taille;
       const light = RA() < .5;
       const m = c.createRadialGradient(x, y, 0, x, y, r);
-      m.addColorStop(0, light ? teinter('#fcae10', S, .15 * S.marbrures) : teinter('#8e3604', S, .11 * S.marbrures));
-      m.addColorStop(1, 'rgba(0,0,0,0)');
+      // Une plage claire et une sombre à égale distance de la pâte : avant, leur moyenne était
+      // plus sombre que la pâte, et à force de se superposer elles assombrissaient toute la tranche.
+      // Et chaque plage s'éteint vers sa propre couleur, pas vers du noir transparent : le
+      // navigateur mélange les couleurs avant la transparence, et un fondu vers « noir à 0 % »
+      // laissait un liseré sombre autour de chacune.
+      const col = light ? '#f4b404' : '#b65c02';
+      m.addColorStop(0, teinter(col, S, .13 * S.marbrures));
+      m.addColorStop(1, teinter(col, S, 0));
       c.fillStyle = m; c.fillRect(x - r, y - r, 2 * r, 2 * r);
     }
     // Des plaques brun-rouge, comme les zones sombres des gros plans.
@@ -271,7 +285,7 @@
         const m = c.createRadialGradient(x, y, 0, x, y, r);
         m.addColorStop(0, teinter('#7e2c06', S, .22 * S.taches));
         m.addColorStop(.6, teinter('#963e0c', S, .10 * S.taches));
-        m.addColorStop(1, 'rgba(0,0,0,0)');
+        m.addColorStop(1, teinter('#963e0c', S, 0));
         c.fillStyle = m; c.fillRect(x - r, y - r, 2 * r, 2 * r);
       }
     }
@@ -1225,6 +1239,7 @@
     // ---- pour l'Atelier des fromages (outils/atelier-fromages.html) ----
     style: () => Object.assign({}, STYLE),
     styleParDefaut: () => Object.assign({}, STYLE0),
+    pate(p) { if (p) PATE = p; return PATE; },                 // la palette de la pâte (pour la caler)
     styleSet(o) { Object.assign(STYLE, o); },
     repeins() { paintTexture(); compose(); draw(); },     // même masque : les morsures restent
     toile: () => view,

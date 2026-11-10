@@ -881,3 +881,26 @@ captures, la perspective, les trous etc. ». Mesure trou par trou avec
   (vers les deux tiers de la hauteur). Trop peu net pour toucher au réglage.
 - Vérifié sur l'ordinateur (tranche entière + 45 crocs). Pas testé sur l'iPhone.
 - L'Atelier de la perspective dessine encore ses trous en cylindres (c'est un schéma).
+
+## La pâte recalée sur les captures (v50)
+
+Suite de la v49, sur le « oui on fait ça » de Fabien. `mesurePate` (dans
+`references/style/mesure.js`) : couleur médiane de la pâte par zone, du centre au bord.
+
+| zone | capture `style/entiere.jpg` | `progression/01.jpg` (cible de la veille) | nous avant | nous après |
+|---|---|---|---|---|
+| centre | 217,153,4 | 217,138,6 | 193,131,15 | 220,151,8 |
+| mi-chemin | 216,138,3 | 209,116,4 | 194,123,11 | 216,140,7 |
+| vers le bord | 210,120,3 | 191,94,8 | 190,109,6 | 207,123,4 |
+| au ras du bord | 202,104,2 | 181,78,5 | 172,87,4 | 196,109,3 |
+| étendue de clarté | 0,22 | 0,35 | 0,28 à 0,42 | 0,23 |
+| écart entre cases voisines | 0,039 | 0,064 | 0,058 à 0,077 | 0,039 |
+
+- `PATE` : la palette, sortie en haut de `js/app.js` ; dégradé elliptique.
+- `STYLE0` : clair 1, marbrures 0,7, taches 0,1, vignette 0,3.
+- Marbrures recentrées (une claire `#f4b404`, une sombre `#b65c02`, à égale distance de la pâte)
+  et fondu corrigé (vers la couleur à 0 %, plus vers du noir transparent).
+- `RapRat.pate()` : lire ou remplacer la palette, pour la caler.
+- Écart restant, non traité : en fin de partie la cassette pâlit et jaunit (192,144,55 sur
+  `style/fin-etoile.jpg`), sans doute l'exposition de la caméra. Chez nous la pâte ne change pas.
+- Vérifié sur l'ordinateur (tranche entière + 45 crocs). Pas testé sur l'iPhone.
