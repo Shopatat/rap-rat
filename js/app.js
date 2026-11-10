@@ -665,9 +665,22 @@
     let horsGros = null;
     if (viserIles) {
       const parts = morceaux();
-      if (parts.length > 1) {
+      // Une « île » plus petite qu'une miette n'existe que dans la grille de comptage : à l'écran,
+      // mangerMiettes l'a déjà effacée. Le rat mordait dedans et ses crocs n'emportaient rien (vu
+      // au banc : trois crocs à 0 % juste avant la fin). On la raye du compte au lieu de la viser.
+      let iles = 0;
+      for (let t = 1; t < parts.length; t++) {
+        if (parts[t].length < cells0 * MIETTE) {
+          const m = mask.getContext('2d'), w = SW / GW;
+          m.globalCompositeOperation = 'destination-out'; m.fillStyle = '#000'; m.beginPath();
+          for (const q of parts[t]) { grid[q] = 0; cells--; m.rect((q % GW) * w - .5, ((q / GW) | 0) * w - .5, w + 1, w + 1); }
+          m.fill(); m.globalCompositeOperation = 'source-over';
+          parts[t] = null;
+        } else iles++;
+      }
+      if (iles) {
         horsGros = new Uint8Array(grid.length);
-        for (let t = 1; t < parts.length; t++) for (const q of parts[t]) horsGros[q] = 1;
+        for (let t = 1; t < parts.length; t++) if (parts[t]) for (const q of parts[t]) horsGros[q] = 1;
       }
     }
     const mx = .5, my = A / 2;
@@ -923,16 +936,22 @@
   // bite size is the one measured on the show (about 1.7 % of the slice per bite, centred on the edge),
   // scaled to the cheese's area; pacing may only nudge it, so every bite looks like the TV one
   const PUSH = .05, baseR = () => .077 * Math.sqrt(A / .75);
-  // Ce qu'il doit rester avant la dernière bouchée, relevé sur `references/fin/` : un bon
-  // vingtième de la tranche, une étoile dentelée au milieu. Avant, le partage était égal
-  // jusqu'au bout et le dernier morceau n'était qu'une miette de plus.
-  const DERNIER = .045;
+  // Ce qu'il doit rester avant la dernière bouchée : une fois et demie ce qu'un croc emporte
+  // d'habitude. Fabien, le 10/11/2026, capture de fin à l'appui : « la taille du dernier morceau
+  // est 3x trop grande, le rat doit pouvoir le finir en une fois, on va dire que ça correspond à
+  // 1,5 fois ce qu'il mange normalement ». Avant, c'était un vingtième de la tranche (4,5 %),
+  // relevé sur `references/fin/` ; mais sur l'écran large de l'iPhone un vingtième de tranche fait
+  // plus du double de la cassette, et compté en crocs ça faisait plus de trois crocs.
+  // Avec 72 crocs, ça laisse 2 % de la tranche.
+  const DERNIER_CROCS = 1.5;
+  const partDernier = total => DERNIER_CROCS / (total - 1 + DERNIER_CROCS);
   // au-dessous de quoi un bout détaché n'est plus une île mais une miette, et part avec le croc
   let MIETTE = .004;
   // l'Atelier des morsures peut donner au rat les formes cochées par Fabien ; le jeu, lui, tire les siennes
   let choixForme = null;
   function tailleCroc(tpl, e, k, total) {
-    const target = cells0 * (DERNIER + (1 - DERNIER) * (1 - (k + 1) / (total - 1)));
+    const D = partDernier(total);   // les total - 1 crocs ordinaires se partagent le reste
+    const target = cells0 * (D + (1 - D) * (1 - (k + 1) / (total - 1)));
     const needed = cells - target;
     const R0 = baseR(), late = k > total * .9, RMIN = R0 * .8, RMAX = R0 * (late ? 1.8 : 1.25);
     let R = RMIN;
@@ -980,7 +999,9 @@
       if (pris > mieux) { mieux = pris; eM = c; pM = pc; tM = tc; }
       if (c.ile) { e = c; p = pc; tpl = tc; break; }               // une île à finir avant la fin
       if (c.fin) {
-        if (pris >= part * .12 && c.dE > loin) { loin = c.dE; e = c; p = pc; tpl = tc; }
+        // au moins un demi-croc de fromage : avec le dernier morceau ramené à un croc et demi, un
+        // croc presque vide sur la fin ne se rattrape plus (vu au banc : deux crocs à 0 et 0,2 %)
+        if (pris >= part * .45 && c.dE > loin) { loin = c.dE; e = c; p = pc; tpl = tc; }
         continue;
       }
       if (pris >= part * .6) { e = c; p = pc; tpl = tc; break; }   // assez de fromage ici : il mord

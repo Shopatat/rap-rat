@@ -1000,3 +1000,16 @@ ouvert, une vraie partie lancée au bouton. Pas testé sur l'iPhone (vitesse com
 
 Restent les deux autres pistes proposées, pas commencées : une seule lumière pour les parois des
 trous peints, et le fond des poches borgnes ouvertes par un croc.
+
+## Le dernier morceau : un croc et demi (v56)
+
+Fabien : « la taille du dernier morceau est 3x trop grande […] 1,5 fois ce qu'il mange
+normalement ». `DERNIER` (4,5 % de la tranche) devient `DERNIER_CROCS` (1,5 croc), calculé
+d'après le nombre de crocs. Deux défauts sont apparus avec la marge réduite, corrigés :
+- en fin de partie, le rat prenait l'endroit le plus loin du centre même presque vide ; il lui
+  faut maintenant au moins un demi-croc de fromage (au lieu de 12 %) ;
+- sur les dix derniers crocs, il visait des « îles » qui n'existaient que dans la grille de
+  comptage (trois crocs de suite à 0 %) ; elles sont maintenant rayées du compte.
+
+Quinze parties : dernier morceau entre 1,28 et 1,60 croc, aucun croc vide sur la fin, à 0,02 à
+0,13 du centre. Vérifié sur l'ordinateur seulement.
