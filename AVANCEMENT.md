@@ -955,3 +955,27 @@ Une seule graine (4242), sans trous. Conclusion : `WAVE` reste tel quel.
 ne retiennent plus le rat), `ETALE` (0,95) et `FOYERS` avec `balaye` (voir la v51 : écart sur
 l'éloignement moyen et sur le point le plus loin, à part de fromage égale), en ajoutant
 l'écart des festons à 3 % comme troisième critère. Arrêté ici à 88 % de la fenêtre d'usage.
+
+## Où le rat mord, recalé sur la partie (v53)
+
+Banc d'essai : `banc.prepare()` puis `banc.partie(reglages, graine)` dans la page (script
+`references/style/mesure.js`). **Une partie par appel** : enchaînées dans un seul appel, les
+parties se bloquent sans erreur, cause non trouvée. Six graines (11 à 66), sans trous.
+
+| à part égale | 0,88 | 0,79 | 0,65 | 0,46 | 0,34 | 0,27 | 0,18 | 0,075 | 0,056 | 0,034 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| éloignement moyen, cassette | 0,79 | 0,76 | 0,70 | 0,64 | 0,53 | 0,48 | 0,45 | 0,29 | 0,25 | 0,20 |
+| avant (v52) | 0,77 | 0,74 | 0,67 | 0,59 | 0,49 | 0,45 | 0,38 | 0,29 | 0,26 | 0,23 |
+| maintenant | 0,78 | 0,75 | 0,71 | 0,65 | 0,55 | 0,50 | 0,42 | 0,30 | 0,24 | 0,24 |
+| point le plus loin, cassette | 1,41 | 1,41 | 1,41 | 1,41 | 1,26 | 0,97 | 0,97 | 0,68 | 0,52 | 0,41 |
+| avant (v52) | 1,41 | 1,41 | 1,31 | 1,17 | 0,97 | 0,93 | 0,86 | 0,64 | 0,56 | 0,50 |
+| maintenant | 1,41 | 1,41 | 1,41 | 1,33 | 1,07 | 1,04 | 0,95 | 0,68 | 0,50 | 0,50 |
+
+Relief à grande échelle (festons, lissage 3 %) aux captures 3, 5, 7 : cassette 7,1 · 10,4 · 12,1 ;
+avant 5,9 · 6,0 · 6,1 ; maintenant 6,0 · 6,3 · 6,9. **Les pointes en étoile ne sont pas obtenues.**
+
+- `CREUX` 5, `DEHORS` 1,8, `ETALE` 0,5 ; `FINSEUIL` existe (null = l'ancien seuil).
+- Atelier des foyers : deux curseurs ajoutés, et le curseur des miettes rejoue enfin la partie
+  quand on le bouge (il n'était pas branché).
+- Vérifié sur l'ordinateur (banc + planche de cinq étapes). Pas testé sur l'iPhone.
+- Fabien a dit qu'on s'arrête sur cette modification. Rien n'est en cours.

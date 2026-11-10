@@ -92,6 +92,12 @@ input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;b
         <input type="range" id="m" min="0" max="30" step="1" value="4"></label>
     </div>
     <div class="row">
+      <label class="sld">mordre dans les creux (laisser les coins et les pointes) <span class="val" id="cV">5,0</span>
+        <input type="range" id="c" min="0" max="80" step="5" value="50"></label>
+      <label class="sld">préférer ce qui dépasse <span class="val" id="dV">1,8</span>
+        <input type="range" id="d" min="0" max="60" step="2" value="18"></label>
+    </div>
+    <div class="row">
       <button class="btn2" id="reset">Réglages actuels de l’appli</button>
       <button class="btn2" id="partout">Mordre partout (comme avant)</button>
       <span class="info" style="margin:0" id="resume"></span>
@@ -130,6 +136,8 @@ input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;b
     $('e').value = Math.round(usine.etale * 100);
     $('t').value = Math.round(usine.epaisseur * 1000);
     $('m').value = Math.round(usine.miette * 1000);
+    $('c').value = Math.round(usine.creux * 10);
+    $('d').value = Math.round((usine.dehors != null ? usine.dehors : 4 * usine.regroupe) * 10);
   }
   auxValeursDeLAppli();
 
@@ -144,7 +152,7 @@ input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;b
     const n = +$('n').value;
     R.reglages({ foyers: +$('f').value, reste: +$('r').value / 100, pres: +$('p').value / 100,
       regroupe: +$('g').value / 100, etale: +$('e').value / 100, epaisseur: +$('t').value / 1000,
-      miette: +$('m').value / 1000 });
+      miette: +$('m').value / 1000, creux: +$('c').value / 10, dehors: +$('d').value / 10 });
     semer(+$('graine').value || 1);
     R.neuf();
     if (n > 0) R.bites(Math.min(n, total - 1));   // le dernier croc avale tout : on s'arrête avant
@@ -156,6 +164,8 @@ input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;b
     $('gV').textContent = (+$('g').value / 100).toFixed(2).replace('.', ',');
     $('eV').textContent = (+$('e').value / 100).toFixed(2).replace('.', ',');
     $('tV').textContent = (+$('t').value / 10).toFixed(1).replace('.', ',') + ' %';
+    $('cV').textContent = +$('c').value === 0 ? 'indifférent' : (+$('c').value / 10).toFixed(1).replace('.', ',');
+    $('dV').textContent = (+$('d').value / 10).toFixed(1).replace('.', ',');
     $('mV').textContent = +$('m').value === 0 ? 'on garde tout'
       : (+$('m').value / 10).toFixed(1).replace('.', ',') + ' %';
     const r = +$('r').value;
@@ -164,7 +174,7 @@ input[type=number]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;b
       : 'Environ ' + Math.round(r / 10) + ' crocs sur 10 tombent contre un foyer déjà ouvert.';
   }
 
-  for (const id of ['n', 'f', 'r', 'p', 'g', 'e', 't', 'graine']) $(id).addEventListener('input', rejouer);
+  for (const id of ['n', 'f', 'r', 'p', 'g', 'e', 't', 'm', 'c', 'd', 'graine']) $(id).addEventListener('input', rejouer);
   $('reset').addEventListener('click', () => { auxValeursDeLAppli(); rejouer(); });
   $('partout').addEventListener('click', () => { $('r').value = 0; rejouer(); });
   $('tirage').addEventListener('click', () => { $('graine').value = Math.floor(vrai() * 9999) + 1; rejouer(); });

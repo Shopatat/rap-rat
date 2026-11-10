@@ -585,7 +585,22 @@
   // centre. 1 = le réglage d'origine ; plus haut, le morceau reste rond et centré plus tôt.
   // ETALE : à quel point le rat évite l'endroit qu'il vient de croquer, pour que le pourtour
   // soit rongé uniformément au lieu de partir en paquets.
-  let FOYERS = 8, RESTE = 0, PRES = .16, REGROUPE = 1.4, ETALE = .95;
+  // CREUX : à quel point le rat préfère mordre dans la masse — le fond d'une morsure déjà faite,
+  // un bord plein — plutôt que sur ce qui pointe. 0 = indifférent. C'est ce qui laisse debout
+  // les coins et ce qui dépasse, comme sur la cassette.
+  // DEHORS : à quel point il préfère ce qui dépasse encore (null = l'ancien calcul, 4 × REGROUPE).
+  // FINSEUIL : la part de tranche restante sous laquelle le rat ne fait plus que resserrer le
+  // morceau sur le centre (null = l'ancien calcul, d'après REGROUPE).
+  // CREUX et DEHORS ne jouent qu'avant la fin de partie : la fin, elle, n'a pas changé.
+  //
+  // Calés le 10/11/2026 sur les dix captures d'une partie (`references/partie/`), au banc d'essai
+  // de `references/style/mesure.js`, six parties par réglage. À part de fromage égale, l'écart à
+  // la cassette sur l'éloignement moyen du centre passe de 0,036 à 0,020, et sur le point le plus
+  // éloigné de 0,13 à 0,07 : les coins tiennent jusqu'à mi-partie, comme sur la cassette, au lieu
+  // d'être rognés tôt. Le dernier morceau est aussi ramassé et centré qu'avant (0,50 et 0,09).
+  // ETALE est descendu de 0,95 à 0,5 : à 0,95 avec ces réglages, une partie sur six arrivait à la
+  // dernière bouchée avec 9 % de tranche au lieu de 4,5.
+  let FOYERS = 8, RESTE = 0, PRES = .16, REGROUPE = 1.4, ETALE = .5, CREUX = 5, FINSEUIL = null, DEHORS = 1.8;
   let foyers = [], derniers = [];
 
   // Pick a spot on the cheese's edge. Spots far from the middle are much more likely,
@@ -607,7 +622,19 @@
     // où en est la tranche : le milieu de ce qu'il reste, et s'il en reste peu
     let n = 0;
     for (let idx = 0; idx < grid.length; idx++) if (grid[idx]) n++;
-    const fin = n < cells0 * Math.min(.55, .3 * REGROUPE);   // la fin : on resserre et on arrondit
+    const fin = n < cells0 * (FINSEUIL != null ? FINSEUIL : Math.min(.55, .3 * REGROUPE));   // la fin : on resserre et on arrondit
+    // la part de fromage dans un rond autour d'un point du bord : 0,5 sur un bord droit, moins
+    // sur une pointe ou un coin, plus au fond d'un creux
+    const RC = Math.max(3, Math.round(GW * .05 * Math.sqrt(A / .46)));
+    const plein = (i, j) => {
+      let dedans = 0, tot = 0;
+      for (let b = -RC; b <= RC; b += 2) for (let a = -RC; a <= RC; a += 2) {
+        if (a * a + b * b > RC * RC) continue;
+        const u = i + a, v = j + b; tot++;
+        if (u >= 0 && v >= 0 && u < GW && v < GH && grid[v * GW + u]) dedans++;
+      }
+      return dedans / tot;
+    };
     for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
       const idx = j * GW + i;
       if (!grid[idx]) continue;
@@ -644,7 +671,7 @@
           const ux = ex - mx, uy = ey - my, r = Math.hypot(ux, uy) || 1e-6;
           const bord = Math.min(.5 * r / Math.max(Math.abs(ux), 1e-6), (A / 2) * r / Math.max(Math.abs(uy), 1e-6));
           const s = Math.min(1, r / bord);     // 1 sur le bord d'origine, 0 au milieu
-          w = Math.pow(s, 4 * REGROUPE) + .002;
+          w = Math.pow(s, DEHORS != null ? DEHORS : 4 * REGROUPE) + .002;
           // Ce que Fabien veut depuis le début : « qu'autant que possible ça morde dans un
           // endroit pas déjà mordu ». Le rat se souvient donc de TOUTES ses morsures, pas des
           // six dernières, et on regarde la plus proche : un endroit encore vierge garde tout
@@ -655,6 +682,7 @@
             if (dd < dmin) dmin = dd;
           }
           if (dmin < Infinity) w *= 1 - ETALE * Math.exp(-dmin / (PRES * PRES));
+          if (CREUX > 0) w *= Math.pow(.1 + 1.8 * plein(i, j), CREUX);
           if (w < 1e-6) w = 1e-6;
         }
         if (horsGros && horsGros[idx]) w *= 40;
@@ -1207,10 +1235,10 @@
   window.RapRat = { skip(sec) { if (state === 'running' || state === 'paused') elapsed += sec; },
     bites(n, from = 0) { for (let i = 0; i < n; i++) bite(from + i, BITES); compose(); draw(); },
     neuf() { resetCheese(); draw(); },                        // une tranche entière, intacte
-    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; if (o.etale != null) ETALE = o.etale; if (o.miette != null) MIETTE = o.miette; if (o.epaisseur != null) { EPAISSEUR = o.epaisseur; compose(); draw(); } },
+    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; if (o.etale != null) ETALE = o.etale; if (o.miette != null) MIETTE = o.miette; if (o.creux != null) CREUX = o.creux; if (o.finseuil !== undefined) FINSEUIL = o.finseuil; if (o.dehors !== undefined) DEHORS = o.dehors; if (o.epaisseur != null) { EPAISSEUR = o.epaisseur; compose(); draw(); } },
     crocs: () => BITES,
     trous: () => nTrous,
-    actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE, miette: MIETTE, epaisseur: EPAISSEUR }),
+    actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE, miette: MIETTE, creux: CREUX, finseuil: FINSEUIL, dehors: DEHORS, epaisseur: EPAISSEUR }),
     ajuste() { fit(); },                                      // recaler la toile sur sa boîte
     // ---- pour l'Atelier des morsures (outils/atelier-morsures.html) ----
     // un croc s'y décrit par { x, y, nx, ny, R, push, forme } : x, y le point du bord visé (en
