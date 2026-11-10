@@ -18,7 +18,11 @@
   let TROUS = [], OUVRE = true;
   // PAROI : de combien le dessous de la tranche se resserre vers le centre, vu d'en haut (voir paroi()).
   // 0 = la tranche plate d'avant.
-  let PAROI = .04;
+  // Coupée par défaut depuis le 10/11/2026 : un bloc épais vu en perspective a des arêtes droites,
+  // et chaque pointe de fromage laissait une traînée rectiligne, liseré clair compris — le « trait »
+  // que Fabien montrait (« est-ce que tu vois un seul trait sur l'original ? »). Mesuré avec
+  // `traitsDroits` : 3 à 9 traits par partie avec la paroi à 4 %, 0 à 3 sans. Le curseur reste.
+  let PAROI = 0;
 
   // ---------- le style de la pâte (piloté par l'Atelier des fromages) ----------
   // La couleur de la pâte a été choisie par Fabien le 09/11/2026 dans l'Atelier des fromages
@@ -579,9 +583,6 @@
     const pos = [0]; for (let i = 1; i < n; i++) pos.push(pos[i - 1] + (Ls[i - 1] + Ls[i]) * p.ecart);
     const mid = (pos[0] + pos[n - 1]) / 2, V = p.vague || WAVE;
     const ct = Math.cos(p.tilt), st = Math.sin(p.tilt);
-    // De combien chaque flanc s'évase vers le bord, en rayons de croc : souvent peu d'un côté et
-    // franchement de l'autre, comme la morsure du bas de `references/partie/01.jpg`.
-    const evase = [.9 * Math.pow(hasard(), 2), .9 * Math.pow(hasard(), 2)];
     for (let i = 0; i < n; i++) {
       const L = Ls[i], q = pos[i] - mid;
       const along = q * ct, depth = q * st + p.shallow - p.advance;
@@ -589,30 +590,33 @@
       // (each wave is a circle whose cap, of chord `s`, rises `d` above the main circle)
       const d = Math.max(0, V.depth) * L, s = Math.max(.04, V.width) * L;
       // un rond du croc, avec ses vagues de bord
-      const rond = vv => {
-        out.push({ u: along, v: vv, r: L - d });
+      const rond = (vv, du = 0, kr = 1) => {          // du : décalage de côté, kr : taille relative
+        const uu = along + du, Lk = L * kr;
+        out.push({ u: uu, v: vv, r: Lk - d });
         if (d < 1e-4) return;                              // bord lisse : pas de vagues
-        const k = Math.max(6, Math.round(TAU * L / s)), ph = hasard() * TAU;
-        for (let j = 0; j < k; j++) {
+        const nk = Math.max(6, Math.round(TAU * Lk / s)), ph = hasard() * TAU;
+        for (let j = 0; j < nk; j++) {
           const di = d * (1 + (hasard() - .5) * 1.4 * V.irr), si = s * (1 + (hasard() - .5) * 1.2 * V.irr);
-          const rb = (si * si / 4 + di * di) / (2 * di), a = ph + (j + (hasard() - .5) * .6 * V.irr) / k * TAU;
-          out.push({ u: along + Math.cos(a) * (L - rb), v: vv + Math.sin(a) * (L - rb), r: rb });
+          const rb = (si * si / 4 + di * di) / (2 * di), a = ph + (j + (hasard() - .5) * .6 * V.irr) / nk * TAU;
+          out.push({ u: uu + Math.cos(a) * (Lk - rb), v: vv + Math.sin(a) * (Lk - rb), r: rb });
         }
       };
       rond(depth);
-      // La dent se prolonge jusqu'au bord, pour ne pas laisser une fine bande de fromage à côté.
-      // Fabien, 10/11/2026 : d'abord « ça fait un trait droit le long des morsures et ça n'a pas
-      // de sens », puis, sur la morsure du bas de la cassette : « c'est pas droit, ça fait un
-      // arrondi mais pas circulaire ». Mesurée (`references/partie/01.jpg`) : 26 % de la hauteur
-      // de la tranche au bord, 14 % de profondeur ; un flanc presque vertical, l'autre qui s'évase
-      // de 6 % sur les 8 derniers % de profondeur, en courbe douce et lisse, sans festons.
-      // Le flanc extérieur de chaque lobe s'évase donc vers le bord, en courbe ; le flanc intérieur
-      // reste en place (le voisin le couvre).
-      const bout = depth + p.advance + p.shallow + L * 1.1, cote = n === 1 ? 0 : (q < 0 ? -1 : 1);
-      for (let y = depth + L * .12; y < bout + L * .12; y += L * .12) {
-        const t = Math.min(1, (y - depth) / (bout - depth));
-        const gG = (cote <= 0 ? evase[0] : 0) * L * Math.pow(t, 1.3), gD = (cote >= 0 ? evase[1] : 0) * L * Math.pow(t, 1.3);
-        out.push({ u: along + (gD - gG) / 2, v: Math.min(y, bout), r: L - d + (gG + gD) / 2 });
+      // Un croc qui s'est enfoncé doit encore rejoindre le bord. On lui ajoute un rond entier au
+      // bord (v = 0, là où il mord), avec ses vagues, et un rond entre les deux s'il le faut :
+      // le contour n'est jamais fait que d'arcs de lobes, comme sur la cassette.
+      // Ce qu'il ne faut PAS faire (Fabien, 10/11/2026, trois fois : « il y a toujours cette ligne
+      // droite, est-ce que tu vois un seul trait sur l'original ? ») : prolonger la dent par une
+      // suite de ronds serrés. Qu'ils soient de même taille (flancs parallèles) ou qu'ils
+      // grossissent vers le bord (un « évasement »), leur enveloppe est une droite, quoi qu'on
+      // mette par-dessus. Mesuré avec `traitsDroits` (`references/style/mesure.js`).
+      // Ce rond doit être un vrai lobe distinct, pas un jumeau collé au premier : posé presque un
+      // rayon plus loin, un peu décalé vers l'extérieur du croc et un peu plus petit. Deux ronds
+      // de même taille à un demi-rayon l'un de l'autre ont un flanc commun presque rectiligne (la
+      // bosse entre eux fait 2 pixels) : c'était encore un trait.
+      if (depth < -.15 * L) {
+        const cote = n === 1 ? (hasard() < .5 ? -1 : 1) : (q < 0 ? -1 : 1);
+        rond(Math.max(0, depth + L * (.85 + hasard() * .2)), cote * L * hasard() * .3, .82 + hasard() * .15);
       }
     }
     return out;

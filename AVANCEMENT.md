@@ -1061,3 +1061,17 @@ ou trois dômes par partie. Vérifié sur l'ordinateur seulement.
 
 Fabien : « plus rare celle-là ». `REPRISE` 0,15 → 0,05, soit à peu près un dôme par partie,
 parfois aucun (les dix captures de la partie n'en montrent qu'un). Curseur de l'atelier remis à 5 %.
+
+## Plus aucun trait droit (v62)
+
+Fabien, capture à l'appui, troisième fois : « il y a toujours cette ligne droite […] est-ce que tu
+vois un seul trait sur l'original ? ». Cette fois avec une mesure : `traitsDroits` (dans
+`references/style/mesure.js`) cherche les bouts de contour mangé rectilignes sur au moins 9 % de
+la hauteur. Avant : 6 à 19 par partie (sur 5 instantanés). Deux causes :
+1. le prolongement de la dent (suite de ronds serrés, puis en évasement) : enveloppe droite.
+   Remplacé par un seul lobe distinct (presque un rayon plus loin, décalé, plus petit) ;
+2. la tranche épaisse (v55) : chaque pointe laissait une traînée droite en glissant vers le
+   centre — c'est le long trait de la capture. `PAROI` = 0 par défaut, curseur gardé.
+Après : 0 à 3 détections par partie, toutes des bords festonnés au seuil (vérifié à l'image).
+Huit parties : dernier morceau 1,34 à 1,59 croc, à 0,01 à 0,12 du centre, aucun croc vide.
+Vérifié sur l'ordinateur seulement.
