@@ -1032,3 +1032,13 @@ s'enfonce, `shapeTemplate` le prolongeait jusqu'au bord par une colonne de ronds
 0,2 rayon, donc des flancs parfaitement droits. Maintenant une file de ronds espacés de 0,85 à
 1,05 rayon, chacun avec les vagues du bord. Six parties : dernier morceau 1,35 à 1,60 croc,
 aucun croc vide, environ 25 ms par croc sur l'ordinateur. Vérifié sur l'ordinateur seulement.
+
+## Des flancs qui s'évasent en courbe (v59)
+
+Fabien, sur la morsure du bas de sa capture : « c'est pas droit, ça fait un arrondi mais pas
+circulaire ». Mesurée sur `references/partie/01.jpg` : 26 % de la hauteur au bord, 14 % de
+profondeur, flanc droit presque vertical, flanc gauche évasé de 6 % sur les 8 derniers %, en
+courbe lisse. `shapeTemplate` : le prolongement est une suite serrée de ronds dont le flanc
+extérieur s'élargit vers le bord (`evase`, tiré par croc et par côté, jusqu'à 0,9 rayon, en
+t^1,3), sans festons ; remplace la file de ronds festonnés de la v58. Six parties : dernier
+morceau 1,32 à 1,60 croc, aucun croc vide. Vérifié sur l'ordinateur seulement.

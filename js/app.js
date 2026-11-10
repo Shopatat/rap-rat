@@ -579,6 +579,9 @@
     const pos = [0]; for (let i = 1; i < n; i++) pos.push(pos[i - 1] + (Ls[i - 1] + Ls[i]) * p.ecart);
     const mid = (pos[0] + pos[n - 1]) / 2, V = p.vague || WAVE;
     const ct = Math.cos(p.tilt), st = Math.sin(p.tilt);
+    // De combien chaque flanc s'évase vers le bord, en rayons de croc : souvent peu d'un côté et
+    // franchement de l'autre, comme la morsure du bas de `references/partie/01.jpg`.
+    const evase = [.9 * Math.pow(hasard(), 2), .9 * Math.pow(hasard(), 2)];
     for (let i = 0; i < n; i++) {
       const L = Ls[i], q = pos[i] - mid;
       const along = q * ct, depth = q * st + p.shallow - p.advance;
@@ -597,13 +600,20 @@
         }
       };
       rond(depth);
-      // La dent va tout droit jusqu'au bord, pour ne pas laisser une fine bande de fromage à côté.
-      // Avant, c'était une colonne de ronds serrés, donc des flancs parfaitement droits (Fabien,
-      // 10/11/2026 : « ça fait un trait droit le long des morsures et ça n'a pas de sens, ça doit
-      // être arrondi dans le prolongement »). Maintenant, une file de ronds espacés comme les deux
-      // lobes du croc, avec les mêmes vagues : le flanc est festonné comme le reste du bord.
-      const bout = depth + p.advance + p.shallow + L * 1.1;
-      for (let y = depth; y < bout;) { y += L * (.85 + hasard() * .2); rond(Math.min(y, bout)); }
+      // La dent se prolonge jusqu'au bord, pour ne pas laisser une fine bande de fromage à côté.
+      // Fabien, 10/11/2026 : d'abord « ça fait un trait droit le long des morsures et ça n'a pas
+      // de sens », puis, sur la morsure du bas de la cassette : « c'est pas droit, ça fait un
+      // arrondi mais pas circulaire ». Mesurée (`references/partie/01.jpg`) : 26 % de la hauteur
+      // de la tranche au bord, 14 % de profondeur ; un flanc presque vertical, l'autre qui s'évase
+      // de 6 % sur les 8 derniers % de profondeur, en courbe douce et lisse, sans festons.
+      // Le flanc extérieur de chaque lobe s'évase donc vers le bord, en courbe ; le flanc intérieur
+      // reste en place (le voisin le couvre).
+      const bout = depth + p.advance + p.shallow + L * 1.1, cote = n === 1 ? 0 : (q < 0 ? -1 : 1);
+      for (let y = depth + L * .12; y < bout + L * .12; y += L * .12) {
+        const t = Math.min(1, (y - depth) / (bout - depth));
+        const gG = (cote <= 0 ? evase[0] : 0) * L * Math.pow(t, 1.3), gD = (cote >= 0 ? evase[1] : 0) * L * Math.pow(t, 1.3);
+        out.push({ u: along + (gD - gG) / 2, v: Math.min(y, bout), r: L - d + (gG + gD) / 2 });
+      }
     }
     return out;
   }
