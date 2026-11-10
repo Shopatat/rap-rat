@@ -926,3 +926,14 @@ Part restante par capture : 0,884 · 0,791 · 0,648 · 0,458 · 0,335 · 0,271 �
 - Pas regardé faute d'usage : la forme fine des morsures (festons plus gros et plus ronds sur
   la cassette que nos petites dents), et les longues pointes en étoile de la cassette.
 - Vérifié sur l'ordinateur seulement.
+
+## Le bord fin de la cassette (v52)
+
+Fabien, après la comparaison à trois : « garde le plus fidèle au jeu de la cassette ».
+`EPAISSEUR` 4,4 % → 1 %, liseré 0,62 → 0,3, ombre large près des bords (5 % de la hauteur).
+Mesuré avec `profilBord` (dans `references/style/mesure.js`) : voir CLAUDE.md. Curseur de
+l'Atelier des foyers remis à 1,0 %.
+
+Reste à regarder (pas commencé) : la forme fine des morsures — festons plus gros et plus ronds
+sur la cassette, tranche qui finit en étoile à longues pointes. Rien n'est testé sur l'iPhone
+depuis la v43.

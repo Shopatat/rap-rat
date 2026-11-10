@@ -11,7 +11,8 @@
   const stage = $('stage'), view = $('view'), vctx = view.getContext('2d');
   const tex = mk(), mask = mk(), inv = mk(), comp = mk(), face = mk();
   // EPAISSEUR : la hauteur de la paroi, en part de la hauteur de l'écran (réglable dans l'atelier)
-  let EPAISSEUR = .044, nTrous = 0;
+  // 1 % depuis le 10/11/2026 : le bord fin de la cassette (4,4 % la veille, voir CLAUDE.md)
+  let EPAISSEUR = .01, nTrous = 0;
 
   // ---------- le style de la pâte (piloté par l'Atelier des fromages) ----------
   // La couleur de la pâte a été choisie par Fabien le 09/11/2026 dans l'Atelier des fromages
@@ -430,9 +431,12 @@
       f.drawImage(inv, -OFF, 0);
     };
     f.globalCompositeOperation = 'source-atop';
+    // Sur la cassette la pâte fonce doucement à l'approche d'un bord mangé (15 % de moins sur
+    // quelques centièmes de hauteur) : une ombre large, qui ne dépend pas de l'épaisseur.
+    ombre(0, 0, 'rgba(96,34,0,.2)', SH * .05);
     ombre(0, 0, 'rgba(90,38,0,.22)', T * 2.6);                         // le bombé de la dalle
     ombre(-T * .5, -T * .5, 'rgba(104,28,4,.8)', T * 1.4);             // l'arrondi côté ombre
-    ombre(T * .45, T * .45, 'rgba(255,228,146,.62)', T * .32);         // le liseré côté lumière
+    ombre(T * .45, T * .45, 'rgba(255,228,146,.3)', T * .32);          // le liseré côté lumière (discret : la cassette n'en a pas)
     ombre(0, 0, 'rgba(78,20,2,.88)', T * .26);                         // le bord qui plonge
     f.shadowColor = 'rgba(0,0,0,0)'; f.shadowBlur = 0; f.shadowOffsetX = 0; f.shadowOffsetY = 0;
     f.globalCompositeOperation = 'source-over';
