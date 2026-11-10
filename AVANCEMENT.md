@@ -1076,7 +1076,7 @@ Après : 0 à 3 détections par partie, toutes des bords festonnés au seuil (v�
 Huit parties : dernier morceau 1,34 à 1,59 croc, à 0,01 à 0,12 du centre, aucun croc vide.
 Vérifié sur l'ordinateur seulement.
 
-## EN COURS — copier les vraies morsures de la cassette (pas commencé, arrêt à 96 % d'usage)
+## Piste gardée en réserve — copier les vraies morsures de la cassette (pas commencé)
 
 Fabien, sur la v62 : « super maintenant on a un troisième arrondi… je comprends pas pourquoi on
 arrive pas à copier l'inspiration du jeu ». Il a raison : le lobe ajouté en v62 au bout des crocs
@@ -1101,3 +1101,12 @@ compté par \`forCellsIn\`/\`dansPoly\`, ouvre les trous via \`dansCroc\`) :
 3. Retirer le troisième lobe (bloc « if (depth < -.15 * L) » dans \`shapeTemplate\`).
 4. Contrôler : \`traitsDroits\` (pas de trait), \`banc\`/\`fin8\` (dernier morceau ≈ 1,5 croc, centré),
    et planche côte à côte avec \`references/partie/\`.
+
+## Plus d'avancée des crocs (v63)
+
+Trouvé par Fabien dans l'Atelier des morsures : « il y a une option avance de la morsure à 0,25,
+quand il est à 0 il n'y a pas le problème ». `tirerForme` : `advance` = 0 ; le prolongement
+(troisième lobe de la v62) est retiré de `shapeTemplate`. Atelier des morsures : avancée à 0 par
+défaut. Six parties : dernier morceau 1,45 à 1,52 croc, aucun croc vide, 0 à 3 détections de
+`traitsDroits` (bords festonnés). La piste des vraies silhouettes reste notée ci-dessus si Fabien
+veut aller plus loin. Vérifié sur l'ordinateur seulement.

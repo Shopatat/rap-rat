@@ -564,7 +564,11 @@
     const tilt = askew ? (Math.random() < .5 ? -1 : 1) * rnd(.18, .45) : rnd(-.12, .12);
     const shallow = askew && Math.random() < .6 ? rnd(.08, .25) : 0;   // shifts the bite out of the cheese
     // on the show the teeth often push further in, like two fingers reaching into the slice
-    const advance = !shallow && Math.random() < .65 ? rnd(.2, .55) : 0;
+    // Plus d'avancée (Fabien, 10/11/2026, en essayant l'Atelier des morsures : « quand il est à 0,
+    // il n'y a pas le problème »). Un croc enfoncé devait être relié au bord par quelque chose
+    // (colonne, festons, évasement, troisième lobe), et chaque essai se voyait. Sans avancée, les
+    // deux lobes touchent le bord d'eux-mêmes, comme sur la cassette.
+    const advance = 0;
     const L0 = rnd(.82, .9);
     return { lobes: 2, L: [L0, L0 * rnd(.9, 1.1)], ecart: rnd(.56, .62), tilt, shallow, advance,
       vague: { depth: WAVE.depth, width: WAVE.width, irr: WAVE.irr }, graine: (Math.random() * 4294967296) >>> 0 };
@@ -602,22 +606,8 @@
         }
       };
       rond(depth);
-      // Un croc qui s'est enfoncé doit encore rejoindre le bord. On lui ajoute un rond entier au
-      // bord (v = 0, là où il mord), avec ses vagues, et un rond entre les deux s'il le faut :
-      // le contour n'est jamais fait que d'arcs de lobes, comme sur la cassette.
-      // Ce qu'il ne faut PAS faire (Fabien, 10/11/2026, trois fois : « il y a toujours cette ligne
-      // droite, est-ce que tu vois un seul trait sur l'original ? ») : prolonger la dent par une
-      // suite de ronds serrés. Qu'ils soient de même taille (flancs parallèles) ou qu'ils
-      // grossissent vers le bord (un « évasement »), leur enveloppe est une droite, quoi qu'on
-      // mette par-dessus. Mesuré avec `traitsDroits` (`references/style/mesure.js`).
-      // Ce rond doit être un vrai lobe distinct, pas un jumeau collé au premier : posé presque un
-      // rayon plus loin, un peu décalé vers l'extérieur du croc et un peu plus petit. Deux ronds
-      // de même taille à un demi-rayon l'un de l'autre ont un flanc commun presque rectiligne (la
-      // bosse entre eux fait 2 pixels) : c'était encore un trait.
-      if (depth < -.15 * L) {
-        const cote = n === 1 ? (hasard() < .5 ? -1 : 1) : (q < 0 ? -1 : 1);
-        rond(Math.max(0, depth + L * (.85 + hasard() * .2)), cote * L * hasard() * .3, .82 + hasard() * .15);
-      }
+      // Rien d'autre : pas de prolongement vers le bord (voir tirerForme, l'avancée est à 0).
+      // Une forme réglée à la main avec une avancée (Atelier des morsures) garde ses deux lobes.
     }
     return out;
   }

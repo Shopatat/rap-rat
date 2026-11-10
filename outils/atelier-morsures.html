@@ -155,7 +155,7 @@ input[type=text]{width:100%}
         <button class="btn2" id="autreBord" title="Même forme, autres vagues">Autres vagues</button>
       </div>
       <label class="sld">taille <span class="val" id="tailleV"></span><input type="range" id="taille" min="40" max="250" step="1" value="100"></label>
-      <label class="sld">avancée des dents (comme deux doigts) <span class="val" id="avanceV"></span><input type="range" id="avance" min="0" max="100" step="1" value="25"></label>
+      <label class="sld">avancée des dents (comme deux doigts) <span class="val" id="avanceV"></span><input type="range" id="avance" min="0" max="100" step="1" value="0"></label>
       <label class="sld">recul (le croc mord moins profond) <span class="val" id="reculV"></span><input type="range" id="recul" min="0" max="50" step="1" value="0"></label>
       <label class="sld">biais (le croc penche) <span class="val" id="biaisV"></span><input type="range" id="biais" min="-45" max="45" step="1" value="0"></label>
       <label class="sld">écart entre les ronds (petit = soudés) <span class="val" id="ecartV"></span><input type="range" id="ecart" min="35" max="95" step="1" value="59"></label>
@@ -307,7 +307,7 @@ input[type=text]{width:100%}
     vprof: v => v + ' %', vlarg: v => v + ' %', virr: v => v + ' %'
   };
   const CASES = ['aimant', 'rapide', 'varier', 'son', 'vIles', 'vNum', 'vTrajet', 'vCentre'];
-  const DEFAUT = { taille: 100, avance: 25, recul: 0, biais: 0, ecart: 59, inegal: 100, dir: 0, vprof: 8, vlarg: 37, virr: 15, ronds: 2, mode: 'appli' };
+  const DEFAUT = { taille: 100, avance: 0, recul: 0, biais: 0, ecart: 59, inegal: 100, dir: 0, vprof: 8, vlarg: 37, virr: 15, ronds: 2, mode: 'appli' };
   let ronds = 2;
   function reglage() {
     const o = { ronds, mode: $('mode').value };
