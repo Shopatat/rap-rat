@@ -142,10 +142,14 @@
     // Fabien, 10/11/2026 : « on dirait pas du fromage mais une planche avec des trous de perceuse ».
     // Trop de trous s'ouvraient sur le noir. Seuls les vrais gros traversent maintenant.
     const gros = r / (42.5 * U * (STYLE.calibre || 1));           // 1 = le plus gros de la gamme
-    const travers = RA() < Math.min(1, Math.max(0, (gros - .6) / .5)) * .6 * STYLE.traversants;
-    const profond = !travers && RA() < .3 + .45 * part;
-    const creux = travers ? 1 : profond ? rr(.6, .85)
-      : Math.min(.6, .10 + part * .7) * rr(.72, 1.12);
+    const travers = RA() < Math.min(1, Math.max(0, (gros - .55) / .35)) * .75 * STYLE.traversants;
+    // Mesuré sur la capture : parmi les trous moyens, un sur six seulement est vraiment sombre,
+    // et un sur quatre est presque plat (une cuvette kaki avec juste un croissant d'ombre).
+    const profond = !travers && RA() < .08 + .5 * part * part;
+    const creux = travers ? 1 : profond ? rr(.55, .8)
+      // Sur la capture la profondeur ne suit la taille que de loin : les petits sont déjà d'un
+      // rouge soutenu, et à taille égale un trou moyen va du presque plat au très creusé.
+      : Math.min(.62, .30 + part * .4) * rr(.3, 1.15);
     return {
       x, y, r, small, travers, profond, creux,
       dir: Math.atan2(uy, ux) + rr(-.08, .08),
@@ -160,11 +164,13 @@
       warm: rr(0, 1), gloss: rr(.25, .55), spark: !small && RA() < .45, sparkA: rr(-.6, .6)
     };
   }
-  // Le fond du trou : noir s'il traverse la tranche, sinon un brun d'autant plus sombre que la
-  // poche est creuse. Sur les captures, c'est ce brun qu'on voit au fond de la plupart des trous.
+  // Le fond du trou, relevé trou par trou sur `references/style/entiere.jpg` (10/11/2026) : il ne
+  // vire pas au brun ni au noir, il plonge dans le **rouge sombre**. Peu creusé 165,93,2 ; à
+  // mi-chemin 104,32,0 ; tout au fond 48,6,1. Le vert tombe bien plus vite que le rouge, le bleu
+  // reste nul.
   function fondTrou(h) {
-    const k = h.creux == null ? 1 : h.creux;
-    return `rgb(${150 - 145 * k | 0},${76 - 73 * k | 0},${20 - 20 * k | 0})`;
+    const k = h.creux == null ? 1 : Math.min(1, h.creux);
+    return [165 - 120 * k | 0, 6 + 87 * Math.pow(1 - k, 1.6) | 0, 1];
   }
   // every part of a hole (glow, wall, far opening, edge) follows the same irregular outline
   function holePath(c, h, k, ox = 0, oy = 0, fresh = true) {
@@ -178,79 +184,52 @@
     }
     c.closePath();
   }
+  // Le halo. Mesuré par anneaux autour des trous de la capture, en part de la pâte : rien contre
+  // le bord (0,99), le plus clair un tiers de rayon plus loin (+3 %, +6 % autour des gros), puis
+  // ça retombe et il ne reste rien à deux rayons. Le nôtre collait au bord et montait à +11 %.
   function drawHalo(c, h) {
-    // the glow hugs the hole's own outline (the hole itself is painted over the solid part)
     c.save(); c.translate(h.x, h.y); c.rotate(h.rot); c.scale(1, h.sy);
-    c.shadowColor = `rgba(255,198,60,${h.halo + .15})`; c.shadowBlur = h.r * (h.haloR - 1) * 1.6 * Math.min(1, h.sy);
-    c.fillStyle = 'rgba(252,194,46,.9)'; holePath(c, h, 1); c.fill();
+    const r = h.r, R2 = r * (1 + (h.haloR - 1) * 2.1), al = h.halo * .24;
+    const g = c.createRadialGradient(0, 0, r * .9, 0, 0, R2);
+    // une bosse lisse : monte vite, redescend lentement (pas de palier, sinon on voit un anneau)
+    for (let i = 0; i <= 12; i++) { const t = i / 12, b = Math.pow(Math.sin(Math.PI * Math.pow(t, .55)), 1.5); g.addColorStop(t, `rgba(255,222,112,${(al * b).toFixed(3)})`); }
+    c.fillStyle = g; c.beginPath(); c.arc(0, 0, R2, 0, TAU); c.fill();
     c.restore();
   }
+  // Un trou est une bulle coupée par la surface : une cuvette, pas un cylindre. Tout est calé sur
+  // les captures de `references/style/` :
+  //  - la paroi est de la pâte en plus sombre et plus kaki (160,92,5 pour une pâte à 214,140,3,
+  //    soit les trois quarts de sa clarté) — jamais plus claire que la pâte, pas de reflet ;
+  //  - le sombre du fond est une tache aux bords fondus, qui occupe la moitié du trou et glisse
+  //    vers le centre de la tranche ;
+  //  - un trou qui traverse n'est que le cas le plus creusé : même dessin, cœur presque noir.
   function drawHole(c, h) {
     const r = h.r, a = h.dir - h.rot, dx = Math.cos(a), dy = Math.sin(a);
     const lw = Math.max(1, 1.1 * U);
+    const k = h.creux == null ? 1 : Math.min(1, h.creux), w = h.warm;
+    const [fr, fg, fb] = fondTrou(h);
     c.save(); c.translate(h.x, h.y); c.rotate(h.rot); c.scale(1, h.sy);
     c.save();
     holePath(c, h, 1); c.clip();
-    if (h.small) {
-      c.fillStyle = fondTrou(h); c.fillRect(-r, -r, 2 * r, 2 * r);
-      const g = c.createRadialGradient(-dx * r * .4, -dy * r * .4, 0, 0, 0, r);
-      g.addColorStop(0, 'rgba(150,80,22,.8)'); g.addColorStop(1, 'rgba(150,80,22,0)');
-      c.fillStyle = g; c.fillRect(-r, -r, 2 * r, 2 * r);
-    } else if (!h.travers) {
-      // Une poche borgne est une bulle coupée par la surface : un creux en cuvette, pas un
-      // trou de perceuse. Pas de paroi droite ni de fond découpé net : la pâte tourne en
-      // douceur du côté éclairé vers l'ombre, et l'ombre du fond se fond dans la paroi.
-      // C'est ce que montrent les trous de `references/progression/01.jpg`.
-      const k = h.creux, w = h.warm;
-      const wg = c.createLinearGradient(-dx * r, -dy * r, dx * r, dy * r);
-      wg.addColorStop(0, `rgb(${238 + 10 * w | 0},${166 + 16 * w | 0},${58 + 10 * w | 0})`);
-      wg.addColorStop(.45, `rgb(${208 - 46 * k | 0},${122 - 36 * k | 0},${30 - 14 * k | 0})`);
-      wg.addColorStop(1, `rgb(${156 - 80 * k | 0},${80 - 46 * k | 0},${16 - 10 * k | 0})`);
-      c.fillStyle = wg; c.fillRect(-r, -r, 2 * r, 2 * r);
-      const ox = dx * r * h.off, oy = dy * r * h.off, R1 = r * (.6 + .4 * k), al = .3 + .6 * k;   // jamais tout noir : un anneau de pâte reste visible
-      const og = c.createRadialGradient(ox, oy, 0, ox, oy, R1);
-      og.addColorStop(0, `rgba(26,9,1,${al})`); og.addColorStop(.4, `rgba(38,14,2,${al * .85})`);
-      og.addColorStop(1, 'rgba(70,28,4,0)');
-      c.fillStyle = og; c.fillRect(-r, -r, 2 * r, 2 * r);
-    } else {
-      // inner wall: lit on the outer side, falling into shade under the rim on the centre side
-      const w = h.warm;
-      const wg = c.createLinearGradient(-dx * r, -dy * r, dx * r, dy * r);
-      wg.addColorStop(0, `rgb(${236 + 10 * w | 0},${164 + 18 * w | 0},${66 + 10 * w | 0})`);
-      wg.addColorStop(.5, `rgb(${204 + 8 * w | 0},${122 + 10 * w | 0},${38 + 6 * w | 0})`);
-      wg.addColorStop(1, 'rgb(112,52,10)');
-      c.fillStyle = wg; c.fillRect(-r, -r, 2 * r, 2 * r);
-      // wet-looking gloss along the lit wall
-      c.save();
-      c.translate(-dx * r * .52, -dy * r * .52); c.rotate(a); c.scale(.45, 1);
-      const gl = c.createRadialGradient(0, 0, 0, 0, 0, r * .62);
-      gl.addColorStop(0, `rgba(255,238,186,${h.gloss})`); gl.addColorStop(1, 'rgba(255,238,186,0)');
-      c.fillStyle = gl; c.beginPath(); c.arc(0, 0, r * .62, 0, TAU); c.fill();
-      c.restore();
-      // the opening on the far side of the slice
-      const ex = dx * r * h.off, ey = dy * r * h.off;
-      c.save();
-      c.shadowColor = 'rgba(20,8,1,.85)'; c.shadowBlur = r * .14;
-      c.fillStyle = fondTrou(h); holePath(c, h, h.size, ex, ey); c.fill();
-      c.restore();
-      // shadow cast by the rim on the centre side
-      const sh = c.createRadialGradient(-dx * r * .3, -dy * r * .3, r * .8, -dx * r * .3, -dy * r * .3, r * 1.3);
-      sh.addColorStop(0, 'rgba(60,24,4,0)'); sh.addColorStop(1, 'rgba(60,24,4,.6)');
-      c.fillStyle = sh; c.fillRect(-r, -r, 2 * r, 2 * r);
-      if (h.spark) {
-        const t = a + Math.PI + h.sparkA, sx = Math.cos(t) * r * .78, sy = Math.sin(t) * r * .78;
-        c.fillStyle = 'rgba(255,251,236,.9)';
-        c.beginPath(); c.ellipse(sx, sy, r * .075, r * .04, t + Math.PI / 2, 0, TAU); c.fill();
-      }
-    }
+    const wg = c.createLinearGradient(-dx * r, -dy * r, dx * r, dy * r);
+    wg.addColorStop(0, `rgb(${180 + 8 * w | 0},${116 + 8 * w | 0},4)`);
+    wg.addColorStop(.5, `rgb(${164 - 14 * k | 0},${94 - 16 * k | 0},4)`);
+    wg.addColorStop(1, `rgb(${148 - 40 * k | 0},${72 - 34 * k | 0},3)`);
+    c.fillStyle = wg; c.fillRect(-r, -r, 2 * r, 2 * r);
+    const off = h.small ? Math.min(.3, h.off) : h.off;
+    const ox = dx * r * off, oy = dy * r * off, R1 = r * (.74 + .38 * k), n = 1 - .62 * k;
+    const og = c.createRadialGradient(ox, oy, 0, ox, oy, R1);
+    og.addColorStop(0, `rgba(${fr * n | 0},${fg * n | 0},0,1)`);
+    og.addColorStop(.5, `rgba(${fr},${fg},${fb},.94)`);
+    og.addColorStop(1, `rgba(${fr},${fg},${fb},0)`);
+    c.fillStyle = og; c.fillRect(-r, -r, 2 * r, 2 * r);
     c.restore();
-    // the cut edge, lit the same way as the wall: on the centre side the surface drops into shadow,
-    // so the lip shows as a bright line; on the outer side it rolls softly into the lit wall
+    // le bord : net (choix de Fabien), mais sans le trait clair qui faisait pièce usinée
     const lip = c.createLinearGradient(dx * r, dy * r, -dx * r, -dy * r);
-    lip.addColorStop(0, 'rgba(255,220,116,.8)'); lip.addColorStop(.55, 'rgba(255,220,116,.25)'); lip.addColorStop(1, 'rgba(255,220,116,0)');
+    lip.addColorStop(0, 'rgba(255,224,130,.3)'); lip.addColorStop(.55, 'rgba(255,224,130,.1)'); lip.addColorStop(1, 'rgba(255,224,130,0)');
     holePath(c, h, 1 + lw / r * .7); c.strokeStyle = lip; c.lineWidth = lw * 1.3; c.stroke();
     const crease = c.createLinearGradient(dx * r, dy * r, -dx * r, -dy * r);
-    crease.addColorStop(0, 'rgba(70,28,2,.45)'); crease.addColorStop(.6, 'rgba(110,50,10,.18)'); crease.addColorStop(1, 'rgba(150,76,20,.3)');
+    crease.addColorStop(0, 'rgba(90,24,2,.4)'); crease.addColorStop(.6, 'rgba(120,48,4,.16)'); crease.addColorStop(1, 'rgba(140,66,4,.22)');
     holePath(c, h, 1 - lw / r * .5); c.strokeStyle = crease; c.lineWidth = lw; c.stroke();
     c.restore();
   }

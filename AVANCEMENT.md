@@ -854,3 +854,30 @@ net avec un croissant de paroi — les poches borgnes ne se distinguaient pas de
 - Vérifié sur l'ordinateur (tranche entière et après 30 crocs). Pas testé sur l'iPhone.
 - Prochaine action : avis de Fabien ; les curseurs « combien » et « trous qui traversent » de
   l'Atelier des fromages permettent d'aller plus loin.
+
+## Les trous recalés sur les captures (v49)
+
+Fabien a envoyé trois captures (rangées dans `references/style/` : `entiere.jpg`,
+`fin-etoile.jpg`, `gros-plan.jpg`) : « te rapprocher du style du fromage du jeu sur ces
+captures, la perspective, les trous etc. ». Mesure trou par trou avec
+`references/style/mesure.js` (se charge dans la page, marche sur une image ou sur `RapRat.toile()`).
+
+| | capture | nous avant | nous après |
+|---|---|---|---|
+| le sombre glisse vers le centre (pente) | 0,16 | 0,12 | 0,15 |
+| part « tous du même côté » | 0,05 | 0,02 | 0,00 |
+| noirceur médiane, petits / moyens / gros | 0,29 / 0,28 / 0,05 | — | 0,37 / 0,27 / 0,06 |
+| halo à 1,15 · 1,35 · 1,6 · 2 rayons | 0,99 · 1,03 · 1,03 · 1,01 | 1,11 · 1,10 · 1,06 · 1,01 | 1,03 · 1,04 · 1,05 · 1,02 |
+| paroi (pâte ≈ 214,140,3) | 160,92,5 | 238,166,58 côté lumière | 164,94,4 |
+| fond le plus creusé | 48,6,1 | noir | 45,6,1, cœur 17,2,0 |
+
+- `drawHole` réécrit : une seule cuvette pour tous les trous (paroi kaki, tache sombre aux bords
+  fondus), plus de cylindre, de reflet, d'étincelle ni de trait clair au bord.
+- `fondTrou` : échelle rouge sombre. `drawHalo` : bosse douce décollée du bord.
+- `makeHole` : `profond` plus rare chez les moyens, `creux` plus dispersé.
+- Pas touché : la pâte (recalée la veille), le nombre de trous (53, la capture en a ~55 sur sa
+  tranche), le flou (bords nets), l'épaisseur du bord.
+- Indice non retenu : sur la capture le point de fuite semble un peu plus bas que le milieu
+  (vers les deux tiers de la hauteur). Trop peu net pour toucher au réglage.
+- Vérifié sur l'ordinateur (tranche entière + 45 crocs). Pas testé sur l'iPhone.
+- L'Atelier de la perspective dessine encore ses trous en cylindres (c'est un schéma).
