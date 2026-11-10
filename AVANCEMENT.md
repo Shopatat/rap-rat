@@ -937,3 +937,21 @@ l'Atelier des foyers remis à 1,0 %.
 Reste à regarder (pas commencé) : la forme fine des morsures — festons plus gros et plus ronds
 sur la cassette, tranche qui finit en étoile à longues pointes. Rien n'est testé sur l'iPhone
 depuis la v43.
+
+## Festons mesurés, rien changé (10/11/2026)
+
+Écart du contour mangé à sa version lissée, en millièmes de la hauteur, lissage à 0,4 · 0,8 · 1,6 · 3 % :
+
+| | capture 01 | capture 03 |
+|---|---|---|
+| cassette | 0,30 · 0,90 · 2,31 · 5,88 | 0,31 · 1,02 · 2,88 · 7,06 |
+| nous, `WAVE` actuel (0,08 / 0,37) | 0,36 · 1,04 · 2,18 · 5,16 | 0,39 · 1,24 · 2,65 · 5,75 |
+| essai 0,10 / 0,6 | 0,20 · 0,66 · 1,82 · 5,02 | 0,28 · 0,85 · 2,30 · 5,45 |
+| essai 0,14 / 0,8 | 0,16 · 0,54 · 1,66 · 5,02 | 0,19 · 0,70 · 2,43 · 6,34 |
+
+Une seule graine (4242), sans trous. Conclusion : `WAVE` reste tel quel.
+
+**Prochaine action** : les pointes en étoile. Balayer `RESTE` (0 aujourd'hui, donc les foyers
+ne retiennent plus le rat), `ETALE` (0,95) et `FOYERS` avec `balaye` (voir la v51 : écart sur
+l'éloignement moyen et sur le point le plus loin, à part de fromage égale), en ajoutant
+l'écart des festons à 3 % comme troisième critère. Arrêté ici à 88 % de la fenêtre d'usage.
