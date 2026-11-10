@@ -13,6 +13,9 @@
   // EPAISSEUR : la hauteur de la paroi, en part de la hauteur de l'écran (réglable dans l'atelier)
   // 1 % depuis le 10/11/2026 : le bord fin de la cassette (4,4 % la veille, voir CLAUDE.md)
   let EPAISSEUR = .01, nTrous = 0;
+  // Les trous de la tranche, en largeurs de tranche, pour que les morsures sachent où ils sont.
+  // OUVRE : un trou atteint par une morsure s'ouvre (voir trousTouches).
+  let TROUS = [], OUVRE = true;
 
   // ---------- le style de la pâte (piloté par l'Atelier des fromages) ----------
   // La couleur de la pâte a été choisie par Fabien le 09/11/2026 dans l'Atelier des fromages
@@ -346,6 +349,7 @@
     c.drawImage(layer, 0, 0);
     layer.width = layer.height = 0;   // free the scratch layer
     nTrous = holes.length;
+    TROUS = holes.map(h => ({ x: h.x / SW, y: h.y / SW, r: h.r / SW, ouvert: false }));
 
     finirImage(c, S);
     return holes;
@@ -818,6 +822,27 @@
     }
   }
 
+  // Un trou est du vide, pas une image (Fabien, 10/11/2026 : « que si ils sont mordus on voit le
+  // trou dans le bout manquant du fromage »). Dès qu'une morsure en atteint un, il s'ouvre en
+  // entier et rejoint le bout manquant : le bord mangé épouse son rond, avec le même liseré et la
+  // même ombre que le reste du bord. Avant, il restait à moitié peint, collé contre le noir.
+  function dansCroc(x, y, circles) {
+    for (const c of circles) { const dx = x - c.x, dy = y - c.y; if (dx * dx + dy * dy <= c.r * c.r) return true; }
+    return !!(circles.poly && dansPoly(x, y, circles.poly));
+  }
+  function trousTouches(circles) {
+    const l = [];
+    for (const t of TROUS) {
+      if (t.ouvert) continue;
+      let touche = dansCroc(t.x, t.y, circles);
+      // le pourtour un peu en dedans : un croc qui frôle le trou sans l'entamer ne l'ouvre pas
+      for (let k = 0; k < 16 && !touche; k++) {
+        const a = k / 16 * TAU; touche = dansCroc(t.x + Math.cos(a) * t.r * .8, t.y + Math.sin(a) * t.r * .8, circles);
+      }
+      if (touche) l.push(t);
+    }
+    return l;
+  }
   function applyBite(circles) {
     const m = mask.getContext('2d');
     m.globalCompositeOperation = 'destination-out';
@@ -829,8 +854,16 @@
       m.beginPath(); circles.poly.forEach(([x, y], i) => i ? m.lineTo(x * SW, y * SW) : m.moveTo(x * SW, y * SW));
       m.closePath(); m.fill();
     }
+    const ouverts = OUVRE ? trousTouches(circles) : [];
+    if (ouverts.length) {
+      // un peu plus large que l'ouverture peinte, pour emporter aussi la lèvre du trou
+      m.beginPath();
+      for (const t of ouverts) { t.ouvert = true; const R = t.r * SW + 1.6 * U; m.moveTo(t.x * SW + R, t.y * SW); m.arc(t.x * SW, t.y * SW, R, 0, TAU); }
+      m.fill();
+    }
     m.globalCompositeOperation = 'source-over';
     forCellsIn(circles, idx => { grid[idx] = 0; cells--; });
+    if (ouverts.length) forCellsIn(ouverts.map(t => ({ x: t.x, y: t.y, r: t.r })), idx => { grid[idx] = 0; cells--; });
     mangerMiettes(m);
   }
 
@@ -1235,10 +1268,10 @@
   window.RapRat = { skip(sec) { if (state === 'running' || state === 'paused') elapsed += sec; },
     bites(n, from = 0) { for (let i = 0; i < n; i++) bite(from + i, BITES); compose(); draw(); },
     neuf() { resetCheese(); draw(); },                        // une tranche entière, intacte
-    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; if (o.etale != null) ETALE = o.etale; if (o.miette != null) MIETTE = o.miette; if (o.creux != null) CREUX = o.creux; if (o.finseuil !== undefined) FINSEUIL = o.finseuil; if (o.dehors !== undefined) DEHORS = o.dehors; if (o.epaisseur != null) { EPAISSEUR = o.epaisseur; compose(); draw(); } },
+    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; if (o.etale != null) ETALE = o.etale; if (o.miette != null) MIETTE = o.miette; if (o.creux != null) CREUX = o.creux; if (o.finseuil !== undefined) FINSEUIL = o.finseuil; if (o.dehors !== undefined) DEHORS = o.dehors; if (o.ouvre != null) OUVRE = !!o.ouvre; if (o.epaisseur != null) { EPAISSEUR = o.epaisseur; compose(); draw(); } },
     crocs: () => BITES,
     trous: () => nTrous,
-    actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE, miette: MIETTE, creux: CREUX, finseuil: FINSEUIL, dehors: DEHORS, epaisseur: EPAISSEUR }),
+    actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE, miette: MIETTE, creux: CREUX, finseuil: FINSEUIL, dehors: DEHORS, ouvre: OUVRE, epaisseur: EPAISSEUR }),
     ajuste() { fit(); },                                      // recaler la toile sur sa boîte
     // ---- pour l'Atelier des morsures (outils/atelier-morsures.html) ----
     // un croc s'y décrit par { x, y, nx, ny, R, push, forme } : x, y le point du bord visé (en
@@ -1266,6 +1299,7 @@
       const m = mask.getContext('2d');
       m.globalCompositeOperation = 'source-over'; m.fillStyle = '#fff'; m.fillRect(0, 0, SW, SH);
       grid.fill(1); cells = cells0; foyers = []; derniers = [];
+      for (const t of TROUS) t.ouvert = false;
     },
     redessine() { compose(); draw(); },
     grille: () => ({ grid, GW, GH, A, cells, cells0 }),

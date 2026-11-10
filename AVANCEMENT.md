@@ -979,3 +979,13 @@ avant 5,9 · 6,0 · 6,1 ; maintenant 6,0 · 6,3 · 6,9. **Les pointes en étoile
   quand on le bouge (il n'était pas branché).
 - Vérifié sur l'ordinateur (banc + planche de cinq étapes). Pas testé sur l'iPhone.
 - Fabien a dit qu'on s'arrête sur cette modification. Rien n'est en cours.
+
+## Les trous sont du vide (v54)
+
+Fabien : « que si ils sont mordus on voit le trou dans le bout manquant du fromage ». Un trou
+atteint par une morsure s'ouvre en entier et rejoint le bout manquant (`TROUS`, `trousTouches`,
+`applyBite` dans `js/app.js`). Case « les trous s'ouvrent » dans l'Atelier des foyers.
+
+Neuf parties avec trous, chaque mode : avant-dernière part restante 0,044 à 0,079 (avant : 0,044
+à 0,072) ; éloignement du dernier morceau au centre, moyenne 0,12 (avant 0,06 ; cassette 0,09 à
+0,14). Vérifié sur l'ordinateur seulement.
