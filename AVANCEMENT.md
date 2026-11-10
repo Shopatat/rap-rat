@@ -839,3 +839,18 @@ l'écran — un point (u, v) de la face du dessus, à la profondeur w, va en
 long de l'axe de l'œil, et ce qui est plus profond glisse du côté de l'œil. Sa silhouette est
 l'enveloppe convexe des huit coins (dessus et dessous) : l'union des deux rectangles laissait
 deux encoches dans les coins quand le décalage était en biais.
+
+## Des creux de fromage, pas des trous de perceuse (v48)
+
+Fabien, 10/11/2026 : « on dirait pas du fromage mais une planche avec des trous de perceuse ».
+Constat sur un rendu (graine 4242) : 71 trous, presque tous lus comme un disque noir découpé
+net avec un croissant de paroi — les poches borgnes ne se distinguaient pas des trous traversants.
+
+- Poche borgne = cuvette : dégradé de paroi + ombre radiale douce, plus de disque de fond net
+  (`drawHole`, branche `!h.travers`). L'ombre ne couvre jamais tout : un anneau de pâte reste.
+- Traversants : seulement les gros (`gros = r / rMax`, chance nulle sous 0,6, 60 % au plus).
+  Sur la graine 4242 : 8 sur 53.
+- `trousN` par défaut 1 → 0,75 (71 → 53 trous).
+- Vérifié sur l'ordinateur (tranche entière et après 30 crocs). Pas testé sur l'iPhone.
+- Prochaine action : avis de Fabien ; les curseurs « combien » et « trous qui traversent » de
+  l'Atelier des fromages permettent d'aller plus loin.

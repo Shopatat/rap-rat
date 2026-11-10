@@ -34,7 +34,7 @@
     bave: 0,          // 0 à 1, la couleur qui bave horizontalement
     // les trous : sur les captures ils sont nombreux, de toutes les tailles, avec beaucoup
     // de tout petits, et chacun se lit comme un vrai cratère creusé dans la pâte
-    trousN: 1,        // .3 à 3, combien de trous en tout
+    trousN: .75,      // .3 à 3, combien de trous en tout (1 jusqu'au 10/11/2026 : trop, d'après Fabien)
     calibre: 1,       // .4 à 2, leur taille
     // Fabien, 09/11/2026 : « il faut de la variété pour la taille des trous, c'est pire que ça
     // paraît bizarre par rapport au jeu de société ». Avant, chaque trou tombait dans l'un de
@@ -139,7 +139,10 @@
     // du contour, il se fait couper par le bord du trou, et il ne reste qu'un croissant de paroi
     // éclairée d'un seul côté — pas la petite lucarne nette d'un trou qui traverse.
     const part = Math.min(1, r / (34 * U * (STYLE.calibre || 1)));   // sa taille dans la gamme
-    const travers = RA() < Math.max(0, (part - .3) / .45) * STYLE.traversants;
+    // Fabien, 10/11/2026 : « on dirait pas du fromage mais une planche avec des trous de perceuse ».
+    // Trop de trous s'ouvraient sur le noir. Seuls les vrais gros traversent maintenant.
+    const gros = r / (42.5 * U * (STYLE.calibre || 1));           // 1 = le plus gros de la gamme
+    const travers = RA() < Math.min(1, Math.max(0, (gros - .6) / .5)) * .6 * STYLE.traversants;
     const profond = !travers && RA() < .3 + .45 * part;
     const creux = travers ? 1 : profond ? rr(.6, .85)
       : Math.min(.6, .10 + part * .7) * rr(.72, 1.12);
@@ -193,6 +196,22 @@
       const g = c.createRadialGradient(-dx * r * .4, -dy * r * .4, 0, 0, 0, r);
       g.addColorStop(0, 'rgba(150,80,22,.8)'); g.addColorStop(1, 'rgba(150,80,22,0)');
       c.fillStyle = g; c.fillRect(-r, -r, 2 * r, 2 * r);
+    } else if (!h.travers) {
+      // Une poche borgne est une bulle coupée par la surface : un creux en cuvette, pas un
+      // trou de perceuse. Pas de paroi droite ni de fond découpé net : la pâte tourne en
+      // douceur du côté éclairé vers l'ombre, et l'ombre du fond se fond dans la paroi.
+      // C'est ce que montrent les trous de `references/progression/01.jpg`.
+      const k = h.creux, w = h.warm;
+      const wg = c.createLinearGradient(-dx * r, -dy * r, dx * r, dy * r);
+      wg.addColorStop(0, `rgb(${238 + 10 * w | 0},${166 + 16 * w | 0},${58 + 10 * w | 0})`);
+      wg.addColorStop(.45, `rgb(${208 - 46 * k | 0},${122 - 36 * k | 0},${30 - 14 * k | 0})`);
+      wg.addColorStop(1, `rgb(${156 - 80 * k | 0},${80 - 46 * k | 0},${16 - 10 * k | 0})`);
+      c.fillStyle = wg; c.fillRect(-r, -r, 2 * r, 2 * r);
+      const ox = dx * r * h.off, oy = dy * r * h.off, R1 = r * (.6 + .4 * k), al = .3 + .6 * k;   // jamais tout noir : un anneau de pâte reste visible
+      const og = c.createRadialGradient(ox, oy, 0, ox, oy, R1);
+      og.addColorStop(0, `rgba(26,9,1,${al})`); og.addColorStop(.4, `rgba(38,14,2,${al * .85})`);
+      og.addColorStop(1, 'rgba(70,28,4,0)');
+      c.fillStyle = og; c.fillRect(-r, -r, 2 * r, 2 * r);
     } else {
       // inner wall: lit on the outer side, falling into shade under the rim on the centre side
       const w = h.warm;
