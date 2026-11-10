@@ -677,7 +677,9 @@
   // `references/partie/03.jpg` (Fabien, 10/11/2026 : « parfois ça fait une morsure comme sur la
   // droite ») : près de 30 % de la hauteur de la tranche au bord et 23 % de profondeur, deux fois
   // un croc ordinaire, absente de la capture d'avant.
-  let REPRISE = .15, dernierCroc = null;
+  // 5 % (Fabien, 10/11/2026, sur 15 % : « plus rare celle-là ») : à peu près un dôme par partie,
+  // parfois aucun, comme sur les dix captures de la partie où il n'y en a qu'un.
+  let REPRISE = .05, dernierCroc = null;
 
   // Pick a spot on the cheese's edge. Spots far from the middle are much more likely,
   // so the rat works from the outside in and the last morsel ends up near the centre.

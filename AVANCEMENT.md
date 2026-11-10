@@ -1056,3 +1056,8 @@ douze essais dès qu'un endroit était choisi ; ça cassait la fin de partie, qu
 essais pour garder le plus loin du centre (dernier morceau décentré jusqu'à 0,40). Corrigé.
 Vingt et une parties ensuite : 1,31 à 1,58 croc, dernier morceau à 0,01 à 0,15 du centre, deux
 ou trois dômes par partie. Vérifié sur l'ordinateur seulement.
+
+## Des dômes plus rares (v61)
+
+Fabien : « plus rare celle-là ». `REPRISE` 0,15 → 0,05, soit à peu près un dôme par partie,
+parfois aucun (les dix captures de la partie n'en montrent qu'un). Curseur de l'atelier remis à 5 %.
