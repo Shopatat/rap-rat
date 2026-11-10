@@ -904,3 +904,25 @@ Suite de la v49, sur le « oui on fait ça » de Fabien. `mesurePate` (dans
 - Écart restant, non traité : en fin de partie la cassette pâlit et jaunit (192,144,55 sur
   `style/fin-etoile.jpg`), sans doute l'exposition de la caméra. Chez nous la pâte ne change pas.
 - Vérifié sur l'ordinateur (tranche entière + 45 crocs). Pas testé sur l'iPhone.
+
+## Recalage sur une partie entière (v51)
+
+Dix captures d'une même partie dans `references/partie/`. Rectangle de la tranche dans ces
+images : `[547, 13, 1486, 1157]` (trouvé par `boiteTranche`).
+
+Part restante par capture : 0,884 · 0,791 · 0,648 · 0,458 · 0,335 · 0,271 · 0,180 · 0,075 · 0,056 · 0,034.
+
+| à part égale | 0,88 | 0,65 | 0,46 | 0,34 | 0,18 | 0,075 | 0,034 |
+|---|---|---|---|---|---|---|---|
+| éloignement moyen du centre, cassette | 0,79 | 0,70 | 0,64 | 0,53 | 0,45 | 0,29 | 0,20 |
+| nous (2 graines, REGROUPE 1,4) | 0,78 | 0,68 | 0,60 | 0,50 | 0,39 | 0,27 | 0,26 |
+
+- Fait : `trousN` 1,25 et nouvelle répartition des tailles ; `PATE` recalée sur la partie ;
+  marbrures 0,9.
+- Vérifié sans rien changer : taille des morsures, progression vers le centre.
+- Laissé : la couleur ne change presque pas au fil de la partie sur ces captures (le vert
+  monte de 114 à 127), pas la peine de l'animer.
+- **En attente de Fabien : le bord** (épais comme hier, ou fin comme la cassette).
+- Pas regardé faute d'usage : la forme fine des morsures (festons plus gros et plus ronds sur
+  la cassette que nos petites dents), et les longues pointes en étoile de la cassette.
+- Vérifié sur l'ordinateur seulement.

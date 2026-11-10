@@ -19,12 +19,16 @@
   // ça ». Avant, tout était à la valeur neutre : la tranche de la v35, lisse et propre.
   // Le reste (les trous, la perspective, la marge, ce que la cassette ajoute) n'est pas tranché
   // et garde ses valeurs neutres.
-  let PATE = [[0, '#dc9c04'], [.25, '#dc9404'], [.5, '#da8603'], [.72, '#d47403'], [.9, '#cc6402'], [1, '#c05802']];
+  // Deuxième passe le même jour, sur les dix captures d'une partie (`references/partie/`) : en
+  // cours de partie la pâte est d'un orange plus soutenu que sur la capture de la tranche
+  // intacte, et ses bords plongent davantage (215,136 au centre, 208,116 à mi-chemin, 192,98
+  // vers le bord, 177,81 au ras). La palette vise entre les deux, plus près de la partie.
+  let PATE = [[0, '#d99304'], [.25, '#d47c04'], [.5, '#cf6c03'], [.72, '#c75a03'], [.9, '#bf4c03'], [1, '#b64403']];
   const STYLE0 = {
     teinte: 0,        // -40 à 40, degrés de décalage de la couleur
     chaleur: 1,       // 0 à 2, saturation
     clair: 1,         // .6 à 1.4, clarté d'ensemble
-    marbrures: .7,    // 0 à 4, force des grandes plages claires et sombres
+    marbrures: .9,    // 0 à 4, force des grandes plages claires et sombres
     taille: 1.6,      // .4 à 2.5, leur taille
     nombre: 1,        // .3 à 4, combien
     taches: .1,       // 0 à 1, plaques brun-rouge en plus
@@ -35,7 +39,7 @@
     bave: 0,          // 0 à 1, la couleur qui bave horizontalement
     // les trous : sur les captures ils sont nombreux, de toutes les tailles, avec beaucoup
     // de tout petits, et chacun se lit comme un vrai cratère creusé dans la pâte
-    trousN: .75,      // .3 à 3, combien de trous en tout (1 jusqu'au 10/11/2026 : trop, d'après Fabien)
+    trousN: 1.25,     // .3 à 3, combien de trous en tout. Compté sur `references/partie/01.jpg` : 42 par carré de hauteur de tranche
     calibre: 1,       // .4 à 2, leur taille
     // Fabien, 09/11/2026 : « il faut de la variété pour la taille des trous, c'est pire que ça
     // paraît bizarre par rapport au jeu de société ». Avant, chaque trou tombait dans l'un de
@@ -316,8 +320,11 @@
     const tailles = [];
     // quelques gros cratères qui sortent du lot : sur la capture, ce sont eux qui donnent
     // l'impression de variété, et sans eux la tranche a l'air d'un tamis régulier
-    for (let i = Math.round(4 * forme * S.trousN); i > 0; i--) tailles.push(gamme(rr(.72, 1)) * (1 + .2 * S.variete));
-    for (let i = Math.round(21 * forme * S.trousN); i > 0; i--) tailles.push(gamme(Math.pow(RA(), 1.15)));
+    // Répartition comptée sur `references/partie/01.jpg` (10/11/2026) : sur une cinquantaine de
+    // trous, 3 dépassent 40 millièmes de la hauteur, un sur huit dépasse 30, et quatre sur dix
+    // font moins de 10. Nous avions un trou sur quatre au-dessus de 30 : trop de gros.
+    for (let i = Math.round(1.2 * forme * S.trousN); i > 0; i--) tailles.push(gamme(rr(.72, 1)) * (1 + .1 * S.variete));
+    for (let i = Math.round(24 * forme * S.trousN); i > 0; i--) tailles.push(gamme(Math.pow(RA(), 2)));
     for (let i = Math.round(9 * forme * S.trousN * S.menus); i > 0; i--) tailles.push(gamme(Math.pow(RA(), 2.5) * .35));
     // du plus gros au plus petit : les gros ont besoin de place, les petits se glissent après
     tailles.sort((a, b) => b - a);
