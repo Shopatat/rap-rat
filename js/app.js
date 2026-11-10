@@ -585,17 +585,25 @@
       // rim waves, as set by Fabien in the Atelier des vagues: depth 8 %, width 37 %, irregularity 15 %
       // (each wave is a circle whose cap, of chord `s`, rises `d` above the main circle)
       const d = Math.max(0, V.depth) * L, s = Math.max(.04, V.width) * L;
-      out.push({ u: along, v: depth, r: L - d });
-      // the tooth goes straight in: keep its full width all the way out to the edge,
-      // so no thin strip of cheese is left beside it
-      for (let y = depth + L * .2; y < depth + p.advance + p.shallow + L * 1.1; y += L * .2) out.push({ u: along, v: y, r: L - d });
-      if (d < 1e-4) continue;                              // bord lisse : pas de vagues
-      const k = Math.max(6, Math.round(TAU * L / s)), ph = hasard() * TAU;
-      for (let j = 0; j < k; j++) {
-        const di = d * (1 + (hasard() - .5) * 1.4 * V.irr), si = s * (1 + (hasard() - .5) * 1.2 * V.irr);
-        const rb = (si * si / 4 + di * di) / (2 * di), a = ph + (j + (hasard() - .5) * .6 * V.irr) / k * TAU;
-        out.push({ u: along + Math.cos(a) * (L - rb), v: depth + Math.sin(a) * (L - rb), r: rb });
-      }
+      // un rond du croc, avec ses vagues de bord
+      const rond = vv => {
+        out.push({ u: along, v: vv, r: L - d });
+        if (d < 1e-4) return;                              // bord lisse : pas de vagues
+        const k = Math.max(6, Math.round(TAU * L / s)), ph = hasard() * TAU;
+        for (let j = 0; j < k; j++) {
+          const di = d * (1 + (hasard() - .5) * 1.4 * V.irr), si = s * (1 + (hasard() - .5) * 1.2 * V.irr);
+          const rb = (si * si / 4 + di * di) / (2 * di), a = ph + (j + (hasard() - .5) * .6 * V.irr) / k * TAU;
+          out.push({ u: along + Math.cos(a) * (L - rb), v: vv + Math.sin(a) * (L - rb), r: rb });
+        }
+      };
+      rond(depth);
+      // La dent va tout droit jusqu'au bord, pour ne pas laisser une fine bande de fromage à côté.
+      // Avant, c'était une colonne de ronds serrés, donc des flancs parfaitement droits (Fabien,
+      // 10/11/2026 : « ça fait un trait droit le long des morsures et ça n'a pas de sens, ça doit
+      // être arrondi dans le prolongement »). Maintenant, une file de ronds espacés comme les deux
+      // lobes du croc, avec les mêmes vagues : le flanc est festonné comme le reste du bord.
+      const bout = depth + p.advance + p.shallow + L * 1.1;
+      for (let y = depth; y < bout;) { y += L * (.85 + hasard() * .2); rond(Math.min(y, bout)); }
     }
     return out;
   }

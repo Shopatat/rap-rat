@@ -1024,3 +1024,11 @@ telle île mord le bord principal en face d'elle. `etiqueter()` est sorti de `ma
 Mesuré : un croc avec île emporte 0,85 à 1,2 croc en tout. Vingt-sept parties : dernier morceau
 entre 1,47 et 1,74 croc dans 26, une à 2,1 (décentrée à 0,36, pas reproduite) ; aucun croc vide
 sur la fin. Vérifié sur l'ordinateur seulement.
+
+## Des flancs de croc arrondis (v58)
+
+Fabien, capture à l'appui : un trait droit le long de certaines morsures. Cause : quand un croc
+s'enfonce, `shapeTemplate` le prolongeait jusqu'au bord par une colonne de ronds espacés de
+0,2 rayon, donc des flancs parfaitement droits. Maintenant une file de ronds espacés de 0,85 à
+1,05 rayon, chacun avec les vagues du bord. Six parties : dernier morceau 1,35 à 1,60 croc,
+aucun croc vide, environ 25 ms par croc sur l'ordinateur. Vérifié sur l'ordinateur seulement.
