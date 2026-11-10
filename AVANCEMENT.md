@@ -1075,3 +1075,29 @@ la hauteur. Avant : 6 à 19 par partie (sur 5 instantanés). Deux causes :
 Après : 0 à 3 détections par partie, toutes des bords festonnés au seuil (vérifié à l'image).
 Huit parties : dernier morceau 1,34 à 1,59 croc, à 0,01 à 0,12 du centre, aucun croc vide.
 Vérifié sur l'ordinateur seulement.
+
+## EN COURS — copier les vraies morsures de la cassette (pas commencé, arrêt à 96 % d'usage)
+
+Fabien, sur la v62 : « super maintenant on a un troisième arrondi… je comprends pas pourquoi on
+arrive pas à copier l'inspiration du jeu ». Il a raison : le lobe ajouté en v62 au bout des crocs
+qui s'enfoncent se voit comme une troisième bosse, et la morsure de la cassette n'en a que deux.
+
+Diagnostic honnête : depuis le début, on fabrique le croc avec des ronds, puis on bricole la
+liaison entre les lobes et le bord (colonne serrée, festons, évasement, troisième lobe). Chaque
+bricolage laisse sa signature (trait droit, festons, trompette, troisième bosse). La cassette, elle,
+c'est deux lobes et des flancs qui descendent vers le bord, un peu irréguliers.
+
+**Prochaine action** (la mécanique existe déjà : \`p.contour\` dans \`shapeTemplate\`, polygone
+compté par \`forCellsIn\`/\`dansPoly\`, ouvre les trous via \`dansCroc\`) :
+1. Extraire les silhouettes des morsures isolées sur la cassette : \`references/debut/\` (huit ou
+   neuf morsures distinctes par capture), \`references/partie/01.jpg\` (morsure du bas, 26 % × 14 %
+   de la hauteur ; morsure du haut, 29,5 % × 11,3 %). Pour chacune : contour en coordonnées du
+   bord (u le long du bord, v vers l'extérieur, v = 0 sur le bord), normalisé à la largeur de
+   notre croc (≈ 2,7 R), lissé, ~40 points.
+2. Les mettre en données dans \`js/app.js\` (des nombres, pas d'image : rien de la cassette ne part
+   sur GitHub) ; \`tirerForme\` en tire une au hasard, retournée une fois sur deux, légèrement
+   tournée. Fermer le contour juste au-delà du bord (v ≈ +0,4 R), pas plus loin (sinon un flanc
+   qui traverse du fromage redevient un trait).
+3. Retirer le troisième lobe (bloc « if (depth < -.15 * L) » dans \`shapeTemplate\`).
+4. Contrôler : \`traitsDroits\` (pas de trait), \`banc\`/\`fin8\` (dernier morceau ≈ 1,5 croc, centré),
+   et planche côte à côte avec \`references/partie/\`.
