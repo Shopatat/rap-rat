@@ -829,7 +829,7 @@
   // peut faire cinq millions de pixels, et surtout un éclat d'un ou deux pixels à cette
   // finesse-là ne se voit de toute façon pas. Cette copie-ci est à l'échelle de ce qui se voit.
   let mini = null, miniLab = null, miniPile = null;
-  function mangerMiettes(m) {
+  function etiqueter() {
     const MW = Math.min(SW, 640), MH = Math.max(1, Math.round(MW * SH / SW)), N = MW * MH;
     if (!mini || mini.width !== MW || mini.height !== MH) {
       mini = mk(); mini.width = MW; mini.height = MH;
@@ -855,6 +855,10 @@
       tailles.push(n);
       if (n > grosN) { grosN = n; gros = id; }
     }
+    return { lab, tailles, gros, MW, MH, N };
+  }
+  function mangerMiettes(m) {
+    const { lab, tailles, gros, MW, MH, N } = etiqueter();
     if (tailles.length < 2) return;
     const seuil = MIETTE * N;
     const miette = new Uint8Array(tailles.length); let eff = false;
@@ -949,10 +953,10 @@
   let MIETTE = .004;
   // l'Atelier des morsures peut donner au rat les formes cochées par Fabien ; le jeu, lui, tire les siennes
   let choixForme = null;
-  function tailleCroc(tpl, e, k, total) {
+  function tailleCroc(tpl, e, k, total, deja = 0) {   // deja : ce que le croc emporte en plus (des îles)
     const D = partDernier(total);   // les total - 1 crocs ordinaires se partagent le reste
     const target = cells0 * (D + (1 - D) * (1 - (k + 1) / (total - 1)));
-    const needed = cells - target;
+    const needed = cells - target - deja;
     const R0 = baseR(), late = k > total * .9, RMIN = R0 * .8, RMAX = R0 * (late ? 1.8 : 1.25);
     let R = RMIN;
     if (needed > 0) {
@@ -965,6 +969,23 @@
     }
     return R;
   }
+  // Une île emportée avec un croc : on l'efface de la silhouette telle qu'on la voit à l'écran
+  // (tout morceau à part qui touche un carreau marqué), et du compte.
+  function mangerIles(marques) {
+    const { lab, tailles, gros, MW, MH, N } = etiqueter();
+    const ex = SW / MW, ey = SH / MH, prise = new Uint8Array(tailles.length);
+    const carreau = i => Math.min(GH - 1, (((i / MW) | 0) + .5) * ey / SW * GW | 0) * GW + Math.min(GW - 1, ((i % MW) + .5) * ex / SW * GW | 0);
+    let eff = false;
+    for (let i = 0; i < N; i++) { const k = lab[i]; if (k >= 0 && k !== gros && !prise[k] && marques[carreau(i)]) { prise[k] = 1; eff = true; } }
+    for (let idx = 0; idx < grid.length; idx++) if (marques[idx] && grid[idx]) { grid[idx] = 0; cells--; }
+    if (!eff) return;
+    const m = mask.getContext('2d');
+    m.globalCompositeOperation = 'destination-out'; m.fillStyle = '#000'; m.beginPath();
+    for (let i = 0; i < N; i++) { const k = lab[i]; if (k >= 0 && prise[k]) m.rect((i % MW) * ex - .5, ((i / MW) | 0) * ey - .5, ex + 1, ey + 1); }
+    m.fill(); m.globalCompositeOperation = 'source-over';
+    for (let i = 0; i < N; i++) { const k = lab[i]; if (k >= 0 && prise[k]) { const idx = carreau(i); if (grid[idx]) { grid[idx] = 0; cells--; } } }
+  }
+
   // renvoie ce qui a été croqué, pour que l'Atelier des morsures puisse l'enregistrer
   function bite(k, total) {
     if (k === total - 1) {        // last bite: swallow whatever is left
@@ -1008,10 +1029,52 @@
     }
     if (!e) { e = eM; p = pM; tpl = tM; }
     if (!e) return null;
+    // Ce qui compte, c'est ce qu'un croc emporte (Fabien, 10/11/2026 : « une île peut être mangée
+    // si elle est plus petite qu'une morsure, ainsi qu'un bord du fromage proche »). Une île plus
+    // petite qu'un croc part donc avec lui, en même temps qu'un bout du bord voisin, et le croc
+    // se fait plus petit d'autant : à eux deux, ils font un croc. Avant, un croc qui tombait sur
+    // une île n'emportait qu'elle, et la tranche prenait du retard.
+    let marques = null, nIle = 0;
+    const parts = morceaux();
+    if (parts.length > 1) {
+      const quelle = new Int32Array(grid.length).fill(-1);
+      for (let t = 1; t < parts.length; t++) for (const q of parts[t]) quelle[q] = t;
+      const ici = quelle[e.j * GW + e.i];
+      if (ici > 0 && parts[ici].length <= part) {
+        // le croc tombait sur l'île : il mord plutôt le bord du morceau principal en face d'elle
+        const I = parts[ici]; let sx = 0, sy = 0;
+        for (const q of I) { sx += q % GW; sy += (q / GW) | 0; }
+        const ix = (sx / I.length + .5) / GW, iy = (sy / I.length + .5) / GW;
+        let best = -1, bd = Infinity;
+        for (const q of parts[0]) {
+          const i = q % GW, j = (q / GW) | 0;
+          if (i > 0 && j > 0 && i < GW - 1 && j < GH - 1 && grid[q - 1] && grid[q + 1] && grid[q - GW] && grid[q + GW]) continue;
+          const d = ((i + .5) / GW - ix) ** 2 + ((j + .5) / GW - iy) ** 2;
+          if (d < bd) { bd = d; best = q; }
+        }
+        if (best >= 0) {
+          const i = best % GW, j = (best / GW) | 0, x = (i + .5) / GW, y = (j + .5) / GW;
+          let nx = ix - x, ny = iy - y; const l = Math.hypot(nx, ny) || 1;
+          e = Object.assign({}, e, { x, y, nx: nx / l, ny: ny / l, i, j, fi: -1, ile: false });
+        }
+      }
+      // les îles à portée du croc, plus petites que lui
+      const portee = baseR() * 1.6;
+      for (let t = 1; t < parts.length; t++) {
+        if (parts[t].length > part) continue;
+        let dmin = Infinity;
+        for (const q of parts[t]) { const d = Math.hypot((q % GW + .5) / GW - e.x, (((q / GW) | 0) + .5) / GW - e.y); if (d < dmin) dmin = d; }
+        if (t !== ici && dmin > portee) continue;
+        marques = marques || new Uint8Array(grid.length);
+        for (const q of parts[t]) marques[q] = 1;
+        nIle += parts[t].length;
+      }
+    }
     retenir(e);
-    const R = tailleCroc(tpl, e, k, total);
+    const R = tailleCroc(tpl, e, k, total, nIle);
     applyBite(realize(tpl, e.x, e.y, e.nx, e.ny, R, PUSH));
-    return { x: e.x, y: e.y, nx: e.nx, ny: e.ny, R, push: PUSH, forme: p };
+    if (marques) mangerIles(marques);
+    return { x: e.x, y: e.y, nx: e.nx, ny: e.ny, R, push: PUSH, forme: p, iles: nIle };
   }
 
   // ---------- sound ----------

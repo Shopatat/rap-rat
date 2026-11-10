@@ -1013,3 +1013,14 @@ d'après le nombre de crocs. Deux défauts sont apparus avec la marge réduite, 
 
 Quinze parties : dernier morceau entre 1,28 et 1,60 croc, aucun croc vide sur la fin, à 0,02 à
 0,13 du centre. Vérifié sur l'ordinateur seulement.
+
+## Une île part avec le bord voisin (v57)
+
+Fabien : « ce qui compte c'est la quantité mangée en fromage par morsure, ce qui fait qu'une île
+peut être mangée si elle est plus petite que morsure ainsi qu'un bord du fromage proche ».
+`bite()` : les îles plus petites qu'un croc, à portée, partent avec lui (`mangerIles`, effacées
+telles qu'on les voit à l'écran) et le croc rapetisse d'autant ; un croc qui tombait sur une
+telle île mord le bord principal en face d'elle. `etiqueter()` est sorti de `mangerMiettes`.
+Mesuré : un croc avec île emporte 0,85 à 1,2 croc en tout. Vingt-sept parties : dernier morceau
+entre 1,47 et 1,74 croc dans 26, une à 2,1 (décentrée à 0,36, pas reproduite) ; aucun croc vide
+sur la fin. Vérifié sur l'ordinateur seulement.
