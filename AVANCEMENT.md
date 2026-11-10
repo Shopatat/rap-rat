@@ -989,3 +989,14 @@ atteint par une morsure s'ouvre en entier et rejoint le bout manquant (`TROUS`, 
 Neuf parties avec trous, chaque mode : avant-dernière part restante 0,044 à 0,079 (avant : 0,044
 à 0,072) ; éloignement du dernier morceau au centre, moyenne 0,12 (avant 0,06 ; cassette 0,09 à
 0,14). Vérifié sur l'ordinateur seulement.
+
+## La tranche épaisse vue d'en haut (v55, essai)
+
+Proposition faite à Fabien (« leur physique manque de réalisme, tu proposerais quoi ? ») : un
+vrai bloc épais en perspective, la même géométrie pour les morsures et les trous. Il a dit
+« oui on essaie ». `paroi()` et `PAROI` (0,04) dans `js/app.js`, curseur dans l'Atelier des
+foyers. Vérifié sur l'ordinateur : planche à côté des captures 3, 5 et 7, gros plan sur un trou
+ouvert, une vraie partie lancée au bouton. Pas testé sur l'iPhone (vitesse comprise).
+
+Restent les deux autres pistes proposées, pas commencées : une seule lumière pour les parois des
+trous peints, et le fond des poches borgnes ouvertes par un croc.

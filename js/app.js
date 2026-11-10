@@ -16,6 +16,9 @@
   // Les trous de la tranche, en largeurs de tranche, pour que les morsures sachent où ils sont.
   // OUVRE : un trou atteint par une morsure s'ouvre (voir trousTouches).
   let TROUS = [], OUVRE = true;
+  // PAROI : de combien le dessous de la tranche se resserre vers le centre, vu d'en haut (voir paroi()).
+  // 0 = la tranche plate d'avant.
+  let PAROI = .04;
 
   // ---------- le style de la pâte (piloté par l'Atelier des fromages) ----------
   // La couleur de la pâte a été choisie par Fabien le 09/11/2026 dans l'Atelier des fromages
@@ -448,7 +451,52 @@
     const c = comp.getContext('2d');
     c.globalCompositeOperation = 'source-over';
     c.clearRect(0, 0, SW, SH);
+    if (PAROI > 0) paroi(c);
     c.drawImage(face, 0, 0);
+  }
+  // La tranche coupée (Fabien, 10/11/2026 : « leur physique manque de réalisme »). La tranche est
+  // un bloc épais, vu par un œil placé au-dessus de son milieu : son dessous se voit donc un peu
+  // resserré vers le centre. On empile des copies de la silhouette, du dessous vers le dessus, et
+  // le dessus vient par-dessus. La paroi n'apparaît alors que là où elle regarde l'œil — les
+  // flancs des morsures tournés vers le centre, et dans un trou ouvert le côté opposé au centre —
+  // et elle reste cachée sous le bord extérieur de la tranche. C'est la même géométrie que les
+  // trous peints, dont le fond glisse vers le centre.
+  // Couleurs relevées sur `references/partie/03.jpg`, `04.jpg` et `style/fin-etoile.jpg`, là où
+  // une morsure ou un trou laisse voir la tranche : un rouge-brun, 187,88,4 en haut de la paroi
+  // côté lumière, 105,36,1 au pied.
+  function paroi(c) {
+    const P = STYLE.perspective == null ? 1 : STYLE.perspective;
+    const aP = (STYLE.angleTrous || 0) * Math.PI / 180;
+    const k = PAROI * P;                                       // le resserrement vers le centre
+    const tx = Math.cos(aP) * PAROI * SH * .5 * (1 - P);       // en vue parallèle, un décalage
+    const ty = Math.sin(aP) * PAROI * SH * .5 * (1 - P);
+    const ecart = k * Math.hypot(SW, SH) / 2 + Math.hypot(tx, ty);
+    const n = Math.max(2, Math.min(28, Math.ceil(ecart / 1.5)));
+    // la paroi éclairée d'en haut à gauche : en bas à droite de la tranche, elle regarde la lumière
+    const ic = inv.getContext('2d');
+    ic.globalCompositeOperation = 'source-over'; ic.clearRect(0, 0, SW, SH); ic.drawImage(mask, 0, 0);
+    // Le masque garde, là où deux morsures se recoupent, des restes presque transparents qu'on ne
+    // voit pas sur la tranche ; empilés vingt fois, ils devenaient des traînées. On les efface et
+    // on raidit le bord, en gardant un peu d'anticrénelage.
+    const im = ic.getImageData(0, 0, SW, SH), d = im.data;
+    for (let q = 3; q < d.length; q += 4) { const a = d[q]; d[q] = a < 96 ? 0 : a > 255 - 64 ? 255 : (a - 96) * 2.68; }
+    ic.putImageData(im, 0, 0);
+    ic.globalCompositeOperation = 'source-in';
+    const g = ic.createLinearGradient(0, 0, SW, SH);
+    g.addColorStop(0, '#5a1e02'); g.addColorStop(.5, '#8a3804'); g.addColorStop(1, '#b45206');
+    ic.fillStyle = g; ic.fillRect(0, 0, SW, SH);
+    ic.globalCompositeOperation = 'source-over';
+    // chaque copie posée assombrit celles d'en dessous : le pied de la paroi finit à la moitié de sa clarté
+    const sombre = 1 - Math.pow(.5, 1 / (n - 1));
+    for (let i = 0; i < n; i++) {
+      const t = i / n, sc = 1 - k * (1 - t);
+      if (i) {
+        c.globalCompositeOperation = 'source-atop';
+        c.fillStyle = `rgba(24,6,0,${sombre.toFixed(4)})`; c.fillRect(0, 0, SW, SH);
+        c.globalCompositeOperation = 'source-over';
+      }
+      c.drawImage(inv, SW / 2 * (1 - sc) + tx * (1 - t), SH / 2 * (1 - sc) + ty * (1 - t), SW * sc, SH * sc);
+    }
   }
 
   // ---------- display: full screen in play, shrunk above the controls otherwise ----------
@@ -1219,7 +1267,8 @@
       while (next < times.length && elapsed >= times[next]) {
         bite(next, times.length); bit = true; if (next === times.length - 1) final = true; next++;
       }
-      if (bit) { compose(); draw(); crunch(final); }
+      // le son d'abord : la tranche épaisse (paroi()) met un instant à se recomposer, le croc ne doit pas l'attendre
+      if (bit) { crunch(final); compose(); draw(); }
       if (next >= times.length) end();
     }
     requestAnimationFrame(tick);
@@ -1268,10 +1317,10 @@
   window.RapRat = { skip(sec) { if (state === 'running' || state === 'paused') elapsed += sec; },
     bites(n, from = 0) { for (let i = 0; i < n; i++) bite(from + i, BITES); compose(); draw(); },
     neuf() { resetCheese(); draw(); },                        // une tranche entière, intacte
-    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; if (o.etale != null) ETALE = o.etale; if (o.miette != null) MIETTE = o.miette; if (o.creux != null) CREUX = o.creux; if (o.finseuil !== undefined) FINSEUIL = o.finseuil; if (o.dehors !== undefined) DEHORS = o.dehors; if (o.ouvre != null) OUVRE = !!o.ouvre; if (o.epaisseur != null) { EPAISSEUR = o.epaisseur; compose(); draw(); } },
+    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; if (o.etale != null) ETALE = o.etale; if (o.miette != null) MIETTE = o.miette; if (o.creux != null) CREUX = o.creux; if (o.finseuil !== undefined) FINSEUIL = o.finseuil; if (o.dehors !== undefined) DEHORS = o.dehors; if (o.ouvre != null) OUVRE = !!o.ouvre; if (o.paroi != null) { PAROI = o.paroi; compose(); draw(); } if (o.epaisseur != null) { EPAISSEUR = o.epaisseur; compose(); draw(); } },
     crocs: () => BITES,
     trous: () => nTrous,
-    actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE, miette: MIETTE, creux: CREUX, finseuil: FINSEUIL, dehors: DEHORS, ouvre: OUVRE, epaisseur: EPAISSEUR }),
+    actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE, miette: MIETTE, creux: CREUX, finseuil: FINSEUIL, dehors: DEHORS, ouvre: OUVRE, paroi: PAROI, epaisseur: EPAISSEUR }),
     ajuste() { fit(); },                                      // recaler la toile sur sa boîte
     // ---- pour l'Atelier des morsures (outils/atelier-morsures.html) ----
     // un croc s'y décrit par { x, y, nx, ny, R, push, forme } : x, y le point du bord visé (en
