@@ -1042,3 +1042,17 @@ courbe lisse. `shapeTemplate` : le prolongement est une suite serrée de ronds d
 extérieur s'élargit vers le bord (`evase`, tiré par croc et par côté, jusqu'à 0,9 rayon, en
 t^1,3), sans festons ; remplace la file de ronds festonnés de la v58. Six parties : dernier
 morceau 1,32 à 1,60 croc, aucun croc vide. Vérifié sur l'ordinateur seulement.
+
+## Les dômes : deux crocs au même endroit (v60)
+
+Fabien montre la morsure du bord droit de `references/partie/03.jpg`. Mesurée : près de 30 % de
+la hauteur au bord, 23 % de profondeur (un croc : 11 %), absente de `02.jpg`. Lecture : deux
+crocs au même endroit. `REPRISE` (0,15) dans `bite()` : le rat descend le long de la direction
+du croc d'avant jusqu'au fromage et remord là. Une fois de suite au plus, au-dessus de 55 % de
+tranche, dans la couronne extérieure. Curseur « remordre au fond du croc d'avant ».
+
+Piège rencontré : pour que la reprise court-circuite la recherche, j'avais arrêté la boucle des
+douze essais dès qu'un endroit était choisi ; ça cassait la fin de partie, qui compare ses douze
+essais pour garder le plus loin du centre (dernier morceau décentré jusqu'à 0,40). Corrigé.
+Vingt et une parties ensuite : 1,31 à 1,58 croc, dernier morceau à 0,01 à 0,15 du centre, deux
+ou trois dômes par partie. Vérifié sur l'ordinateur seulement.

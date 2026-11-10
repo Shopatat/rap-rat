@@ -398,7 +398,7 @@
     SH = Math.round(SW * A); U = Math.min(SW, SH) / 1024; GH = Math.max(1, Math.round(GW * A));
     for (const c of [tex, mask, inv, comp, face]) { c.width = SW; c.height = SH; }
     grid = new Uint8Array(GW * GH); grid.fill(1); cells0 = cells = GW * GH;
-    foyers = []; derniers = [];      // nouvelle tranche, nouveaux foyers
+    foyers = []; derniers = []; dernierCroc = null;      // nouvelle tranche, nouveaux foyers
     paintTexture();
     const m = mask.getContext('2d');
     m.globalCompositeOperation = 'source-over';
@@ -672,6 +672,12 @@
   // dernière bouchée avec 9 % de tranche au lieu de 4,5.
   let FOYERS = 8, RESTE = 0, PRES = .16, REGROUPE = 1.4, ETALE = .5, CREUX = 5, FINSEUIL = null, DEHORS = 1.8;
   let foyers = [], derniers = [];
+  // REPRISE : la part des crocs où le rat remord aussitôt au fond du croc d'avant. Deux crocs au
+  // même endroit font un grand dôme en trois ou quatre bosses, comme la morsure du bord droit de
+  // `references/partie/03.jpg` (Fabien, 10/11/2026 : « parfois ça fait une morsure comme sur la
+  // droite ») : près de 30 % de la hauteur de la tranche au bord et 23 % de profondeur, deux fois
+  // un croc ordinaire, absente de la capture d'avant.
+  let REPRISE = .15, dernierCroc = null;
 
   // Pick a spot on the cheese's edge. Spots far from the middle are much more likely,
   // so the rat works from the outside in and the last morsel ends up near the centre.
@@ -1030,8 +1036,36 @@
     // longs bras — relevé sur `references/fin/`, où il tient dans un rond deux fois plus serré.
     const part = cells0 / total;
     let e = null, p = null, tpl = null, loin = -1;    // l'endroit retenu
+    // De temps en temps, le rat remord au fond du croc qu'il vient de faire : on descend le long
+    // de sa direction jusqu'au fromage, et on mord là, dans le même sens. Pas sur la fin de
+    // partie, qui a ses propres règles.
+    const dc = dernierCroc;
+    // Une seule fois de suite (trois crocs au même endroit creusaient un tunnel), et seulement tant
+    // que le fond du croc reste dans la couronne extérieure de la tranche : plus loin, le dôme
+    // entamait le milieu (le rat préfère mordre dans les creux, CREUX, et un dôme profond l'attire).
+    // Donc pas sur la fin : tant qu'il reste plus de 55 % de la tranche (sur la capture, le dôme
+    // se forme entre 79 et 65 %).
+    if (dc && !dc.reprise && k < total - 10 && cells > cells0 * .55 && Math.random() < REPRISE) {
+      for (let pas = 0; pas < GW * .5; pas++) {
+        const x = dc.x - dc.nx * pas / GW, y = dc.y - dc.ny * pas / GW;
+        const i = Math.floor(x * GW), j = Math.floor(y * GW);
+        if (i < 0 || j < 0 || i >= GW || j >= GH) break;
+        if (!grid[j * GW + i]) continue;
+        const ux = x - .5, uy = y - A / 2, rr = Math.hypot(ux, uy) || 1e-6;
+        const bord = Math.min(.5 * rr / Math.max(Math.abs(ux), 1e-6), (A / 2) * rr / Math.max(Math.abs(uy), 1e-6));
+        if (rr / bord < .68) break;                       // trop près du milieu : pas de dôme ici
+        const pc = (choixForme || tirerForme)(), tc = shapeTemplate(pc);
+        if (countRemoval(realize(tc, x, y, dc.nx, dc.ny, baseR(), PUSH)) >= part * .6) {
+          e = { x, y, nx: dc.nx, ny: dc.ny, i, j, fi: -1, fin: false, dE: Math.hypot(x - .5, y - A / 2), ile: false, reprise: true };
+          p = pc; tpl = tc;
+        }
+        break;
+      }
+    }
     let eM = null, pM = null, tM = null, mieux = -1;  // à défaut, le plus fourni des essais
-    for (let t = 0; t < 12; t++) {
+    // (la reprise court-circuite la recherche ; sans elle, la fin de partie compare ses douze essais)
+    const repris = !!e;
+    for (let t = 0; t < 12 && !repris; t++) {
       const c = pickEdge(k > total - 10); if (!c) break;
       const pc = (choixForme || tirerForme)(), tc = shapeTemplate(pc);
       const pris = countRemoval(realize(tc, c.x, c.y, c.nx, c.ny, baseR(), PUSH));
@@ -1092,7 +1126,8 @@
     const R = tailleCroc(tpl, e, k, total, nIle);
     applyBite(realize(tpl, e.x, e.y, e.nx, e.ny, R, PUSH));
     if (marques) mangerIles(marques);
-    return { x: e.x, y: e.y, nx: e.nx, ny: e.ny, R, push: PUSH, forme: p, iles: nIle };
+    dernierCroc = { x: e.x, y: e.y, nx: e.nx, ny: e.ny, reprise: !!e.reprise };
+    return { x: e.x, y: e.y, nx: e.nx, ny: e.ny, R, push: PUSH, forme: p, iles: nIle, reprise: !!e.reprise };
   }
 
   // ---------- sound ----------
@@ -1419,10 +1454,10 @@
   window.RapRat = { skip(sec) { if (state === 'running' || state === 'paused') elapsed += sec; },
     bites(n, from = 0) { for (let i = 0; i < n; i++) bite(from + i, BITES); compose(); draw(); },
     neuf() { resetCheese(); draw(); },                        // une tranche entière, intacte
-    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; if (o.etale != null) ETALE = o.etale; if (o.miette != null) MIETTE = o.miette; if (o.creux != null) CREUX = o.creux; if (o.finseuil !== undefined) FINSEUIL = o.finseuil; if (o.dehors !== undefined) DEHORS = o.dehors; if (o.ouvre != null) OUVRE = !!o.ouvre; if (o.paroi != null) { PAROI = o.paroi; compose(); draw(); } if (o.epaisseur != null) { EPAISSEUR = o.epaisseur; compose(); draw(); } },
+    reglages(o) { if (o.foyers != null) FOYERS = o.foyers; if (o.reste != null) RESTE = o.reste; if (o.pres != null) PRES = o.pres; if (o.regroupe != null) REGROUPE = o.regroupe; if (o.etale != null) ETALE = o.etale; if (o.miette != null) MIETTE = o.miette; if (o.creux != null) CREUX = o.creux; if (o.finseuil !== undefined) FINSEUIL = o.finseuil; if (o.dehors !== undefined) DEHORS = o.dehors; if (o.ouvre != null) OUVRE = !!o.ouvre; if (o.reprise != null) REPRISE = o.reprise; if (o.paroi != null) { PAROI = o.paroi; compose(); draw(); } if (o.epaisseur != null) { EPAISSEUR = o.epaisseur; compose(); draw(); } },
     crocs: () => BITES,
     trous: () => nTrous,
-    actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE, miette: MIETTE, creux: CREUX, finseuil: FINSEUIL, dehors: DEHORS, ouvre: OUVRE, paroi: PAROI, epaisseur: EPAISSEUR }),
+    actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE, miette: MIETTE, creux: CREUX, finseuil: FINSEUIL, dehors: DEHORS, ouvre: OUVRE, reprise: REPRISE, paroi: PAROI, epaisseur: EPAISSEUR }),
     ajuste() { fit(); },                                      // recaler la toile sur sa boîte
     // ---- pour l'Atelier des morsures (outils/atelier-morsures.html) ----
     // un croc s'y décrit par { x, y, nx, ny, R, push, forme } : x, y le point du bord visé (en
@@ -1449,7 +1484,7 @@
     efface() {                                                // la tranche entière, mêmes trous
       const m = mask.getContext('2d');
       m.globalCompositeOperation = 'source-over'; m.fillStyle = '#fff'; m.fillRect(0, 0, SW, SH);
-      grid.fill(1); cells = cells0; foyers = []; derniers = [];
+      grid.fill(1); cells = cells0; foyers = []; derniers = []; dernierCroc = null;
       for (const t of TROUS) t.ouvert = false;
     },
     redessine() { compose(); draw(); },
