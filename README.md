@@ -34,6 +34,8 @@ L'écran reste allumé pendant une partie tant que l'appli est au premier plan. 
 | `index.html` | La page et les commandes |
 | `css/style.css` | Le style (plein écran, commandes qui se cachent) |
 | `js/app.js` | Toute la logique : dessin du fromage et des trous, crocs, minuteur, sons |
+| `js/rat.js` | La voix du rat : ses répliques, et quand il parle |
+| `sons/rat/` | Ses enregistrements, un fichier par réplique (voir le LISEZMOI dedans) |
 | `sw.js` | Service worker : met l'appli en cache pour le hors ligne |
 | `manifest.webmanifest` | Nom, couleurs et icônes pour l'écran d'accueil |
 | `icons/` | Les icônes, générées par `node outils/icones.js` |

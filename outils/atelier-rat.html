@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Atelier du rat — Rap Rat</title>
+<!-- Atelier du rat : quand il parle, ce qu'il dit, et à quel rythme.
+     Le but est de juger le ton et le rythme AVANT d'enregistrer : la tranche tourne pour de
+     vrai (js/app.js), le moteur de paroles est celui de l'appli (js/rat.js), et tu écris les
+     répliques ici. Ensuite tu les enregistres dans l'Atelier du son, un fichier par réplique,
+     sous le nom que donne la feuille d'enregistrement. -->
+<link rel="stylesheet" href="../css/style.css">
+<style>
+:root{--line:rgba(244,201,106,.16)}
+html,body{height:auto;overflow:auto;background:var(--bg);user-select:auto;-webkit-user-select:auto}
+body{margin:0;padding:18px 16px 60px;font:15px/1.5 var(--ui);color:var(--ink)}
+.wrap{max-width:1040px;margin:0 auto}
+h1{font-family:var(--display);color:var(--cheese);font-size:26px;margin:0 0 2px}
+p.lede{color:var(--muted);margin:0 0 18px;font-size:13.5px;max-width:74ch}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+h2{font:600 13px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+/* la scène : l'appli tourne dedans, en vrai, mais tenue dans une boîte au lieu du plein écran */
+.scene{position:relative;width:100%;aspect-ratio:956/440;border-radius:10px;overflow:hidden;background:#000}
+.scene .stage{position:absolute!important;inset:0!important}
+.scene .bar,.scene .banner,.scene header,.scene .turn{display:none!important}
+/* le sous-titre : ici seulement, pour lire ce qu'il dit. Dans l'appli il n'y en a pas. */
+#dit{position:absolute;left:0;right:0;bottom:0;padding:14px 18px;pointer-events:none;
+  background:linear-gradient(transparent,rgba(0,0,0,.72));opacity:0;transition:opacity .25s}
+#dit.vu{opacity:1}
+#dit b{display:block;font:600 11px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+#dit span{font:500 clamp(15px,2.4vw,22px)/1.3 var(--ui);color:#fff;text-shadow:0 2px 10px #000}
+.r-c b{color:#cfd6da}.r-g b{color:#f4c96a}.r-s b{color:#ff7a5c}.r-o b{color:#9fd2c0}.r-f b{color:#9a8fb0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.row+.row{margin-top:10px}
+label.sld{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted);flex:1 1 220px}
+label.sld input[type=range]{width:100%;accent-color:var(--cheese)}
+.val{color:var(--cream);font-variant-numeric:tabular-nums}
+.btn2{font:500 14px/1 var(--ui);color:var(--ink);background:var(--panel-hi);border:1px solid var(--line);
+  border-radius:999px;padding:0 15px;min-height:40px;cursor:pointer}
+.btn2:hover{background:#3a2818}
+.btn2.primary{background:var(--cheese);color:var(--on-cheese);border-color:transparent;font-weight:700}
+.btn2[aria-pressed="true"]{background:var(--cheese);color:var(--on-cheese);border-color:transparent}
+.btn2.mini{min-height:30px;padding:0 10px;font-size:12.5px}
+.info{font-size:12.5px;color:var(--muted);margin-top:10px}
+.info b{color:var(--cream);font-variant-numeric:tabular-nums}
+input[type=number],select,textarea,input[type=text]{font:500 14px var(--ui);color:var(--ink);background:#0d0906;
+  border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-variant-numeric:tabular-nums}
+input[type=number]{width:8ch}
+textarea{width:100%;min-height:150px;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;resize:vertical}
+/* le ruban : la partie d'un bout à l'autre, une marque par parole */
+#ruban{position:relative;height:46px;margin:6px 0 2px;border-radius:8px;background:#0d0906;
+  border:1px solid var(--line);cursor:pointer;overflow:hidden}
+#ruban .silence{position:absolute;top:0;bottom:0;background:rgba(255,255,255,.04)}
+#ruban .mk{position:absolute;top:6px;width:3px;height:22px;border-radius:2px;transform:translateX(-1px)}
+#ruban .mk.c{background:#cfd6da}#ruban .mk.g{background:#f4c96a;height:30px}
+#ruban .mk.s{background:#ff7a5c;height:34px;width:4px}#ruban .mk.o,#ruban .mk.f{background:#9fd2c0}
+#ruban .croc{position:absolute;bottom:4px;width:1px;height:6px;background:rgba(244,201,106,.35)}
+#ruban .tete{position:absolute;top:0;bottom:0;width:2px;background:var(--cheese);box-shadow:0 0 8px var(--cheese)}
+#liste{margin-top:8px;max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font:600 11px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  padding:8px;position:sticky;top:0;background:#1a1109;border-bottom:1px solid var(--line)}
+td{padding:6px 8px;border-bottom:1px solid rgba(244,201,106,.07);vertical-align:middle}
+tr.ici td{background:rgba(244,201,106,.1)}
+td.t{font-variant-numeric:tabular-nums;color:var(--cream);white-space:nowrap}
+td .reg{font:600 10.5px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase}
+.reg.c{color:#cfd6da}.reg.g{color:#f4c96a}.reg.s{color:#ff7a5c}.reg.o{color:#9fd2c0}.reg.f{color:#9a8fb0}
+td.son{color:var(--muted);font-size:11.5px;white-space:nowrap}
+#tabl input[type=text]{width:100%;min-width:12ch}
+#tabl input.q{width:5ch}
+#tabl td{padding:4px 6px}
+.pastille{display:inline-block;min-width:2.2em;text-align:center;border-radius:6px;padding:1px 5px;
+  font-variant-numeric:tabular-nums;background:#0d0906;border:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Atelier du rat</h1>
+  <p class="lede">
+    Le rat ne se montre jamais : il n’est qu’une voix qui sort du trou, pendant que le fromage
+    disparaît. Ici tu règles <b>quand</b> il parle et tu écris <b>ce qu’il dit</b>, puis tu
+    déroules une partie entière pour entendre le rythme avant d’enregistrer quoi que ce soit.
+    Les répliques sortent en feuille d’enregistrement pour l’Atelier du son : un fichier par
+    réplique, au nom indiqué, à déposer dans <code>sons/rat/</code>.
+  </p>
+
+  <section>
+    <h2>La partie</h2>
+    <div class="scene" id="scene">
+      <div class="stage" id="stage"><canvas id="view"></canvas></div>
+      <div class="banner" id="banner" hidden></div>
+      <header id="header"><span class="mark">Rap Rat</span></header>
+      <div class="bar" id="idleBar">
+        <div class="stepper"><button id="durMinus" type="button">−</button><output id="durOut"></output><button id="durPlus" type="button">+</button></div>
+        <button class="btn" id="soundBtn" type="button"></button>
+        <button class="btn" id="startBtn" type="button"></button>
+      </div>
+      <div class="bar" id="runBar" hidden><button class="btn" id="pauseBtn" type="button"></button><button class="btn" id="restartBtn" type="button"></button><button class="btn" id="fsBtn" type="button" hidden></button></div>
+      <div class="bar" id="endBar" hidden><button class="btn" id="againBtn" type="button"></button></div>
+      <div class="turn" id="turn"></div>
+      <div id="dit"><b></b><span></span></div>
+    </div>
+
+    <div id="ruban" title="clique pour te placer dans la partie"></div>
+    <div class="row">
+      <button class="btn2 primary" id="jouer">Dérouler la partie</button>
+      <label style="font-size:12px;color:var(--muted)">vitesse
+        <select id="vitesse"><option value="1">normale</option><option value="4">× 4</option><option value="15" selected>× 15</option><option value="60">× 60</option></select></label>
+      <label style="font-size:12px;color:var(--muted)">durée
+        <select id="duree"></select></label>
+      <label style="font-size:12px;color:var(--muted)">graine <input type="number" id="graine" value="0"></label>
+      <button class="btn2" id="autre">Autre partie</button>
+      <span class="info" style="margin:0" id="ouEnEst"></span>
+    </div>
+    <div class="info" id="bilan"></div>
+    <div id="liste"><table><thead><tr><th style="width:5em">quand</th><th style="width:8em">registre</th><th>ce qu’il dit</th><th style="width:7em">son</th><th style="width:5em"></th></tr></thead><tbody id="corps"></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>Son budget de parole</h2>
+    <div class="row">
+      <label class="sld">combien de paroles sur la partie <span class="val" id="nbV">18</span>
+        <input type="range" id="nb" min="0" max="60" step="1" value="18"></label>
+      <label class="sld">jamais deux paroles plus près que <span class="val" id="ecV">45 s</span>
+        <input type="range" id="ec" min="10" max="120" step="1" value="45"></label>
+      <label class="sld">il se tait au début pendant <span class="val" id="atV">25 s</span>
+        <input type="range" id="at" min="0" max="180" step="5" value="25"></label>
+    </div>
+    <div class="row">
+      <label class="sld">plus un mot sur la fin pendant <span class="val" id="siV">2 min 0 s</span>
+        <input type="range" id="si" min="0" max="300" step="10" value="120"></label>
+      <label class="sld">plus présent à mesure que la tranche se réduit <span class="val" id="coV">1,0</span>
+        <input type="range" id="co" min="0" max="200" step="5" value="100"></label>
+      <label class="sld">il parle la bouche pleine, juste après un croc <span class="val" id="apV">40 %</span>
+        <input type="range" id="ap" min="0" max="100" step="5" value="40"></label>
+    </div>
+    <div class="row">
+      <label class="sld">part de consignes <span class="val" id="pgV">22 %</span>
+        <input type="range" id="pg" min="0" max="60" step="1" value="22"></label>
+      <label class="sld">part de stop <span class="val" id="psV">14 %</span>
+        <input type="range" id="ps" min="0" max="40" step="1" value="14"></label>
+      <label class="sld">jamais plus de stop que <span class="val" id="smV">3</span>
+        <input type="range" id="sm" min="0" max="8" step="1" value="3"></label>
+    </div>
+    <div class="row">
+      <label class="sld"><span><input type="checkbox" id="ouv" checked> une réplique à l’ouverture, quand la trappe se ferme</span></label>
+      <label class="sld"><span><input type="checkbox" id="fin"> une réplique à la fin, quand tout est mangé</span></label>
+      <button class="btn2" id="defaut">Réglages de l’appli</button>
+      <button class="btn2" id="garderReg">Garder ces réglages</button>
+    </div>
+    <div class="info">
+      Le piège, c’est qu’un rat qui donne un ordre toutes les vingt secondes redevient le jeu
+      original, même avec une voix grave : la conception, c’est le budget. Le <b>stop</b> est le
+      seul qui bloque la partie — rare, donc terrifiant ; s’il arrive souvent, il ne vaut plus
+      rien. La <b>consigne</b> n’interrompt pas : elle donne une contrainte qu’un joueur emporte,
+      et ça s’accumule. Le <b>commentaire</b> n’exige rien du tout : c’est là que vit la présence.
+      Le nombre de paroles est fixe, comme celui des crocs : une partie plus longue les espace.
+    </div>
+  </section>
+
+  <section>
+    <h2>Sa voix</h2>
+    <div class="row">
+      <label class="sld">volume <span class="val" id="voV">100 %</span>
+        <input type="range" id="vo" min="0" max="100" step="5" value="100"></label>
+      <label class="sld"><span><input type="checkbox" id="sec"> voix de dépannage (la machine lit le texte)</span></label>
+      <span class="info" style="margin:0" id="etatSon"></span>
+    </div>
+    <div class="info">
+      La voix de dépannage sert <b>seulement</b> à juger le rythme ici : du texte lu par une
+      machine sonnera toujours comme un jouet, et c’est exactement ce qu’on veut éviter. La vraie
+      voix, c’est toi, micro de près, bas, la bouche pleine, sur un ton d’ennui — il ne travaille
+      pas pour les joueurs, il est chez lui et il mange. Il ne félicite jamais. Tant qu’un
+      <code>.wav</code> manque, le rat se tait dans l’appli, et aucune onde ne part du trou.
+    </div>
+  </section>
+
+  <section>
+    <h2>Ce qu’il dit</h2>
+    <div class="row" style="margin-bottom:10px">
+      <button class="btn2" id="ajouter">+ une réplique</button>
+      <button class="btn2" id="garderRep">Garder ces répliques</button>
+      <button class="btn2" id="revenir">Revenir à celles du code</button>
+      <button class="btn2" id="feuille">Feuille d’enregistrement</button>
+      <button class="btn2" id="export">Exporter pour js/rat.js</button>
+      <button class="btn2" id="pourClaude">Copier pour Claude</button>
+      <span class="info" style="margin:0" id="etatRep"></span>
+    </div>
+    <div id="tabl"><table><thead><tr>
+      <th style="width:5em">fichier</th><th style="width:9em">registre</th>
+      <th style="width:9em">fenêtre</th><th>le texte</th><th style="width:7em"></th>
+    </tr></thead><tbody id="corpsRep"></tbody></table></div>
+    <div class="info">
+      La <b>fenêtre</b> dit où la réplique peut tomber dans la partie, en pourcentage
+      d’avancement : <b>0 à 100</b> n’importe quand, <b>70 à 100</b> seulement vers la fin. Les
+      <b>…</b> sont des silences à tenir à l’enregistrement : c’est là que c’est drôle. Il ne dit
+      jamais de prénoms — une voix enregistrée ne peut pas — mais désigne par la place et par les
+      piques : « celui qui tient le téléphone », « le plus vieux ».
+    </div>
+    <div class="row" style="margin-top:10px"><textarea id="sortie" placeholder="les exports s’affichent ici" readonly></textarea></div>
+  </section>
+</div>
+
+<audio id="music" loop preload="auto" playsinline></audio>
+<script src="../js/rat.js"></script>
+<script src="../js/app.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  RapRat.atelier();                                   // la barre d'espace ne lance pas de partie
+
+  // Les instants des morsures, comme schedule() dans js/app.js : 72 crocs, espacés de .8 à 1.2.
+  // On les refait ici pour que le ruban les montre et que le rat puisse parler la bouche pleine.
+  const BITES = RapRat.crocs();
+  let crocs = [], duree = 15 * 60, plan = [], t = 0, joue = false, dernier = -1, crocFait = 0;
+
+  function tirerCrocs(D) {
+    const ints = []; let s = 0;
+    for (let i = 0; i < BITES; i++) { const v = .8 + Math.random() * .4; ints.push(v); s += v; }
+    const k = (D - .5) / s, out = [.5]; let u = .5;
+    for (const v of ints) { u += v * k; out.push(u); }
+    out[out.length - 1] = D;
+    return out;
+  }
+  const mmss = x => Math.floor(x / 60) + ' min ' + String(Math.max(0, Math.round(x % 60))).padStart(2, '0');
+  const horloge = x => Math.floor(x / 60) + ':' + String(Math.max(0, Math.floor(x % 60))).padStart(2, '0');
+
+  // ---------- les réglages ----------
+  const CURS = [
+    ['nb', 'nombre', v => v, v => String(v)],
+    ['ec', 'ecart', v => v, v => v + ' s'],
+    ['at', 'attente', v => v, v => v + ' s'],
+    ['si', 'silence', v => v, v => mmss(v)],
+    ['co', 'courbe', v => v / 100, v => (v / 100).toFixed(1).replace('.', ',')],
+    ['ap', 'apresCroc', v => v, v => v + ' %'],
+    ['pg', 'partConsigne', v => v, v => v + ' %'],
+    ['ps', 'partStop', v => v, v => v + ' %'],
+    ['sm', 'stopMax', v => v, v => String(v)]
+  ];
+  function litCurseurs() {
+    const o = {};
+    for (const [id, cle, conv, txt] of CURS) { const v = +$(id).value; o[cle] = conv(v); $(id + 'V').textContent = txt(v); }
+    o.ouverture = $('ouv').checked; o.finale = $('fin').checked; o.graine = +$('graine').value || 0;
+    RatVoix.reglages(o);
+  }
+  function poseCurseurs(R) {
+    for (const [id, cle, conv] of CURS) $(id).value = cle === 'courbe' ? Math.round(R[cle] * 100) : R[cle];
+    $('ouv').checked = !!R.ouverture; $('fin').checked = !!R.finale; $('graine').value = R.graine || 0;
+    litCurseurs();
+  }
+
+  // ---------- le plan, le ruban, la liste ----------
+  function replan(nouveauxCrocs) {
+    litCurseurs();
+    if (nouveauxCrocs || !crocs.length) crocs = tirerCrocs(duree);
+    plan = RatVoix.planifier(duree, { crocs });
+    dessineRuban(); dessineListe(); bilan();
+    dernier = plan.reduce((n, p, i) => p.t <= t ? i : n, -1);   // le nouveau plan reprend là où on en est
+  }
+  function dessineRuban() {
+    const R = RatVoix.actuels(), r = $('ruban');
+    r.innerHTML = '';
+    const pc = x => (100 * x / duree) + '%';
+    for (const [a, b] of [[0, Math.min(R.attente, duree * .5)], [Math.max(0, duree - R.silence), duree]]) {
+      if (b <= a) continue;
+      const d = document.createElement('div'); d.className = 'silence';
+      d.style.left = pc(a); d.style.width = pc(b - a); r.appendChild(d);
+    }
+    for (const c of crocs) { const d = document.createElement('div'); d.className = 'croc'; d.style.left = pc(c); r.appendChild(d); }
+    for (const p of plan) {
+      const d = document.createElement('div'); d.className = 'mk ' + p.r; d.style.left = pc(p.t);
+      d.title = horloge(p.t) + ' · ' + RatVoix.nom(p.r) + ' · ' + p.texte; r.appendChild(d);
+    }
+    const tete = document.createElement('div'); tete.className = 'tete'; tete.id = 'tete'; tete.style.left = pc(t); r.appendChild(tete);
+  }
+  function dessineListe() {
+    const c = $('corps'); c.innerHTML = '';
+    for (let i = 0; i < plan.length; i++) {
+      const p = plan[i], tr = document.createElement('tr');
+      tr.innerHTML = '<td class="t">' + horloge(p.t) + '</td><td><span class="reg ' + p.r + '">' + RatVoix.nom(p.r) +
+        '</span></td><td>' + p.texte.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td><td class="son">' + p.id + ' · ' + RatVoix.pret(p.id) +
+        '</td><td><button class="btn2 mini" data-i="' + i + '">écouter</button></td>';
+      c.appendChild(tr);
+    }
+    c.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      brancher(); montre(plan[+b.dataset.i]); RatVoix.dire(plan[+b.dataset.i], {}); RapRat.ondes(.9);
+    }));
+  }
+  function bilan() {
+    const R = RatVoix.actuels(), n = r => plan.filter(p => p.r === r).length;
+    const parles = plan.filter(p => p.r !== 'o' && p.r !== 'f');
+    let mini = Infinity;
+    for (let i = 1; i < parles.length; i++) mini = Math.min(mini, parles[i].t - parles[i - 1].t);
+    const tenues = parles.length;
+    $('bilan').innerHTML = '<b>' + tenues + '</b> paroles tenues' +
+      (tenues < Math.round(R.nombre) ? ' sur les <b>' + Math.round(R.nombre) + '</b> demandées (l’écart minimum et le silence de la fin ne laissent pas la place)' : '') +
+      ' — <b>' + n('c') + '</b> commentaires, <b>' + n('g') + '</b> consignes, <b>' + n('s') + '</b> stop' +
+      (n('o') ? ', une ouverture' : '') + (n('f') ? ', une finale' : '') +
+      '. Une parole toutes les <b>' + (tenues > 1 ? Math.round((parles[tenues - 1].t - parles[0].t) / (tenues - 1)) : 0) +
+      ' s</b> en moyenne, la plus rapprochée à <b>' + (isFinite(mini) ? Math.round(mini) : '—') + ' s</b>.';
+  }
+
+  // ---------- dérouler la partie ----------
+  // Se poser à l'instant x de la partie. « saut » distingue les deux usages : on se pose
+  // (clic sur le ruban, changement de durée) et il faut alors rattraper les paroles déjà
+  // passées sans les dire, ou bien le temps avance tout seul et c'est la boucle qui les dit —
+  // recalculer l'index dans ce cas-là revenait à les sauter toutes.
+  function placer(x, saut = true) {
+    x = Math.max(0, Math.min(duree, x));
+    const avant = t; t = x;
+    // Recomposer la tranche coûte cher (elle se redessine en entier) : on ne le fait que
+    // lorsqu'une morsure tombe, sinon le déroulé prend trois fois le temps qu'il devrait.
+    const voulu = crocs.filter(c => c <= t).length;
+    if (voulu < crocFait) { RapRat.efface(); crocFait = 0; if (!voulu) RapRat.redessine(); }   // en arrière : on repart de la tranche entière
+    if (voulu > crocFait) { RapRat.bites(voulu - crocFait, crocFait); crocFait = voulu; }   // bites() recompose et redessine
+    if (saut) { dernier = plan.reduce((n, p, i) => p.t <= t ? i : n, -1); if (avant !== t) cache(); }
+    const tete = $('tete'); if (tete) tete.style.left = (100 * t / duree) + '%';
+    $('ouEnEst').textContent = horloge(t) + ' sur ' + horloge(duree) + ' · ' + crocFait + ' crocs';
+  }
+  let ditT = null;
+  function montre(p) {
+    const d = $('dit');
+    d.className = 'vu r-' + p.r;
+    d.querySelector('b').textContent = RatVoix.nom(p.r);
+    d.querySelector('span').textContent = p.texte;
+    clearTimeout(ditT); ditT = setTimeout(cache, 4200);
+  }
+  function cache() { $('dit').className = ''; }
+  let der = performance.now();
+  function boucle(now) {
+    const dt = Math.min(.25, (now - der) / 1000); der = now;
+    if (joue) {
+      placer(t + dt * +$('vitesse').value, false);
+      while (dernier + 1 < plan.length && plan[dernier + 1].t <= t) {
+        const p = plan[++dernier];
+        montre(p);
+        const l = $('corps').children;
+        for (const tr of l) tr.classList.remove('ici');
+        if (l[dernier]) { l[dernier].classList.add('ici'); l[dernier].scrollIntoView({ block: 'nearest' }); }
+        // Dans l'appli les ondes ne partent que s'il parle vraiment ; ici elles partent toujours,
+        // même sans enregistrement : c'est un atelier, on regarde le rythme.
+        RatVoix.dire(p, {}); RapRat.ondes(p.r === 's' ? 1.25 : .85);
+      }
+      if (t >= duree) { joue = false; $('jouer').textContent = 'Dérouler la partie'; }
+    }
+    requestAnimationFrame(boucle);
+  }
+
+  // ---------- le son ----------
+  let branche = false;
+  function brancher() { if (!branche) { RatVoix.audio(RapRat.contexte()); RatVoix.charger(plan); branche = true; } etatSon(); }
+  function etatSon() {
+    const ids = plan.map(p => p.id), ok = ids.filter(i => RatVoix.pret(i) === 'oui').length;
+    $('etatSon').innerHTML = ok ? '<b>' + ok + '</b> enregistrements trouvés sur ' + ids.length :
+      'aucun enregistrement dans <code>sons/rat/</code> : coche la voix de dépannage pour entendre le rythme.';
+  }
+
+  // ---------- les répliques ----------
+  function dessineRep() {
+    const l = RatVoix.repliques(), c = $('corpsRep');
+    c.innerHTML = '';
+    for (let i = 0; i < l.length; i++) {
+      const x = l[i], tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td><input type="text" class="id" value="' + x.id + '" style="width:5em"></td>' +
+        '<td><select class="r">' + ['o', 'c', 'g', 's', 'f'].map(r => '<option value="' + r + '"' + (r === x.r ? ' selected' : '') + '>' + RatVoix.nom(r) + '</option>').join('') + '</select></td>' +
+        '<td><input type="number" class="q q0" min="0" max="100" value="' + Math.round(x.q[0] * 100) + '"> <input type="number" class="q q1" min="0" max="100" value="' + Math.round(x.q[1] * 100) + '"></td>' +
+        '<td><input type="text" class="t" value="' + x.t.replace(/"/g, '&quot;') + '"></td>' +
+        '<td><button class="btn2 mini ec">écouter</button> <button class="btn2 mini su">×</button></td>';
+      tr.querySelector('.ec').addEventListener('click', () => {
+        brancher();
+        const p = { id: tr.querySelector('.id').value, r: tr.querySelector('.r').value, texte: tr.querySelector('.t').value };
+        p.son = RatVoix.chemin(p.id);
+        montre(p); RatVoix.charger([p]); setTimeout(() => { RatVoix.dire(p, {}); RapRat.ondes(.9); }, 120);
+      });
+      tr.querySelector('.su').addEventListener('click', () => { tr.remove(); });
+      c.appendChild(tr);
+    }
+  }
+  function litRep() {
+    const out = [];
+    for (const tr of $('corpsRep').querySelectorAll('tr')) {
+      const id = tr.querySelector('.id').value.trim(), t = tr.querySelector('.t').value.trim();
+      if (!id || !t) continue;
+      const a = +tr.querySelector('.q0').value / 100, b = +tr.querySelector('.q1').value / 100;
+      out.push({ id, r: tr.querySelector('.r').value, q: [Math.min(a, b), Math.max(a, b)], t });
+    }
+    return out;
+  }
+  function sortie(s) { $('sortie').value = s; $('sortie').focus(); $('sortie').select(); }
+
+  // ---------- les commandes ----------
+  for (const [id] of CURS) $(id).addEventListener('input', () => replan(false));
+  for (const id of ['ouv', 'fin']) $(id).addEventListener('change', () => replan(false));
+  $('graine').addEventListener('change', () => replan(false));
+  $('vo').addEventListener('input', () => { $('voV').textContent = $('vo').value + ' %'; RatVoix.volume(+$('vo').value / 100); });
+  $('sec').addEventListener('change', () => RatVoix.secours($('sec').checked));
+  $('defaut').addEventListener('click', () => { poseCurseurs(RatVoix.parDefaut()); replan(false); });
+  $('garderReg').addEventListener('click', () => { litCurseurs(); RatVoix.garderReglages(); $('etatRep').textContent = 'réglages gardés.'; });
+  $('autre').addEventListener('click', () => { placer(0); replan(true); });
+  $('jouer').addEventListener('click', () => {
+    brancher();
+    if (!joue && t >= duree) placer(0);
+    joue = !joue; $('jouer').textContent = joue ? 'Arrêter' : 'Dérouler la partie';
+  });
+  $('ruban').addEventListener('click', e => {
+    const r = $('ruban').getBoundingClientRect();
+    placer((e.clientX - r.left) / r.width * duree);
+  });
+  $('ajouter').addEventListener('click', () => {
+    const l = litRep();
+    l.push({ id: 'c' + String(l.filter(x => x.r === 'c').length + 1).padStart(2, '0'), r: 'c', q: [0, 1], t: 'À écrire.' });
+    RatVoix.garder(l); dessineRep();
+  });
+  $('garderRep').addEventListener('click', () => {
+    const l = litRep(); RatVoix.garder(l); replan(false); dessineRep();
+    $('etatRep').innerHTML = '<b>' + l.length + '</b> répliques gardées (elles valent aussi pour l’appli, sur ce navigateur).';
+  });
+  $('revenir').addEventListener('click', () => { RatVoix.oublier(); poseCurseurs(RatVoix.actuels()); dessineRep(); replan(false); $('etatRep').textContent = 'retour aux répliques du code.'; });
+  $('feuille').addEventListener('click', () => {
+    const l = litRep(), par = { o: 'OUVERTURE', c: 'COMMENTAIRES', g: 'CONSIGNES', s: 'STOP', f: 'FINALE' };
+    let s = 'Feuille d’enregistrement — la voix du rat\n' +
+      'Un fichier par ligne, dans sons/rat/, au nom indiqué. Les … sont des silences à tenir.\n' +
+      'Bas, la bouche pleine, ton d’ennui. Il ne félicite jamais.\n';
+    for (const r of ['o', 'c', 'g', 's', 'f']) {
+      const h = l.filter(x => x.r === r);
+      if (!h.length) continue;
+      s += '\n' + par[r] + '\n';
+      for (const x of h) s += '  ' + (x.id + '.wav').padEnd(10) + '  ' + x.t + '\n';
+    }
+    sortie(s);
+  });
+  $('export').addEventListener('click', () => {
+    const l = litRep();
+    let s = '  // collé depuis l’Atelier du rat le ' + new Date().toLocaleDateString('fr-FR') + '\n  const REPLIQUES = [\n';
+    let prec = null;
+    for (const x of l) {
+      if (prec && prec !== x.r) s += '\n';
+      prec = x.r;
+      s += '    { id: \'' + x.id + '\', r: \'' + x.r + '\', q: [' + (+x.q[0].toFixed(2)) + ', ' + (+x.q[1].toFixed(2)) + '], t: \'' +
+        x.t.replace(/\\/g, '\\\\').replace(/'/g, '\\u2019') + '\' },\n';
+    }
+    sortie(s.replace(/,\n$/, '\n') + '  ];');
+  });
+  $('pourClaude').addEventListener('click', () => {
+    const R = RatVoix.actuels(), l = litRep();
+    let s = 'Atelier du rat — ' + new Date().toLocaleString('fr-FR') + '\n' +
+      'Réglages : ' + Object.entries(R).map(([k, v]) => k + '=' + v).join(' ') + '\n' +
+      'Partie de ' + duree / 60 + ' min : ' + plan.length + ' paroles.\n' +
+      'Le plan, une ligne par parole : instant (s) | registre | fichier | texte\n';
+    for (const p of plan) s += p.t.toFixed(1) + ' | ' + RatVoix.nom(p.r) + ' | ' + p.id + ' | ' + p.texte + '\n';
+    s += '\nLes répliques, une ligne par réplique : fichier | registre | fenêtre | texte\n';
+    for (const x of l) s += x.id + ' | ' + x.r + ' | ' + Math.round(x.q[0] * 100) + '-' + Math.round(x.q[1] * 100) + ' | ' + x.t + '\n';
+    sortie(s);
+  });
+
+  // ---------- au départ ----------
+  // L'appli réserve de la place pour ses barres tant qu'elles ne sont pas vraiment « hidden » :
+  // les cacher en CSS ne suffit pas, la tranche se retrouve écrasée en haut de la scène.
+  function cacher() { for (const id of ['idleBar', 'runBar', 'endBar', 'header', 'banner', 'turn']) $(id).hidden = true; }
+  const sel = $('duree');
+  for (let m = 10; m <= 60; m += 5) sel.insertAdjacentHTML('beforeend', '<option value="' + m + '"' + (m === 15 ? ' selected' : '') + '>' + m + ' min</option>');
+  sel.addEventListener('change', () => { duree = +sel.value * 60; placer(0); replan(true); });
+  poseCurseurs(RatVoix.actuels());
+  RatVoix.volume(1);
+  dessineRep();
+  replan(true);
+  cacher(); RapRat.ajuste();
+  placer(0);
+  requestAnimationFrame(boucle);
+  document.addEventListener('pointerdown', brancher, { once: true });
+})();
+</script>
+</body>
+</html>

@@ -530,6 +530,7 @@
     vctx.drawImage(comp, (w - dw) / 2, top + (ah - dh) / 2, dw, dh);
     cadreVu = { x: (w - dw) / 2, y: top + (ah - dh) / 2, w: dw, h: dh, vw: w, vh: h };
     if (introStart !== null) drawIntro(frozen !== null ? frozen : (performance.now() - introStart) / 1000, (w - dw) / 2, top + (ah - dh) / 2, dw, dh);
+    else if (ondesVives.length) drawOndes((w - dw) / 2, top + (ah - dh) / 2, dw, dh);
     vctx.globalAlpha = 1;
   }
   let reshapeT = null;
@@ -1359,6 +1360,57 @@
     }
     c.restore();
   }
+  // ---------- quand le rat parle : des ondes partent du trou ----------
+  // Il ne se montre jamais (décidé avec Fabien) : sa présence, c'est sa voix, et ces ondes.
+  // Les mêmes que l'ouverture, en plus douces et plus lentes. Rien d'autre à l'écran : pas de
+  // sous-titre, pas de secousse — il ne reste que le fromage et le son.
+  let ondesVives = [];
+  function ondes(force = 1) { ondesVives.push({ t0: performance.now() / 1000, f: force }); }
+  function drawOndes(x0, y0, dw, dh) {
+    const c = vctx, cx = x0 + dw / 2, cy = y0 + dh / 2, r0 = Math.min(dw, dh) * .13;
+    const now = performance.now() / 1000, big = Math.hypot(dw, dh) * .62;
+    c.save(); c.beginPath(); c.rect(x0, y0, dw, dh); c.clip();
+    for (const o of ondesVives) {
+      const tt = now - o.t0;
+      for (let i = 0; i < 3; i++) {
+        const rad = (tt - i * .11) * big * .8;
+        if (rad <= 0) continue;
+        const life = Math.max(0, 1 - rad / big);
+        if (life <= 0) continue;
+        c.beginPath();
+        for (let j = 0; j <= 90; j++) {
+          const a = j / 90 * TAU, w = rad * (1 + .03 * Math.sin(a * 6 + i * 2 + tt * 7));
+          j ? c.lineTo(cx + Math.cos(a) * w, cy + Math.sin(a) * w) : c.moveTo(cx + Math.cos(a) * w, cy + Math.sin(a) * w);
+        }
+        c.lineWidth = r0 * .26 * (.5 + .5 * life) * o.f;
+        c.strokeStyle = `rgba(206,214,218,${.32 * life * o.f})`; c.stroke();
+        c.lineWidth *= .35; c.strokeStyle = `rgba(250,250,245,${.28 * life * o.f})`; c.stroke();
+      }
+    }
+    c.restore();
+    ondesVives = ondesVives.filter(o => now - o.t0 < 1.9);
+  }
+
+  // ---------- la voix du rat (js/rat.js) ----------
+  // Le plan des paroles est tiré au départ de la partie, en même temps que celui des morsures,
+  // et il connaît leurs instants : le rat parle souvent la bouche pleine, juste après un croc.
+  // Tant qu'un enregistrement manque, dire() rend false et il ne se passe rien — l'appli reste
+  // muette, sans ondes, jusqu'à ce que les .wav soient dans sons/rat/.
+  let planVoix = [], prochaineVoix = 0;
+  function voixPlan() {
+    planVoix = []; prochaineVoix = 0;
+    if (!window.RatVoix) return;
+    RatVoix.audio(ac);
+    planVoix = RatVoix.planifier(duration, { crocs: times });
+  }
+  function voixTick() {
+    if (!window.RatVoix) return;
+    while (prochaineVoix < planVoix.length && elapsed >= planVoix[prochaineVoix].t) {
+      const p = planVoix[prochaineVoix++];
+      if (RatVoix.dire(p, { son: soundOn })) ondes(p.r === 's' ? 1.25 : .85);
+    }
+  }
+
   function thud() {
     if (!soundOn || !ac) return;
     const t0 = ac.currentTime + .005, o = ac.createOscillator(), g = ac.createGain();
@@ -1370,13 +1422,14 @@
   function start() {
     ensureAudio();
     duration = durMin * 60; times = schedule(duration); next = 0; elapsed = 0; last = Date.now();
+    voixPlan();
     if (!lidTex) lidTex = makeLid();
     introStart = performance.now(); state = 'intro'; setBanner(''); keepAwake(); render(); hideControls();
   }
   function pause() { if (state !== 'running') return; state = 'paused'; letSleep(); setBanner('Pause'); render(); showControls(); }
   function resume() { if (state !== 'paused') return; ensureAudio(); state = 'running'; last = Date.now(); setBanner(''); keepAwake(); render(); hideControls(); }
   function end() { state = 'ended'; letSleep(); hideControls(); setBanner('Plus de fromage !<small>Le rat a tout mangé.</small>'); render(); }
-  function toIdle() { introStart = null; state = 'idle'; elapsed = 0; letSleep(); setBanner(''); if (Math.abs(stageAspect() - A) > .01 || cells < cells0) resetCheese(); render(); }
+  function toIdle() { introStart = null; state = 'idle'; elapsed = 0; letSleep(); setBanner(''); planVoix = []; prochaineVoix = 0; ondesVives = []; if (window.RatVoix) RatVoix.stop(); if (Math.abs(stageAspect() - A) > .01 || cells < cells0) resetCheese(); render(); }
 
   let prevNow = performance.now();
   function tick(now) {
@@ -1394,8 +1447,10 @@
       if (t >= END) introStart = null;
       draw();
     }
+    if (ondesVives.length && introStart === null) draw();
     if (state === 'running') {
       const wall = Date.now(); elapsed += (wall - last) / 1000; last = wall;
+      voixTick();
       let bit = false, final = false;
       while (next < times.length && elapsed >= times[next]) {
         bite(next, times.length); bit = true; if (next === times.length - 1) final = true; next++;
@@ -1455,6 +1510,9 @@
     trous: () => nTrous,
     actuels: () => ({ foyers: FOYERS, reste: RESTE, pres: PRES, regroupe: REGROUPE, etale: ETALE, miette: MIETTE, creux: CREUX, finseuil: FINSEUIL, dehors: DEHORS, ouvre: OUVRE, reprise: REPRISE, paroi: PAROI, epaisseur: EPAISSEUR }),
     ajuste() { fit(); },                                      // recaler la toile sur sa boîte
+    // ---- pour l'Atelier du rat (outils/atelier-rat.html) ----
+    ondes(f = 1) { ondes(f); draw(); },                        // les ondes qui partent du trou quand il parle
+    contexte() { ensureAudio(); return ac; },                  // l'atelier branche la voix sur le même son
     // ---- pour l'Atelier des morsures (outils/atelier-morsures.html) ----
     // un croc s'y décrit par { x, y, nx, ny, R, push, forme } : x, y le point du bord visé (en
     // largeurs de tranche), nx, ny la normale vers l'extérieur, R le rayon, forme celle de tirerForme()

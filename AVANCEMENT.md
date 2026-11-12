@@ -5,6 +5,26 @@ Carnet de bord du projet : où on en est, ce qui est décidé, ce qui vient apr�
 
 ## Objectif du moment
 
+**Un vrai jeu avec le rat, moins enfantin que l'original** (demandé le 12/11/2026). Fabien :
+« faire en sorte qu'il soit plus une présence qui pop de temps en temps, mais qui n'interrompt
+pas forcément le jeu […] il dirait juste stop dans certains cas […] sinon il ferait juste des
+commentaires sur les joueurs et leur dire quoi faire », pour des ados « voire au-delà ».
+
+Première étape **faite (v64)** : la couche de voix par-dessus le minuteur, et l'Atelier du rat
+pour la régler — voir « La voix du rat » tout en bas. L'idée était de juger le ton et le rythme
+avant d'écrire la moindre règle de jeu, parce que c'est là que tout se joue et que ça se juge à
+l'oreille, pas sur le papier.
+
+**Prochaine action : les enregistrements.** Rien ne s'entend tant que les `.wav` ne sont pas
+dans `sons/rat/` ; la feuille d'enregistrement sort de l'Atelier du rat et se découpe dans
+l'Atelier du son. Ensuite seulement, les règles du jeu (les trois pistes proposées : le fromage
+horloge **et** enjeu, le troc, le complice secret — voir CLAUDE.md).
+
+Les anciens chantiers (les morsures, le fromage, le son du croc, le plein écran) sont faits ;
+la piste gardée en réserve reste celle des vraies silhouettes de morsures de la cassette.
+
+## L'ancien objectif (morsures), gardé pour mémoire
+
 **Les morsures, faites par Fabien lui-même** (demandé le 07/11/2026). C'est dur à décrire,
 alors il veut un atelier très complet : il y fait les crocs à la main pour me montrer ce qu'il
 cherche. Il veut régler leur forme (« littéralement les formes », il enverra peut-être des
@@ -1110,3 +1130,58 @@ quand il est à 0 il n'y a pas le problème ». `tirerForme` : `advance` = 0 ; l
 défaut. Six parties : dernier morceau 1,45 à 1,52 croc, aucun croc vide, 0 à 3 détections de
 `traitsDroits` (bords festonnés). La piste des vraies silhouettes reste notée ci-dessus si Fabien
 veut aller plus loin. Vérifié sur l'ordinateur seulement.
+
+## La voix du rat (v64)
+
+Fabien, le 12/11/2026, ouvre un chantier neuf : un vrai jeu avec le rat, « moins enfantin » que
+l'original, pour des ados voire au-delà. Le rat ne doit plus interrompre sans arrêt mais passer
+de temps en temps : des commentaires, des ordres donnés aux joueurs, et « stop » seulement dans
+certains cas. Je lui ai proposé une conception complète (le hors-champ, le changement de rôle,
+les trois registres, le budget de parole, la désignation sans prénoms, les mécaniques qui
+rendent le rat conséquent) — tout est résumé dans CLAUDE.md. Il a retenu la première étape :
+la couche de voix, réglable dans un atelier, avant toute règle de jeu.
+
+**`js/rat.js`** — le moteur, partagé par l'appli et l'atelier, pour qu'il n'y ait jamais deux
+rythmes. Il donne un plan de paroles (`planifier`) et sait en dire une (`dire`) ; il ne dessine
+rien et ne connaît pas la partie. Réglages dans `R0`, 51 répliques d'origine dans `REPLIQUES`
+(3 ouvertures, 25 commentaires, 16 consignes, 6 stop, 1 finale), chacune avec sa fenêtre
+d'avancement (une réplique de fin de partie ne tombe pas au début) et le nom du `.wav` à
+enregistrer. Jamais deux fois la même réplique dans une partie.
+
+Comment le plan est tiré : la densité monte avec l'avancement (`courbe`), l'écart minimum est
+tenu en poussant vers la fin, puis quatre paroles sur dix se collent **juste après une
+morsure** — il parle la bouche pleine — mais seulement si le décalage garde l'écart des deux
+côtés (sans cette condition, mesuré : 34 s au lieu des 45 s réglées). Les registres sont
+ensuite posés : les stop d'abord, rares, jamais dans le premier tiers, bien espacés ; puis les
+consignes ; le reste en commentaires. Les comptes ne sont pas arrondis au plus proche mais
+tirés au sort autour, sinon une partie de 15 min donnait toujours exactement 1 stop et
+4 consignes — un mélange qui sentait le calcul.
+
+Mesuré au banc (200 parties par durée, `essai-rat.js`) : en 15 min, 16 paroles tenues sur les
+18 demandées (l'écart minimum et les 2 min de silence de la fin ne laissent pas la place), une
+toutes les 48 s, la plus rapprochée à 45,0 s pile, 2 à 3 stop, 3 à 4 consignes, 9 à 11
+commentaires, aucune répétition. La graine rejoue la partie à l'identique. Les cas extrêmes
+(silence plus long que la partie, 0 parole, 100 % de consignes) ne cassent rien.
+
+**Dans l'appli** (`js/app.js`) : le plan est tiré au départ en même temps que celui des
+morsures, et il connaît leurs instants. Quand il parle, des ondes partent du trou — les mêmes
+qu'à l'ouverture, en plus douces et plus lentes (`ondes()`, `drawOndes()`). Rien d'autre :
+pas de sous-titre, pas de secousse. Tant qu'un `.wav` manque, `dire()` rend `false` et il ne se
+passe rien : **l'appli reste muette et sans ondes jusqu'aux enregistrements** (elle tente quand
+même les fetchs, ~17 404 silencieux par partie, sans conséquence). Son coupé = rat muet.
+
+**`outils/atelier-rat.html`** — la vraie tranche tourne dedans, une partie entière se déroule
+de × 1 à × 60, le ruban montre les paroles (une couleur par registre) et les crocs, on clique
+dedans pour se placer, et un sous-titre dit la réplique (l'atelier seulement). Curseurs du
+budget, tableau des répliques éditable, voix de dépannage pour juger le rythme sans rien avoir
+enregistré, et quatre sorties : feuille d'enregistrement, export du bloc `REPLIQUES`, « Copier
+pour Claude », et les répliques gardées dans le navigateur.
+
+Deux pièges trouvés en le testant, à ne pas refaire : recomposer la tranche à chaque image
+faisait avancer le déroulé trois fois trop lentement (on ne recompose que quand une morsure
+tombe), et recalculer l'index de la dernière parole à chaque image faisait **sauter toutes les
+paroles** pendant le déroulé (ce calcul n'appartient qu'au saut).
+
+Vérifié dans le navigateur de l'ordinateur : partie entière déroulée (73 crocs, 0 % de tranche,
+17 paroles dans l'ordre), exports et sauvegarde des répliques bons, l'appli tourne sans erreur.
+Pas encore essayé sur l'iPhone, et forcément pas entendu : il n'y a aucun enregistrement.
