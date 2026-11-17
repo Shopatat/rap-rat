@@ -1256,3 +1256,42 @@ partie laisse le minuteur et la barre intacts, la barre de partie fait deux rang
 tiennent dans l'écran, aucune erreur JS. **Pas vérifié : le défilement au doigt lui-même** (le
 volet était masqué, les animations y sont gelées et la capture d'écran expire), et rien de tout
 ça n'a encore été essayé sur l'iPhone.
+
+## Un bouton par chose : son, musique, morceau (v67)
+
+Fabien, le 17/11/2026, juste après la v66 (qu'il n'avait pas encore déployée, d'où l'impression
+que les réglages manquaient toujours dans la barre de partie) : « ce serait bien qu'il y ait un
+bouton pour activer, désactiver le son, un pour activer, désactiver la musique, genre qui ferait
+on-off, un bouton pour chaque, et un troisième bouton pour switcher entre les différentes
+musiques ».
+
+L'ancien bouton unique faisait thème → instru → non : pour couper la musique quand on écoutait
+le thème, il fallait passer par l'instrumental. Il est remplacé par trois boutons :
+
+- « Son : oui / non » — les crocs et la voix du rat, inchangé.
+- « Musique : oui / non » — un vrai interrupteur.
+- « Morceau : thème / instru » — le choix du morceau, séparé de l'interrupteur.
+
+Dans `js/app.js`, deux réglages gardés séparément, `piste` et `musiqueOn`, dont `morceau`
+('theme' | 'instru' | 'non') découle par `majMusique()`. Tout ce qui lisait `morceau` (la
+lecture, et `sessionAudio()` de la v65) n'a pas changé : le retrait audio quand la musique est
+coupée marche exactement pareil.
+
+Deux détails de comportement :
+
+- Couper la musique **garde** le morceau choisi : on le retrouve en rallumant.
+- Le bouton Morceau, musique coupée, la rallume au lieu de n'avoir l'air de rien faire. Il se
+  montre en retrait (`aria-pressed="false"`, le style grise le bouton) tant qu'elle est coupée.
+
+Les anciens réglages du téléphone sont repris au premier lancement : `raprat.morceau` (v33 à
+v66) donne la piste et l'état, et `raprat.music` (plus vieux encore) l'état seul. Vérifié dans
+les deux sens : « instru » redonne musique allumée sur l'instru, « non » redonne musique coupée
+sur le thème.
+
+Vérifié dans le volet navigateur, viewport 956 × 440 (à peu près l'iPhone en paysage) :
+l'interrupteur coupe et rallume, le bouton Morceau alterne et charge bien l'autre mp3 (206 sur
+`theme.mp3` puis `instrumental.mp3`), musique coupée il rallume sans changer de morceau, les
+deux exemplaires de chaque bouton restent d'accord dans les deux sens, les trois boutons tiennent
+sur une seule rangée (368 px sur 956) à l'accueil comme en partie, la barre de partie ne déborde
+pas de l'écran, aucune erreur JS (les seuls 404 sont les `.wav` du rat, qui n'existent pas
+encore). **Pas vérifié sur l'iPhone**, comme la v65 et la v66.

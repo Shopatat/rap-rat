@@ -1192,11 +1192,28 @@
   // le thème complet (3 min 38, ajouté par Fabien le 07/11/2026, par défaut)
   // et l'instrumental (1 min 25, le premier aperçu).
   const MORCEAUX = { theme: { src: 'sons/theme.mp3', nom: 'thème' }, instru: { src: 'sons/instrumental.mp3', nom: 'instru' } };
-  const CHOIX = ['theme', 'instru', 'non'];
+  const PISTES = ['theme', 'instru'];
   const music = $('music');
-  // l'ancien réglage « music » (oui / non) est repris : non reste non, oui devient le thème
-  let morceau = store.get('morceau', store.get('music', true) ? 'theme' : 'non');
-  if (!CHOIX.includes(morceau)) morceau = 'theme';
+  // Trois boutons depuis le 17/11/2026 (Fabien : « un bouton pour chaque »), donc deux réglages
+  // séparés : la musique est allumée ou non, et le morceau choisi reste le même quand on la
+  // rallume. `morceau` ('theme' | 'instru' | 'non') en découle, et c'est lui que la lecture et la
+  // session audio regardent. Les anciens réglages du téléphone sont repris.
+  let piste = store.get('piste', null), musiqueOn = store.get('musiqueOn', null);
+  if (piste === null || musiqueOn === null) {
+    // l'ancien réglage unique : « non » coupe, un nom de morceau l'allume sur ce morceau
+    const vieux = store.get('morceau', store.get('music', true) ? 'theme' : 'non');
+    if (piste === null) piste = PISTES.includes(vieux) ? vieux : 'theme';
+    if (musiqueOn === null) musiqueOn = vieux !== 'non';
+  }
+  if (!PISTES.includes(piste)) piste = 'theme';
+  musiqueOn = !!musiqueOn;
+  let morceau = musiqueOn ? piste : 'non';
+  // à appeler après avoir touché à `piste` ou `musiqueOn` : recalcule, garde, joue, réaffiche
+  function majMusique() {
+    morceau = musiqueOn ? piste : 'non';
+    store.set('piste', piste); store.set('musiqueOn', musiqueOn); store.set('morceau', morceau);
+    musicPlay(); render();
+  }
   // ---------- laisser jouer l'appli d'à côté ----------
   // Sur iPhone, une page qui fait du son coupe par défaut ce qui jouait avant (YouTube, Musique,
   // un podcast…). Depuis Safari 16.4 on peut dire lequel des deux a la priorité :
@@ -1280,8 +1297,13 @@
       b.setAttribute('aria-pressed', String(soundOn));
     }
     for (const b of deux('musicBtn')) {
-      b.textContent = 'Musique : ' + (morceau === 'non' ? 'non' : MORCEAUX[morceau].nom);
-      b.setAttribute('aria-pressed', String(morceau !== 'non'));
+      b.textContent = 'Musique : ' + (musiqueOn ? 'oui' : 'non');
+      b.setAttribute('aria-pressed', String(musiqueOn));
+    }
+    for (const b of deux('trackBtn')) {
+      b.textContent = 'Morceau : ' + MORCEAUX[piste].nom;
+      // musique coupée : le bouton se montre en retrait, mais reste utilisable (il rallume)
+      b.setAttribute('aria-pressed', String(musiqueOn));
     }
     if (state !== 'running') stage.classList.remove('nocursor');
     dimmed = state === 'paused';
@@ -1529,9 +1551,13 @@
     if (soundOn) { ensureAudio(); if (state === 'idle') crunch(false); }
     render();
   });
-  for (const b of deux('musicBtn')) b.addEventListener('click', () => {
-    morceau = CHOIX[(CHOIX.indexOf(morceau) + 1) % CHOIX.length];
-    store.set('morceau', morceau); musicPlay(); render();
+  for (const b of deux('musicBtn')) b.addEventListener('click', () => { musiqueOn = !musiqueOn; majMusique(); });
+  // Le bouton du morceau passe de l'un à l'autre, et rallume la musique si elle était coupée :
+  // sinon il n'aurait l'air de rien faire.
+  for (const b of deux('trackBtn')) b.addEventListener('click', () => {
+    if (musiqueOn) piste = PISTES[(PISTES.indexOf(piste) + 1) % PISTES.length];
+    else musiqueOn = true;
+    majMusique();
   });
   if (document.fullscreenEnabled) {
     $('fsBtn').hidden = false;
