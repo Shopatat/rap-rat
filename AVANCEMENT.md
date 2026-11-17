@@ -1209,8 +1209,10 @@ soit couper le son de l'appli et n'en garder que l'image.
 
 Vérifié sur l'ordinateur : aucune erreur, le bouton Musique tourne toujours thème → instru →
 non, et `navigator.audioSession` n'existe pas dans ce navigateur (donc le chemin sans API est
-celui qui a été exercé). **Rien n'est vérifié sur l'iPhone, et c'est le seul endroit où ça se
-joue** : à essayer avec YouTube lancé, l'appli ouverte depuis l'écran d'accueil.
+celui qui a été exercé). **Essayé par Fabien sur l'iPhone le 17/11/2026, une fois la v67
+déployée : « ça marche »** — l'appli ouverte depuis l'écran d'accueil ne coupe plus ce qui jouait
+à côté. Le détail de la contrepartie (téléphone en silencieux, plus de croc en mode `ambient`)
+n'a pas été vérifié point par point : il l'a essayé en usage normal.
 
 ## Les réglages de son en pleine partie, et la durée à la minute (v66)
 
@@ -1254,8 +1256,8 @@ est bien d'une minute, les bornes bloquent à 10 et 60 avec le bouton correspond
 les deux jeux de boutons disent toujours la même chose dans les deux sens, couper la musique en
 partie laisse le minuteur et la barre intacts, la barre de partie fait deux rangées de 44 px qui
 tiennent dans l'écran, aucune erreur JS. **Pas vérifié : le défilement au doigt lui-même** (le
-volet était masqué, les animations y sont gelées et la capture d'écran expire), et rien de tout
-ça n'a encore été essayé sur l'iPhone.
+volet était masqué, les animations y sont gelées et la capture d'écran expire). **Essayé par
+Fabien sur l'iPhone le 17/11/2026 : « ça marche »**, défilement de la durée compris.
 
 ## Un bouton par chose : son, musique, morceau (v67)
 
@@ -1294,4 +1296,5 @@ l'interrupteur coupe et rallume, le bouton Morceau alterne et charge bien l'autr
 deux exemplaires de chaque bouton restent d'accord dans les deux sens, les trois boutons tiennent
 sur une seule rangée (368 px sur 956) à l'accueil comme en partie, la barre de partie ne déborde
 pas de l'écran, aucune erreur JS (les seuls 404 sont les `.wav` du rat, qui n'existent pas
-encore). **Pas vérifié sur l'iPhone**, comme la v65 et la v66.
+encore). **Essayé par Fabien sur l'iPhone le 17/11/2026, en même temps que la v65 et la v66 :
+« ça marche »** — les trois boutons sont lisibles et utilisables dans la barre de partie.
