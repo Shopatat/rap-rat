@@ -1133,6 +1133,7 @@
   let ac = null, noise = null, croc = null, crocTried = false;
   function ensureAudio() {
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    sessionAudio();                           // avant d'ouvrir le son : voir plus bas
     if (!ac) {
       ac = new AC();
       noise = ac.createBuffer(1, Math.floor(ac.sampleRate * .6), ac.sampleRate);
@@ -1190,7 +1191,24 @@
   // l'ancien réglage « music » (oui / non) est repris : non reste non, oui devient le thème
   let morceau = store.get('morceau', store.get('music', true) ? 'theme' : 'non');
   if (!CHOIX.includes(morceau)) morceau = 'theme';
+  // ---------- laisser jouer l'appli d'à côté ----------
+  // Sur iPhone, une page qui fait du son coupe par défaut ce qui jouait avant (YouTube, Musique,
+  // un podcast…). Depuis Safari 16.4 on peut dire lequel des deux a la priorité :
+  //   « ambient »  : notre son se mélange au sien au lieu de le couper. En échange, il passe par
+  //                  l'interrupteur silencieux de l'iPhone — en mode silencieux, plus de croc.
+  //   « playback » : c'est nous qui jouons, on prend la main (et le son continue écran éteint).
+  // Demandé par Fabien le 17/11/2026 : mettre YouTube et garder le fromage à l'écran. Donc dès
+  // que sa musique à lui est coupée (« Musique : non »), on se met en retrait et on laisse
+  // l'autre appli tranquille ; dès qu'il remet la nôtre, c'est elle qui commande.
+  // Ailleurs (ordinateur, Android) `navigator.audioSession` n'existe pas : rien ne change.
+  function sessionAudio() {
+    try {
+      if (navigator.audioSession) navigator.audioSession.type = morceau === 'non' ? 'ambient' : 'playback';
+    } catch (e) {}
+  }
+
   function musicPlay() {
+    sessionAudio();
     if (!music) return;                       // l'Atelier des foyers n'a pas l'élément
     if (morceau === 'non') { music.pause(); return; }
     const src = MORCEAUX[morceau].src;

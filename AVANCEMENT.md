@@ -1185,3 +1185,29 @@ paroles** pendant le déroulé (ce calcul n'appartient qu'au saut).
 Vérifié dans le navigateur de l'ordinateur : partie entière déroulée (73 crocs, 0 % de tranche,
 17 paroles dans l'ordre), exports et sauvegarde des répliques bons, l'appli tourne sans erreur.
 Pas encore essayé sur l'iPhone, et forcément pas entendu : il n'y a aucun enregistrement.
+
+## Écouter autre chose pendant que le fromage tourne (v65)
+
+Fabien, le 17/11/2026 : « est-ce que tu peux faire en sorte que si je mets YouTube en parallèle,
+ça ne coupe pas le son ou la musique, avec Rap Rat et le fromage en visuel ». Autrement dit :
+l'appli comme image posée sur la table, la musique venant d'ailleurs.
+
+Pourquoi ça coupait : sur iPhone, une page qui joue du son prend la session audio du système et
+interrompt ce qui jouait avant. Ça valait pour notre musique **et** pour le simple croc, donc
+même « Musique : non » ne suffisait pas dès la première morsure.
+
+Ce qui est fait : `sessionAudio()` dans `js/app.js` pose `navigator.audioSession.type`
+(Safari 16.4 et plus) selon le bouton Musique, sans ajouter de réglage —
+« Musique : non » → `ambient` (notre son se mélange à l'autre appli au lieu de la couper),
+un morceau choisi → `playback` (c'est nous qui commandons, comme avant). Appelée depuis
+`musicPlay()` et depuis `ensureAudio()`, donc avant d'ouvrir le son. Entourée d'un `try` :
+là où l'API n'existe pas (ordinateur, Android), rien ne change.
+
+Contrepartie, à dire à Fabien plutôt qu'à cacher : en `ambient`, iOS fait passer notre son par
+l'interrupteur silencieux. Téléphone en silencieux, plus de croc — il faut soit la sonnerie,
+soit couper le son de l'appli et n'en garder que l'image.
+
+Vérifié sur l'ordinateur : aucune erreur, le bouton Musique tourne toujours thème → instru →
+non, et `navigator.audioSession` n'existe pas dans ce navigateur (donc le chemin sans API est
+celui qui a été exercé). **Rien n'est vérifié sur l'iPhone, et c'est le seul endroit où ça se
+joue** : à essayer avec YouTube lancé, l'appli ouverte depuis l'écran d'accueil.
