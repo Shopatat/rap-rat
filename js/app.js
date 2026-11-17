@@ -2,8 +2,13 @@
 (() => {
   // Coordinates are in "width units": x in [0,1], y in [0,A] where A = height/width of the cheese.
   const GW = 160;                 // area-tracking grid width
-  const DURATIONS = [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+  // La durée se règle à la minute, de 10 à 60 (Fabien, 17/11/2026 : les paliers de 5 minutes
+  // étaient trop grossiers). Garder le doigt sur − ou + fait défiler, de plus en plus vite.
+  const DUR_MIN = 10, DUR_MAX = 60;
   const $ = id => document.getElementById(id);
+  // Les réglages de son existent en deux exemplaires : à l'accueil, et dans la barre de partie
+  // (« 2 »). On les pilote toujours ensemble, pour qu'ils ne se contredisent jamais.
+  const deux = id => [$(id), $(id + '2')].filter(Boolean);
   const mk = () => document.createElement('canvas');
   const rnd = (a, b) => a + Math.random() * (b - a);
   const TAU = Math.PI * 2;
@@ -108,7 +113,8 @@
     get(k, d) { try { const v = localStorage.getItem('raprat.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem('raprat.' + k, JSON.stringify(v)); } catch (e) {} }
   };
-  let durMin = store.get('dur', 15); if (!DURATIONS.includes(durMin)) durMin = 15;
+  let durMin = Math.round(store.get('dur', 15));
+  if (!(durMin >= DUR_MIN && durMin <= DUR_MAX)) durMin = 15;
   let soundOn = store.get('sound', true);
 
   // ---------- cheese shape follows the screen ----------
@@ -1267,13 +1273,15 @@
     $('header').hidden = state !== 'idle';
     $('pauseBtn').textContent = state === 'paused' ? 'Reprendre' : 'Pause';
     $('durOut').textContent = durMin + ' min';
-    $('durMinus').disabled = durMin === DURATIONS[0];
-    $('durPlus').disabled = durMin === DURATIONS[DURATIONS.length - 1];
-    $('soundBtn').textContent = 'Son : ' + (soundOn ? 'oui' : 'non');
-    $('soundBtn').setAttribute('aria-pressed', String(soundOn));
-    if ($('musicBtn')) {
-      $('musicBtn').textContent = 'Musique : ' + (morceau === 'non' ? 'non' : MORCEAUX[morceau].nom);
-      $('musicBtn').setAttribute('aria-pressed', String(morceau !== 'non'));
+    $('durMinus').disabled = durMin === DUR_MIN;
+    $('durPlus').disabled = durMin === DUR_MAX;
+    for (const b of deux('soundBtn')) {
+      b.textContent = 'Son : ' + (soundOn ? 'oui' : 'non');
+      b.setAttribute('aria-pressed', String(soundOn));
+    }
+    for (const b of deux('musicBtn')) {
+      b.textContent = 'Musique : ' + (morceau === 'non' ? 'non' : MORCEAUX[morceau].nom);
+      b.setAttribute('aria-pressed', String(morceau !== 'non'));
     }
     if (state !== 'running') stage.classList.remove('nocursor');
     dimmed = state === 'paused';
@@ -1494,10 +1502,34 @@
     b.textContent = 'Sûr ? Retouche'; b.classList.add('warn');
     armed = setTimeout(() => { armed = null; b.textContent = 'Recommencer'; b.classList.remove('warn'); }, 3000);
   });
-  $('durMinus').addEventListener('click', () => { const i = DURATIONS.indexOf(durMin); if (i > 0) { durMin = DURATIONS[i - 1]; store.set('dur', durMin); render(); } });
-  $('durPlus').addEventListener('click', () => { const i = DURATIONS.indexOf(durMin); if (i < DURATIONS.length - 1) { durMin = DURATIONS[i + 1]; store.set('dur', durMin); render(); } });
-  $('soundBtn').addEventListener('click', () => { soundOn = !soundOn; store.set('sound', soundOn); if (soundOn) { ensureAudio(); crunch(false); } render(); });
-  if ($('musicBtn')) $('musicBtn').addEventListener('click', () => {
+  // Une minute par appui, et le doigt gardé dessus fait défiler : lent au début (on peut
+  // s'arrêter sur la minute voulue), puis de plus en plus vite pour traverser la plage.
+  function minutes(d) {
+    const v = Math.max(DUR_MIN, Math.min(DUR_MAX, durMin + d));
+    if (v === durMin) return false;
+    durMin = v; store.set('dur', durMin); render(); return true;
+  }
+  function defile(bouton, d) {
+    let t = null, n = 0, pointeur = 0;
+    const encore = () => { if (!minutes(d)) return; n++; t = setTimeout(encore, n < 4 ? 170 : n < 12 ? 95 : 50); };
+    const arreter = () => { clearTimeout(t); t = null; n = 0; };
+    bouton.addEventListener('pointerdown', e => {
+      e.preventDefault(); pointeur = Date.now(); minutes(d);
+      arreter(); t = setTimeout(encore, 450);
+    });
+    for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) bouton.addEventListener(ev, arreter);
+    // le clavier n'envoie pas de pointerdown : on ne compte le clic que s'il ne vient pas du doigt
+    bouton.addEventListener('click', () => { if (Date.now() - pointeur > 900) minutes(d); });
+  }
+  defile($('durMinus'), -1);
+  defile($('durPlus'), 1);
+  for (const b of deux('soundBtn')) b.addEventListener('click', () => {
+    soundOn = !soundOn; store.set('sound', soundOn);
+    // un croc pour témoin quand on rallume le son, mais pas en pleine partie : le rat s'en charge
+    if (soundOn) { ensureAudio(); if (state === 'idle') crunch(false); }
+    render();
+  });
+  for (const b of deux('musicBtn')) b.addEventListener('click', () => {
     morceau = CHOIX[(CHOIX.indexOf(morceau) + 1) % CHOIX.length];
     store.set('morceau', morceau); musicPlay(); render();
   });

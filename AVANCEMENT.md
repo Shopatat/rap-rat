@@ -1211,3 +1211,48 @@ Vérifié sur l'ordinateur : aucune erreur, le bouton Musique tourne toujours th
 non, et `navigator.audioSession` n'existe pas dans ce navigateur (donc le chemin sans API est
 celui qui a été exercé). **Rien n'est vérifié sur l'iPhone, et c'est le seul endroit où ça se
 joue** : à essayer avec YouTube lancé, l'appli ouverte depuis l'écran d'accueil.
+
+## Les réglages de son en pleine partie, et la durée à la minute (v66)
+
+Deux demandes de Fabien le 17/11/2026, dans le prolongement de la v65 :
+
+1. « Même quand on touche l'écran, on devrait avoir accès aux autres options pour remettre la
+   musique, l'enlever. Parce que là, il faut annuler le chrono en cours et être de retour au
+   menu principal. » Couper la musique coûtait la partie.
+2. « Est-ce qu'on peut régler le minuteur de manière plus précise ? Toujours de 10 à 60 minutes,
+   mais de manière plus précise. »
+
+**Le son et la musique dans la barre de partie.** Les deux mêmes boutons, sur une deuxième
+rangée de `runBar` (`soundBtn2`, `musicBtn2` dans `index.html`). `deux(id)` dans `js/app.js`
+renvoie les deux exemplaires d'un bouton, et `render()` comme les écouteurs passent par lui :
+un seul état, deux boutons qui ne peuvent pas se contredire. Les ateliers n'ont que le premier
+exemplaire, et `deux()` filtre ce qui n'existe pas — rien à changer chez eux.
+
+Trois détails qui comptent :
+
+- La barre de partie est en surimpression (`measureReserve()` ne réserve rien hors de l'accueil
+  et de la fin), donc la rangée de plus **ne rétrécit pas le fromage**.
+- Toucher un de ces boutons relance les 4 secondes d'affichage, parce que `runBar` écoute déjà
+  `pointerdown` → `showControls()`.
+- Rallumer le son ne joue le croc témoin qu'à l'accueil (`state === 'idle'`) : en pleine partie,
+  un croc de démonstration au milieu des vrais n'aurait aucun sens.
+
+**La durée à la minute.** La liste `DURATIONS` (paliers de 5) est remplacée par `DUR_MIN` = 10
+et `DUR_MAX` = 60. Un appui = une minute ; le doigt gardé sur − ou + fait défiler, lentement
+d'abord (450 ms avant de partir, puis 170 ms par minute), puis 95 ms après quatre minutes et
+50 ms après douze — traverser les 50 minutes prend environ trois secondes, et on peut encore
+s'arrêter sur la minute voulue. `defile()` dans `js/app.js`. Le `pointerdown` annule le clic qui
+suivrait (`preventDefault`), et le clic n'est compté que s'il ne vient pas du doigt : au clavier,
+Entrée fait toujours exactement une minute. La durée gardée dans le navigateur est relue par
+bornes et non plus par appartenance à la liste, donc un ancien 15 ou 45 est toujours valide.
+
+Le nombre de crocs ne change pas (`BITES` = 72) : une minute de plus ne fait qu'espacer les
+mêmes crocs, comme avant.
+
+Vérifié dans le volet navigateur (viewport 956 × 440, à peu près l'iPhone en paysage) : le pas
+est bien d'une minute, les bornes bloquent à 10 et 60 avec le bouton correspondant désactivé,
+les deux jeux de boutons disent toujours la même chose dans les deux sens, couper la musique en
+partie laisse le minuteur et la barre intacts, la barre de partie fait deux rangées de 44 px qui
+tiennent dans l'écran, aucune erreur JS. **Pas vérifié : le défilement au doigt lui-même** (le
+volet était masqué, les animations y sont gelées et la capture d'écran expire), et rien de tout
+ça n'a encore été essayé sur l'iPhone.

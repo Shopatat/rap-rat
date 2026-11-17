@@ -22,8 +22,8 @@ L'écran reste allumé pendant une partie tant que l'appli est au premier plan. 
 
 ## Comment ça marche
 
-- Avant de lancer : durée de 10 à 60 minutes (15 minutes par défaut, comme dans l'émission), son, chrono visible ou caché.
-- Pendant la partie, le fromage prend tout l'écran. Touche l'écran pour faire apparaître Pause et Recommencer quelques secondes.
+- Avant de lancer : durée de 10 à 60 minutes, à la minute (15 minutes par défaut, comme dans l'émission), son, musique. Garde le doigt sur − ou + pour défiler plus vite.
+- Pendant la partie, le fromage prend tout l'écran. Touche l'écran pour faire apparaître Pause, Recommencer, le son et la musique quelques secondes : plus besoin d'abandonner la partie pour couper la musique.
 - Les crocs ont toujours la taille de ceux de l'émission (environ 75 crocs pour manger tout le fromage). Une durée plus longue les espace davantage : un croc toutes les 8 secondes environ en 10 minutes, toutes les 12 secondes en 15 minutes, toutes les 50 secondes en 60 minutes.
 - Le dernier croc tombe pile à la fin du temps.
 

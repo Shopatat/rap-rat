@@ -38,14 +38,20 @@
     <button class="btn" id="musicBtn" type="button" aria-pressed="true">Musique : thème</button>
   </div>
   <button class="btn primary wide" id="startBtn" type="button">C'est parti !</button>
-  <span class="hint">Pendant la partie, touche l'écran pour faire apparaître la pause.</span>
+  <span class="hint">Pendant la partie, touche l'écran : pause, son et musique reviennent.</span>
 </div>
 
+<!-- Les mêmes réglages de son qu'à l'accueil (ids en « 2 », js/app.js pilote les deux
+     ensemble) : couper la musique ne doit pas obliger à abandonner la partie en cours. -->
 <div class="bar overlay away" id="runBar" hidden>
   <div class="row">
     <button class="btn primary" id="pauseBtn" type="button">Pause</button>
     <button class="btn" id="restartBtn" type="button">Recommencer</button>
     <button class="btn" id="fsBtn" type="button" hidden>Plein écran</button>
+  </div>
+  <div class="row">
+    <button class="btn" id="soundBtn2" type="button" aria-pressed="true">Son : oui</button>
+    <button class="btn" id="musicBtn2" type="button" aria-pressed="true">Musique : thème</button>
   </div>
 </div>
 
